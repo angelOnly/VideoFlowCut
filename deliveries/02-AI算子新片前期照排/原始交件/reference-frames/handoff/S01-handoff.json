@@ -1,0 +1,120 @@
+{
+  "scene": "S01",
+  "frames": [
+    0,
+    600
+  ],
+  "targetRange": [
+    0,
+    600
+  ],
+  "reference": {
+    "kind": "creative",
+    "id": "139-c02",
+    "source_sha256": "bfcd38de201fe5d0af2d9bc12093beb867d6e5079b239f4047740fb43fd473f9",
+    "start_ms": 16000,
+    "end_ms": 28200,
+    "card": "[原项目文件未随包]",
+    "preview_url": "[本机服务地址，未随包]"
+  },
+  "beats": [
+    {
+      "start_ms": 16000,
+      "end_ms": 19550,
+      "observed_relation": "- 16–约 20 秒，浅灰桌面俯拍，沿斜角铺【报纸组】及深色【档案册】。移动至带【报纸图片】的报纸，保留报头和照片边界，局部用光影强调。"
+    },
+    {
+      "start_ms": 19550,
+      "end_ms": 26000,
+      "observed_relation": "- 约 20–26 秒，切正面档案墙，居中浅纸边【人物肖像卡】，下方小衬线【人物姓名】。外围分布【相关档案图】，红色【证据连线】在边角图钉之间连出框形及斜线，中心再叠手绘红圈指人物。"
+    },
+    {
+      "start_ms": 26000,
+      "end_ms": 28200,
+      "observed_relation": "- 约 26–28.4 秒，沿同一关系墙移近右上【焦点照片】，中央肖像部分仍留在左下，红线不离开它的端点，保留两者关系后切出。"
+    }
+  ],
+  "rationale": "同一材料从斜桌面进入档案墙且能连续推向右上回应，保住中心人物档案身份，以实有的原文署名卡替代肖像。",
+  "replacements": [
+    {
+      "name": "报纸组",
+      "kind": "asset",
+      "assetId": "asset_087003c7-fd79-42f1-8a93-aecca7dd9d48"
+    },
+    {
+      "name": "档案册",
+      "kind": "asset",
+      "assetId": "asset_0cee09d3-f581-4844-82d2-86363fcdd94a"
+    },
+    {
+      "name": "报纸图片",
+      "kind": "asset",
+      "assetId": "asset_087003c7-fd79-42f1-8a93-aecca7dd9d48"
+    },
+    {
+      "name": "人物肖像卡",
+      "kind": "asset",
+      "assetId": "asset_087003c7-fd79-42f1-8a93-aecca7dd9d48"
+    },
+    {
+      "name": "人物姓名",
+      "kind": "text",
+      "text": "刘胜与"
+    },
+    {
+      "name": "相关档案图",
+      "kind": "asset",
+      "assetId": "asset_7b915b26-d1cf-48a2-a311-e6e8ec86d692"
+    },
+    {
+      "name": "证据连线",
+      "kind": "text",
+      "text": "锈红色纸页锚线"
+    },
+    {
+      "name": "焦点照片",
+      "kind": "asset",
+      "assetId": "asset_7b915b26-d1cf-48a2-a311-e6e8ec86d692"
+    }
+  ],
+  "assets": [
+    "asset_087003c7-fd79-42f1-8a93-aecca7dd9d48",
+    "asset_7b915b26-d1cf-48a2-a311-e6e8ec86d692",
+    "asset_0cee09d3-f581-4844-82d2-86363fcdd94a",
+    "asset_66603579-3dc4-48c4-8f96-227bbad4b163"
+  ],
+  "framesObserved": [
+    {
+      "ms": 16100,
+      "projectFrame": 40,
+      "original": "reference-frames/S01/16100-original.jpg",
+      "marked": "reference-frames/S01/16100-marked.jpg"
+    },
+    {
+      "ms": 19900,
+      "projectFrame": 211,
+      "original": "reference-frames/S01/19900-original.jpg",
+      "marked": "reference-frames/S01/19900-marked.jpg"
+    },
+    {
+      "ms": 25100,
+      "projectFrame": 430,
+      "original": "reference-frames/S01/25100-original.jpg",
+      "marked": "reference-frames/S01/25100-marked.jpg"
+    },
+    {
+      "ms": 27433,
+      "projectFrame": 560,
+      "original": "reference-frames/S01/27433-original.jpg",
+      "marked": "reference-frames/S01/27433-marked.jpg"
+    }
+  ],
+  "draftPath": "reference-frames/handoff/S01-作者正式拆解.md",
+  "assetBindings": [
+    {
+      "name": "外围左下工作照",
+      "kind": "asset",
+      "assetId": "asset_66603579-3dc4-48c4-8f96-227bbad4b163"
+    }
+  ]
+}

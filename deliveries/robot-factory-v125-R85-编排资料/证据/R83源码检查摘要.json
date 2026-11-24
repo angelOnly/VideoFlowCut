@@ -1,0 +1,162 @@
+{
+  "projectId": "project_3e23a0e7-5140-4e3d-b695-80de699b1e99",
+  "revision": 83,
+  "workId": "motion_work_dc0bb7ecf58dbf257a35b78e21753077ed810aa9f37f5eb1e00c006029d41187",
+  "workVersion": "dad0acf29ab627539962039a2d0b4cf1f307ac899aaa62c08d16e791eee4478d",
+  "definitionHash": "cf778626382d659f7fc80ded4857996a5da19fe54bacab98e4ff25911fbe1fc6",
+  "evidencePath": "源码技术检查帧",
+  "report": {
+    "status": "exact",
+    "maxAllowedChannelDelta": 2,
+    "sampledFrames": [
+      165,
+      234,
+      281,
+      282,
+      401,
+      415,
+      416,
+      1095,
+      1105,
+      1120,
+      1134,
+      1135,
+      1462
+    ],
+    "visitOrder": {
+      "ascending": [
+        165,
+        234,
+        281,
+        282,
+        401,
+        415,
+        416,
+        1095,
+        1105,
+        1120,
+        1134,
+        1135,
+        1462
+      ],
+      "samePageReverse": [
+        1462,
+        1135,
+        1134,
+        1120,
+        1105,
+        1095,
+        416,
+        415,
+        401,
+        282,
+        281,
+        234,
+        165
+      ],
+      "cleanPageReverse": [
+        1462,
+        1135,
+        1134,
+        1120,
+        1105,
+        1095,
+        416,
+        415,
+        401,
+        282,
+        281,
+        234,
+        165
+      ]
+    },
+    "failedFrames": [],
+    "differences": [],
+    "events": [
+      {
+        "id": "hypothesis_single99",
+        "meaning": "假设单次99%，与真实空翻分区",
+        "startFrame": 53,
+        "endFrame": 206
+      },
+      {
+        "id": "independent_results",
+        "meaning": "相互独立条件建立",
+        "startFrame": 124,
+        "endFrame": 206
+      },
+      {
+        "id": "hundred_trials",
+        "meaning": "连续100次，产线转为左下主体并与右侧大数字共构",
+        "startFrame": 218,
+        "endFrame": 280
+      },
+      {
+        "id": "probability_formula",
+        "meaning": "先建立连续成功问题与幂式，结果尚不出现",
+        "startFrame": 234,
+        "endFrame": 282
+      },
+      {
+        "id": "probability_result",
+        "meaning": "约37%揭示，产线转右侧主体，结果与条件居左",
+        "startFrame": 282,
+        "endFrame": 319
+      },
+      {
+        "id": "human_intervention",
+        "meaning": "自动恢复文字撤下，改为需要停下来找人处理",
+        "startFrame": 401,
+        "endFrame": 564
+      },
+      {
+        "id": "exception_condition",
+        "meaning": "不同现场仅用于一般异常处理条件示意，不宣称真实故障",
+        "startFrame": 416,
+        "endFrame": 564
+      },
+      {
+        "id": "factory_questions",
+        "meaning": "长时间稳定、异常处理、人员看守三个问题逐步建立",
+        "startFrame": 602,
+        "endFrame": 762
+      },
+      {
+        "id": "fixed_task_relations",
+        "meaning": "零件位置、设备衔接、动作路径与固定工位共构",
+        "startFrame": 840,
+        "endFrame": 1010
+      },
+      {
+        "id": "independent_picture_enter",
+        "meaning": "黄色机械臂仍在时另一现场的人形画面独立建立",
+        "startFrame": 1095,
+        "endFrame": 1105
+      },
+      {
+        "id": "independent_picture_hold",
+        "meaning": "独立新画面保持可辨，两条素材各沿自身源时钟",
+        "startFrame": 1105,
+        "endFrame": 1120
+      },
+      {
+        "id": "new_subject_push",
+        "meaning": "新主体推进，同时旧工位、文字及分隔轴退让",
+        "startFrame": 1120,
+        "endFrame": 1135
+      },
+      {
+        "id": "new_subject_takeover",
+        "meaning": "人形机器人取得主画面，不重置源时间",
+        "startFrame": 1135,
+        "endFrame": 1463
+      },
+      {
+        "id": "conditional_future",
+        "meaning": "未来也许的条件性表达，不扩写厂商演示为普遍事实",
+        "startFrame": 1372,
+        "endFrame": 1463
+      }
+    ]
+  }
+}

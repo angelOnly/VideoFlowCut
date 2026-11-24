@@ -1,0 +1,444 @@
+[
+  {
+    "scene": "S01",
+    "referenceId": "019-c01",
+    "sourceSha256": "08dc7c678268220494966cc35b640a4de454a82d078b250f79200c7db5af8b9f",
+    "startMs": 11500,
+    "endMs": 25000,
+    "workFrames": [
+      0,
+      660
+    ],
+    "citation": "[本机服务地址，未随包]",
+    "cardPath": "cases/vince-builds-355650-original/creative/c01.md",
+    "sourcePath": "[原项目文件未随包]",
+    "sourceRelativePath": "cases/vince-builds-355650-original/video.mp4",
+    "label": "从链接进入网页，把一条修改意见固定到原位置",
+    "beats": [
+      {
+        "startMs": 11500,
+        "endMs": 18500,
+        "text": "**约 11.500–18.500 秒。** 回到原页的较近裁切，左侧原题与右侧主图同框。绿色高亮按原题三行的行宽逐次贴入，指针靠近对应字而非照片。左边白浮签先放同名【网页原题】局部缩略，其下逐字呈【建议原文】，右下绿色圆钮留提交。浮卡覆盖部分旧网页但不要挡住右图，页面保持同一字号和位置直到进入下一布局。",
+        "frameMs": 12200,
+        "annotatedFramePath": "reference/S01-12200-标注.jpg",
+        "cleanFramePath": "reference/S01-12200.jpg"
+      },
+      {
+        "startMs": 18500,
+        "endMs": 25000,
+        "text": "**约 18.500–25.000 秒。** 将原页可见范围收成右侧选区，保留原题、绿色行底、标记点。左侧白色意见卡从头部及【选区截图】开始建立，逐行添【建议原文】和【提交状态】，淡绿细边框收口。意见与选区稳定并列到切出。所有界面可用同源静态截屏分层，选择框跟网页对象，提交动画只执行一次。按 25.000 秒切出。",
+        "frameMs": 20100,
+        "annotatedFramePath": "reference/S01-20100-标注.jpg",
+        "cleanFramePath": "reference/S01-20100.jpg"
+      }
+    ],
+    "clocks": [
+      12200,
+      20100
+    ],
+    "replacements": {
+      "网页原题": {
+        "file": "liu.png",
+        "crop": "x195–1025/y376–475"
+      },
+      "网页主图": {
+        "file": "liu.png",
+        "crop": "x355–938/y744–1000，报道内嵌原文封面"
+      },
+      "建议原文": {
+        "file": "liu-prediction.png",
+        "text": "半年到一年｜从亲手写到指挥 AI"
+      },
+      "选区截图": {
+        "file": "liu.png",
+        "crop": "与原题同一裁切缩小"
+      },
+      "提交状态": {
+        "text": "个人预测"
+      }
+    },
+    "note": "原片 11.5 秒附近仍有短分享卡残留，进入标题时原帧 12.200 秒较稳定。标题是媒体报道，左卡为解说提炼。将原界面提交动作改成揭出限定，保留卡附着于原题的位置与先后。",
+    "clockMap": [
+      0,
+      365,
+      660
+    ],
+    "mediaSha256": "475e8775d66be8ec5ad4bc74f715ead6a893b7df2a0065275e82cc597c814744"
+  },
+  {
+    "scene": "S02",
+    "referenceId": "034-c03",
+    "sourceSha256": "08dc7c678268220494966cc35b640a4de454a82d078b250f79200c7db5af8b9f",
+    "startMs": 52000,
+    "endMs": 59800,
+    "workFrames": [
+      660,
+      1500
+    ],
+    "citation": "[本机服务地址，未随包]",
+    "cardPath": "cases/wani-shola-459278-original/creative/c03.md",
+    "sourcePath": "[原项目文件未随包]",
+    "sourceRelativePath": "cases/wani-shola-459278-original/video.mp4",
+    "label": "用项目页面、活动材料和数据分别支撑不同工作能力",
+    "beats": [
+      {
+        "startMs": 52000,
+        "endMs": 54300,
+        "text": "米白底上左列排【项目题与说明】，右边近六成幅的深色【项目页】从低对比进入原位；给整个页面外沿留足浅底。",
+        "frameMs": 52900,
+        "annotatedFramePath": "reference/S02-52900-标注.jpg",
+        "cleanFramePath": "reference/S02-52900.jpg"
+      },
+      {
+        "startMs": 54300,
+        "endMs": 56700,
+        "text": "保持【项目页】同位同幅，左列由浅灰短线定位，先补【指标组】首条，再补下一条，数值和单位各占一列。",
+        "frameMs": 54400,
+        "annotatedFramePath": "reference/S02-54400-标注.jpg",
+        "cleanFramePath": "reference/S02-54400.jpg"
+      },
+      {
+        "startMs": 56700,
+        "endMs": 59800,
+        "text": "【指标组】达到可读终态；右侧【项目页】保持，后续换页前先做整体退淡。",
+        "frameMs": 57200,
+        "annotatedFramePath": "reference/S02-57200-标注.jpg",
+        "cleanFramePath": "reference/S02-57200.jpg"
+      }
+    ],
+    "clocks": [
+      52900,
+      54400,
+      57200
+    ],
+    "authored": [
+      "米白底上左列排【项目题与说明】，右边近六成幅的深色【项目页】从低对比进入原位；给整个页面外沿留足浅底。",
+      "保持【项目页】同位同幅，左列由浅灰短线定位，先补【指标组】首条，再补下一条，数值和单位各占一列。",
+      "【指标组】达到可读终态；右侧【项目页】保持，后续换页前先做整体退淡。"
+    ],
+    "cardExcerpt": "画面中让能力说明紧邻对应证据，必要时保留时间、样本和来源；再汇总真正可比的指标，并说明这些经验如何连接当前需求。",
+    "replacements": {
+      "项目题与说明": {
+        "text": "算子｜模型做计算用的底层程序；AlphaEvolve｜Google DeepMind（2025）"
+      },
+      "项目页": {
+        "file": "google.png",
+        "crop": "x152–1448/y555–1000 只取彩峰配图，另承接同页标题；前置 code.png 文件树与 About"
+      },
+      "指标组": {
+        "text": "23%｜其中一项底层计算提速；约 1%｜Gemini 整体训练用时缩短；人设定任务、验证结果",
+        "file": "google-numbers.png"
+      }
+    },
+    "note": "原卡未提供分拍标记，三句为作者按实际源画序补写。原片读数从零递增，迁移为逐行揭出固定读数，防止旁白读数与中途动画冲突。右侧彩峰为发布页配图，统计口径由文字和原文摘录交代。",
+    "clockMap": [
+      660,
+      895,
+      1130,
+      1500
+    ],
+    "mediaSha256": "9a96c85f4562f438327a2a01e9a3fcb6112bc7a9756f28939a8b03a64daeb884"
+  },
+  {
+    "scene": "S03",
+    "referenceId": "010-c05",
+    "sourceSha256": "08dc7c678268220494966cc35b640a4de454a82d078b250f79200c7db5af8b9f",
+    "startMs": 47000,
+    "endMs": 57000,
+    "workFrames": [
+      1500,
+      2340
+    ],
+    "citation": "[本机服务地址，未随包]",
+    "cardPath": "cases/hsanat-012699-original/creative/c05.md",
+    "sourcePath": "[原项目文件未随包]",
+    "sourceRelativePath": "cases/hsanat-012699-original/video.mp4",
+    "label": "用逐项聚焦的功能列表，接到单独突出的一句边界",
+    "beats": [
+      {
+        "startMs": 47000,
+        "endMs": 52800,
+        "text": "**47.000–约 52.800 秒。** 浅白底，右上带淡粉晕。用纵向列表逐项移动【功能短句组】，左边约 x8%，当前项落画面中部。粗黑当前项下贴更细灰色【功能小注组】，相邻项留在其上、其下的淡灰状态，读完一项再将下一行移入同一个阅读位置。约 48 秒换第二项，约 49 秒换第三项，约 50.5 秒第四项，约 51.5 秒第五项并稳定。行间隔保持，避免将五项同时做成同级黑字。离开中心的字还能淡读一拍，直至整组退场。短句是独立文字层，可移动或淡显，无需以录像充数。",
+        "frameMs": 47400,
+        "annotatedFramePath": "reference/S03-47400-标注.jpg",
+        "cleanFramePath": "reference/S03-47400.jpg"
+      },
+      {
+        "startMs": 52800,
+        "endMs": 57000,
+        "text": "**约 52.800–57.000 秒。** 整幅从浅粉白转为暗炭紫。列表全部让出。中央偏左用白粗【边界主句】单行建立，后补白灰细【边界小注】，两到三行紧贴，字号约主句四成。没有其他卡片与边界句并排。读完停稳，按 57.000 秒切出。",
+        "frameMs": 55100,
+        "annotatedFramePath": "reference/S03-55100-标注.jpg",
+        "cleanFramePath": "reference/S03-55100.jpg"
+      }
+    ],
+    "clocks": [
+      47400,
+      55100
+    ],
+    "replacements": {
+      "功能短句组": {
+        "text": "绕过联网隔离｜未经允许协作｜侵入第三方平台"
+      },
+      "功能小注组": {
+        "text": "2026 年 7 月｜内部网络安全评估；部分研究模型；防护弱于对外部署系统",
+        "file": "openai-title.png"
+      },
+      "边界主句": {
+        "text": "完成任务 ≠ 遵守边界"
+      },
+      "边界小注": {
+        "text": "内部评估发现｜范围限于相关研究模型与评估环境"
+      }
+    },
+    "note": "先读官方报告标题，保持下半区三条字在同一位置经过。只画事件类别及边界结论，不用本可识别的真实操作图。只列三项，沿用一项前后保留淡字。炭底终拍把报告移出，以原片清楚的独立句收口。",
+    "clockMap": [
+      1500,
+      2080,
+      2340
+    ],
+    "mediaSha256": "e04846abbb6e2ad648a94e5beff04142117c326df7d804885ea6d60ee3a95b00"
+  },
+  {
+    "scene": "S04",
+    "referenceId": "015-c02",
+    "sourceSha256": "08dc7c678268220494966cc35b640a4de454a82d078b250f79200c7db5af8b9f",
+    "startMs": 9000,
+    "endMs": 12700,
+    "workFrames": [
+      2340,
+      2730
+    ],
+    "citation": "[本机服务地址，未随包]",
+    "cardPath": "cases/thismacapital-375808-original/creative/c02.md",
+    "sourcePath": "[原项目文件未随包]",
+    "sourceRelativePath": "cases/thismacapital-375808-original/video.mp4",
+    "label": "先展示三个目的地，再将它们并排收进品牌结尾",
+    "beats": [
+      {
+        "startMs": 9000,
+        "endMs": 10000,
+        "text": "**9.000–约 10.000 秒。** 【海岸镜头】满铺，海线从左入，白沙偏右，树叶在右上近层。左下大白粗【地名一】，同边留距。极小浅字在画顶，不抢阅读。",
+        "frameMs": 9400,
+        "annotatedFramePath": "reference/S04-9400-标注.jpg",
+        "cleanFramePath": "reference/S04-9400.jpg"
+      },
+      {
+        "startMs": 10000,
+        "endMs": 11500,
+        "text": "**约 10.000–11.500 秒。** 用亮蓝斜边短过门换【城市镜头】，蓝天、天际线及水中倒影占满幅，左下同字号【地名二】。再换【瀑布镜头】，保留落水、暗绿岸及暖灰天空，白粗【地名三】落在下缘空位。每个镜头自入场至过门完整播放，不用冻结或循环作为实景动作。",
+        "frameMs": 10300,
+        "annotatedFramePath": "reference/S04-10300-标注.jpg",
+        "cleanFramePath": "reference/S04-10300.jpg"
+      },
+      {
+        "startMs": 11500,
+        "endMs": 12700,
+        "text": "**约 11.500–12.700 秒。** 深蓝背景中把同一批实景分别裁成三个等宽竖卡，在 x4%–96% 并列，同上底线和窄暗缝。每卡左下留对应【地名一】【地名二】【地名三】，比满幅字号小；顶上居中添白色【合组标题】，一行细粗字。三窗从出现到整体退场同留。采用动态时用各已见镜头的连续可用源段，保持辨认特征；仅作范围小结时允许从三条镜头各抽一帧定格。",
+        "frameMs": 12100,
+        "annotatedFramePath": "reference/S04-12100-标注.jpg",
+        "cleanFramePath": "reference/S04-12100.jpg"
+      }
+    ],
+    "clocks": [
+      9400,
+      10300,
+      12100
+    ],
+    "replacements": {
+      "海岸镜头": {
+        "file": "racks-c.jpg",
+        "crop": "左侧机柜局部 x0–720，保留门框和指示灯"
+      },
+      "城市镜头": {
+        "file": "racks-c.jpg",
+        "crop": "中段机柜局部 x545–1265，保留网格与线缆"
+      },
+      "瀑布镜头": {
+        "file": "racks-c.jpg",
+        "crop": "宽视野机房图，自 x90 至 1710，宽窗与竖窗均可辨"
+      },
+      "地名一": {
+        "text": "自己这边"
+      },
+      "地名二": {
+        "text": "别人那边"
+      },
+      "地名三": {
+        "text": "共同场域"
+      },
+      "合组标题": {
+        "text": "谁先放慢？"
+      }
+    },
+    "note": "三个原片可辨景别映射为同一通用机房照的两个局部和全局。原片运动属于海水、瀑布，替换照容许静止；本片运动由两条示意进度线完成，第三窗只作环境。三窗成为同时在场后一线停一线走，各自配同一颜色的旧标签，不出现合作口号。",
+    "clockMap": [
+      2340,
+      2420,
+      2520,
+      2730
+    ],
+    "mediaSha256": "0c01f0e8745891818f39dc91027c48abf6a81785426cbd6fc557e89261c77f0e"
+  },
+  {
+    "scene": "S05",
+    "referenceId": "015-c01",
+    "sourceSha256": "08dc7c678268220494966cc35b640a4de454a82d078b250f79200c7db5af8b9f",
+    "startMs": 0,
+    "endMs": 8700,
+    "workFrames": [
+      2730,
+      3180
+    ],
+    "citation": "[本机服务地址，未随包]",
+    "cardPath": "cases/thismacapital-375808-original/creative/c01.md",
+    "sourcePath": "[原项目文件未随包]",
+    "sourceRelativePath": "cases/thismacapital-375808-original/video.mp4",
+    "label": "用机票明确顾客责任，再让行李上方轮换服务状态",
+    "beats": [
+      {
+        "startMs": 0,
+        "endMs": 2000,
+        "text": "**0.000–约 2.000 秒。** 浅灰白底。左侧 x7% 起以黑粗无衬线排三行【责任主句】，末行天蓝。右面悬略仰斜的【机票票面】，亮蓝票头与白卡有层次，【起程代码】【目的代码】同一行分列黑粗字，两码间留细连接；下缘和右缘放更小的辅助格式。票面可用静图稍转。",
+        "frameMs": 1200,
+        "annotatedFramePath": "reference/S05-1200-标注.jpg",
+        "cleanFramePath": "reference/S05-1200.jpg"
+      },
+      {
+        "startMs": 2000,
+        "endMs": 4000,
+        "text": "**约 2.000–4.000 秒。** 整幅切亮蓝。中央先放粗白【蓝底过门甲】；下一句【蓝底过门乙】同位取代，强调部分放白承托内，以亮蓝字呈现。上侧与周边留浅细弧线和白色小纸飞机，辅件短移，文字稳留直到下一拍。",
+        "frameMs": 2660,
+        "annotatedFramePath": "reference/S05-2660-标注.jpg",
+        "cleanFramePath": "reference/S05-2660.jpg"
+      },
+      {
+        "startMs": 4000,
+        "endMs": 8700,
+        "text": "**约 4.000–8.700 秒。** 切回浅底，略上方居中【状态总句】，深字与青强调分组。小深蓝【行李箱】固定在中央偏下，带浅蓝边和几处亮色小点，左右留低亮弧线。行李正上安置白圆角状态条，同一槽逐项换【服务名称组】，左端为小方青图标，右端齐边放蓝胶囊【办理状态组】。每条先可读服务项再换下一项。箱体在整个列表段都留在原位，允许照片定格或轻摆；状态动画绑定条目，不反复循环成未办。",
+        "frameMs": 5750,
+        "annotatedFramePath": "reference/S05-5750-标注.jpg",
+        "cleanFramePath": "reference/S05-5750.jpg"
+      }
+    ],
+    "clocks": [
+      1200,
+      2660,
+      5750
+    ],
+    "replacements": {
+      "责任主句": {
+        "text": "阿莫代伊｜政策主张"
+      },
+      "机票票面": {
+        "file": "policy.png",
+        "crop": "x506–950/y20–325 保留作者、标题和月份"
+      },
+      "起程代码": {
+        "text": "前沿模型"
+      },
+      "目的代码": {
+        "text": "部署前"
+      },
+      "蓝底过门甲": {
+        "text": "达到一定规模的前沿模型"
+      },
+      "蓝底过门乙": {
+        "text": "先过独立测试这一关"
+      },
+      "状态总句": {
+        "text": "部署前的两个关口"
+      },
+      "行李箱": {
+        "file": "policy.png",
+        "crop": "与机票票面同一原图缩回居中"
+      },
+      "服务名称组": {
+        "file": "policy-testing.png",
+        "text": "合格第三方强制测试｜政府可叫停风险不可接受的部署"
+      },
+      "办理状态组": {
+        "text": "政策主张｜政策主张"
+      }
+    },
+    "note": "政策页题头代替机票与行李，后半可复认。状态胶囊承接侧标，但不可使用绿色勾、‘已获批’、‘已经生效’。亮蓝过门用统一暗青底，原来的文字接续与状态槽位置不变。",
+    "clockMap": [
+      2730,
+      2855,
+      2940,
+      3180
+    ],
+    "mediaSha256": "0c01f0e8745891818f39dc91027c48abf6a81785426cbd6fc557e89261c77f0e"
+  },
+  {
+    "scene": "S06",
+    "referenceId": "016-c01",
+    "sourceSha256": "08dc7c678268220494966cc35b640a4de454a82d078b250f79200c7db5af8b9f",
+    "startMs": 8500,
+    "endMs": 15061,
+    "workFrames": [
+      3180,
+      3600
+    ],
+    "citation": "[本机服务地址，未随包]",
+    "cardPath": "cases/monokern-613142-original/creative/c01.md",
+    "sourcePath": "[原项目文件未随包]",
+    "sourceRelativePath": "cases/monokern-613142-original/video.mp4",
+    "label": "让不同作品先独立建立，再由字带接成同一个作品集",
+    "beats": [
+      {
+        "startMs": 8500,
+        "endMs": 11500,
+        "text": "**约 8.500–11.500 秒。** 黑底错叠【作品墙组】，至少复用前面已辨认的作品，各自保留原有黑白反差。前层用两条跨幅斜字带，红底黑字与白底黑字交叉，填【作品带文字】。交叉带允许持续滑动，作品墙退为后层但仍可辨。随后切近黑底，以一屏一组【大字短组】快速切换，红粗字占主体；接满红底上的白大字。",
+        "frameMs": 10300,
+        "annotatedFramePath": "reference/S06-10300-标注.jpg",
+        "cleanFramePath": "reference/S06-10300.jpg"
+      },
+      {
+        "startMs": 11500,
+        "endMs": 15061,
+        "text": "**约 11.500–15.061 秒。** 红底复用开场色，左上区以小浅字和低亮深红行排【作者声明】【声明细行】。底端黑色超粗【作者姓名】贴近画边，近满宽，避免挤占声明阅读。至片尾切出。",
+        "frameMs": 13700,
+        "annotatedFramePath": "reference/S06-13700-标注.jpg",
+        "cleanFramePath": "reference/S06-13700.jpg"
+      }
+    ],
+    "clocks": [
+      10300,
+      13700
+    ],
+    "replacements": {
+      "作品墙组": {
+        "file": "liu.png",
+        "otherFiles": [
+          "google.png",
+          "openai-title.png",
+          "policy.png"
+        ],
+        "crop": "四份前文出现过的题头或主图，网格错叠而可辨"
+      },
+      "作品带文字": {
+        "text": "职业问题｜控制问题"
+      },
+      "大字短组": {
+        "text": "交给 AI 的工作｜留在人手里的决定权"
+      },
+      "作者声明": {
+        "text": "哪些事，AI 即使做得到"
+      },
+      "声明细行": {
+        "text": "也无权擅自去做？"
+      },
+      "作者姓名": {
+        "text": "决定权"
+      }
+    },
+    "note": "原卡概括作品墙从约 8.5 秒开始，实见前段短留个人陈列至约 9.4 秒，先留上一场政策页再收进墙。卡句写‘接满红底上的白大字’，实见有红底黑字、近黑红字、浅底黑字等相邻状态；本片沿其亮暗交替和同一位置接手，不照搬品牌色。跨幅带运动时四窗必须同时可辨，暗青/白硬切后长留决定权。",
+    "clockMap": [
+      3180,
+      3430,
+      3600
+    ],
+    "mediaSha256": "dcb04019807fb6cbc68ab735127901d70bfb3fbed67d9a2ffc8a9cbb67dff8db"
+  }
+]

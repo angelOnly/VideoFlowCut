@@ -1,0 +1,335 @@
+{
+  "说明": "本清单不包含自身。拷贝后的媒体与原始文件逐一核对 SHA-256；创意卡中的路径按交付目录调整。",
+  "files": [
+    {
+      "path": "01_主导演与整片编排.md",
+      "bytes": 6275,
+      "sha256": "702b909671b6fb49c8416f4a22373c9da298983becc5f30338ceb1b0ae234d1e"
+    },
+    {
+      "path": "02_创意作者到视觉作者的迁移链.md",
+      "bytes": 11690,
+      "sha256": "35a30f072d28da8a845053f82d711591dc88f0b9a43a56a1f5841438b2631e6b"
+    },
+    {
+      "path": "03_视觉到OD的制作与返修.md",
+      "bytes": 5044,
+      "sha256": "29a77a70149a34d94a182002b3415b41ef7ddb4f6ad8443bdbc1c5f3c1afc90d"
+    },
+    {
+      "path": "04_素材源码与关键决策.md",
+      "bytes": 7528,
+      "sha256": "ccf05540719c3fa3e65d75efb25dd3ce5ff09597026ea94038b296265180e1e8"
+    },
+    {
+      "path": "参考原片/032/来源地址.txt",
+      "bytes": 91,
+      "sha256": "383e90c37a13eaff553a8cabc485615a418a127dc8d051373eeffc37adf92313"
+    },
+    {
+      "path": "参考原片/032/mechanisms/m09.jpg",
+      "bytes": 315374,
+      "sha256": "cfa0a848f5bde1c1596fe1044fa08715c7f606da2c609b42e3ac314865e9beaa"
+    },
+    {
+      "path": "参考原片/032/mechanisms/m09.md",
+      "bytes": 5308,
+      "sha256": "726768bd4805b14a564add7c313e86fa13f58aa861c7d6b4b990caed876f2ae7"
+    },
+    {
+      "path": "参考原片/032/mechanisms/m09.mp4",
+      "bytes": 2098191,
+      "sha256": "62c5ef8bfeb99f48f5396c9612b64b761fabcbfcef616b2cb2022991bf5ceac4"
+    },
+    {
+      "path": "参考原片/032/video.mp4",
+      "bytes": 1801653,
+      "sha256": "789e7fd9f7fef23d1b3c365b1f6127aecda24eeec4b5a8c8bf7962476a5c5315"
+    },
+    {
+      "path": "参考原片/130/来源地址.txt",
+      "bytes": 99,
+      "sha256": "d29c0b3740193ebfa41ba6eb39bef771d0de85424a6587858dd6f98fb4fb2b05"
+    },
+    {
+      "path": "参考原片/130/creative/c01.md",
+      "bytes": 2836,
+      "sha256": "0856eb52886e359ed7cf1884fa2cd1a0455020d9b702cd765657fc41f77ff80f"
+    },
+    {
+      "path": "参考原片/130/storyboards/creative-c01.jpg",
+      "bytes": 439913,
+      "sha256": "c44f3e2868e71c331ba95b109dfdb0a20b3735fcda6148d0e61cd977ad11a1be"
+    },
+    {
+      "path": "参考原片/130/video.mp4",
+      "bytes": 2836988,
+      "sha256": "e5575f7f14cf1972b486e07d90ac1f00a5fd43cce36863e7831d98a1f5fdd4f4"
+    },
+    {
+      "path": "参考原片/134/来源地址.txt",
+      "bytes": 120,
+      "sha256": "e94af1982ec11c305e781c10ac6845063ec34f088423801af27ffb64775e9b5e"
+    },
+    {
+      "path": "参考原片/134/creative/c02.md",
+      "bytes": 2674,
+      "sha256": "69ff9efe1a3ef22841a2c2beb3542bc566f3340a4cc150b33d09e7b135ef74cb"
+    },
+    {
+      "path": "参考原片/134/creative/c02.mp4",
+      "bytes": 11857399,
+      "sha256": "ffeecbef1282832d3d174ec1989f5ba2b5eb4958b98013e09e49fd26f245a0bd"
+    },
+    {
+      "path": "参考原片/134/storyboards/creative-c02.jpg",
+      "bytes": 839705,
+      "sha256": "91be9e812e0c9bf48d96d3c261c1733a7f34cdc325b92557442a2a4f45fc9f35"
+    },
+    {
+      "path": "参考原片/134/video.mp4",
+      "bytes": 111764542,
+      "sha256": "7149ad97990a4b0de348fde50918bdd58d78943093bc2e0cefd3120475a40ecd"
+    },
+    {
+      "path": "成片/robot-factory-v125-r85.mp4",
+      "bytes": 77065304,
+      "sha256": "71a430100845f708d60b0125e19fc2753ffee05877ddcb315930fbbadaf042ba"
+    },
+    {
+      "path": "动效源码/.author-inputs/car.jpg",
+      "bytes": 262613,
+      "sha256": "6f8977bdb0f6df008a00a0637456a0189d0e19ac5f6a1f129bfe7d9e9c87df82"
+    },
+    {
+      "path": "动效源码/.author-inputs/flip.jpg",
+      "bytes": 295403,
+      "sha256": "4e4ccae7287ab5aa69ea71aa05648180eef6c99fe1ae5e62f04f3920d2a6f416"
+    },
+    {
+      "path": "动效源码/.author-inputs/humanoidA.jpg",
+      "bytes": 161064,
+      "sha256": "3ac6a0091598ac961f8faa2877b13e7a0dfed703f78bb1f885f01d8181e009e5"
+    },
+    {
+      "path": "动效源码/.author-inputs/humanoidB.jpg",
+      "bytes": 257335,
+      "sha256": "1b3237453a761844f77b420fe00bc41a043ebd4d317be2e35c16a104d2c330ce"
+    },
+    {
+      "path": "动效源码/.author-inputs/ref130.jpg",
+      "bytes": 121529,
+      "sha256": "ec6f60a810e66751e8a8c78579c037b8cb29a1b3270bb32bd65c375e965e4d00"
+    },
+    {
+      "path": "动效源码/.author-inputs/ref134.jpg",
+      "bytes": 177776,
+      "sha256": "b9b82521a3738e12abdbd6395075ff1038175a82600a86a803d442e3a573e0f6"
+    },
+    {
+      "path": "动效源码/.author-inputs/white.jpg",
+      "bytes": 165139,
+      "sha256": "cd342caa39e5729cd17dc60b6ac25f1c693cb1b0ff413588837425c49f4573c4"
+    },
+    {
+      "path": "动效源码/.author-inputs/yellow-handoff.jpg",
+      "bytes": 140134,
+      "sha256": "adcbcb6504d48881c7fe6fd8698fcc52abd6f5cdbf48583faf6b67409264ea00"
+    },
+    {
+      "path": "动效源码/R76_阶段源码.html",
+      "bytes": 7145,
+      "sha256": "89c8b92df40f8bb0cb6a370ccc0aa737ffe514d501bc2e487994c4801cde3fbe"
+    },
+    {
+      "path": "动效源码/robot-factory.authored.json",
+      "bytes": 4978,
+      "sha256": "0b615e1919c4648131cc4fed28d8e028334984bffa6715c325671c0940734a17"
+    },
+    {
+      "path": "动效源码/robot-factory.html",
+      "bytes": 19488,
+      "sha256": "b29b480aa0911f0844bbb8e5a2f02381a522622e1f2aad49e2367dce43a1f389"
+    },
+    {
+      "path": "素材原始来源地址.txt",
+      "bytes": 876,
+      "sha256": "2862d7d6941e6216d23893f6e3b81665e3328fc4f0b7767f6446d4718fc4e2c8"
+    },
+    {
+      "path": "证据/创意与导演决策.json",
+      "bytes": 8282,
+      "sha256": "5156315ac6c80217e1ecc93fb1a20af03b00f77cdcf9f2df37c526c385de3532"
+    },
+    {
+      "path": "证据/视觉交接片段.json",
+      "bytes": 11357,
+      "sha256": "f565f45f78c37b5175868dd9ed165d050f509fc827faadfae4ae6434dc36e76f"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00165.png",
+      "bytes": 2492592,
+      "sha256": "1f85bc9dc42862903608d28cc99aef96eac1c0ded5c8e62125d11249be84b894"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00234.png",
+      "bytes": 1706961,
+      "sha256": "478cf5459b98324c70edce64b48c7853e971def920a36796c014a1d0e1b3600c"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00281.png",
+      "bytes": 1832720,
+      "sha256": "7ed993a49ce2bcd232d46f139b7471671a615d5b9d40855cccecde34489f191b"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00282.png",
+      "bytes": 1825190,
+      "sha256": "13a9f9e3805cc4ef6cc3fd90feb5a11fd303cacc83439397295120bba5156143"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00401.png",
+      "bytes": 2304542,
+      "sha256": "b48aaa679ed329a282df77c8fac9011f940ac8e1a827628284ccc4f4383320c6"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00415.png",
+      "bytes": 2318382,
+      "sha256": "19935b8a927e10d0b490c410366a5138182accfee634fc088d468964fad029d1"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-00416.png",
+      "bytes": 914710,
+      "sha256": "b616f1ef74a43efe3a51e7dc255f5cf8f2a9075e5c8b078a30128bccb5029937"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-01095.png",
+      "bytes": 922546,
+      "sha256": "3d4f5786116b7409d5b9797637b49fb4f5191e87c5b648610b5903fb326d7844"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-01105.png",
+      "bytes": 1169299,
+      "sha256": "83951617f3bc99797528ef6e747fe4540fc38cd30c32868cda6f1f2bdb2df002"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-01120.png",
+      "bytes": 1152772,
+      "sha256": "7733a0399ac31d43551f92b7de2004543ec1cce7fb0885a87a35028606d4292a"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-01134.png",
+      "bytes": 1783765,
+      "sha256": "7aac3334593c2f5a83b365d3e6da0876757830aabe70da88c89c7e335d2819a1"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-01135.png",
+      "bytes": 1771324,
+      "sha256": "59ef2fa6e5da832c0d34fe76d1ce3e5a020a2a1f3140e0e1765f1290a7ddf753"
+    },
+    {
+      "path": "证据/源码技术检查帧/frame-01462.png",
+      "bytes": 1711029,
+      "sha256": "d3771a118e1f5b0433b013e186168d0f5099c130b0b9cc47c37853d6abae1842"
+    },
+    {
+      "path": "证据/R83源码检查摘要.json",
+      "bytes": 3984,
+      "sha256": "42043f969a33a4b4e33b47c732cd244b76f819b50a97121d89c7171ac7f6d28a"
+    },
+    {
+      "path": "证据/R85时间线与字幕.json",
+      "bytes": 30378,
+      "sha256": "73a72ab7bd1eb54ae058e84946c05d95c66045fa27fe4e5385458050f65fe607"
+    },
+    {
+      "path": "制作记录/时间计划.md",
+      "bytes": 1565,
+      "sha256": "3e8cd151e76e813b43b027564ec16fbda3f614753d1750a6fcdd557b49fd4654"
+    },
+    {
+      "path": "制作记录/视觉导演稿.md",
+      "bytes": 8488,
+      "sha256": "875c75136658c5c7a9e6e9b091fdfca540cd0bf0694cee42f4157fe7785dcee0"
+    },
+    {
+      "path": "制作记录/OD首版与返修原始记录.md",
+      "bytes": 11023,
+      "sha256": "d3ca7fd13ed8f1170bcfbc058e8d213ba12eea1f16e763d95dca54336f9bb383"
+    },
+    {
+      "path": "assets/source/2f4177008746b6d23937.mp4",
+      "bytes": 67565505,
+      "sha256": "2f4177008746b6d2393720786c3f6a9a1ecea3b57a98119d973529a5a898fdae"
+    },
+    {
+      "path": "assets/source/71cd4ea39edcc7532672.mp3",
+      "bytes": 3232566,
+      "sha256": "71cd4ea39edcc7532672bd97311abadfd318d00e7a828310a88b4f57fad9cd48"
+    },
+    {
+      "path": "assets/source/773cba4e18d9bda0bdcb.mp4",
+      "bytes": 5226677,
+      "sha256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e"
+    },
+    {
+      "path": "assets/source/e1f2a8684b7a05eb7150.mp4",
+      "bytes": 18294998,
+      "sha256": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36"
+    },
+    {
+      "path": "assets/source/e92d979d5aa2138720f5.mp4",
+      "bytes": 24828284,
+      "sha256": "e92d979d5aa2138720f5ebb15bb8376913855fb626c822ab41efe01f3b5e6720"
+    },
+    {
+      "path": "assets/source/faf6a40b0f52c079e02b.mp4",
+      "bytes": 27939053,
+      "sha256": "faf6a40b0f52c079e02b6d0fa439ea260b54602491d12c74b19e9d8a81c505a5"
+    },
+    {
+      "path": "assets/speech/旁白总轨.wav",
+      "bytes": 2341518,
+      "sha256": "e37f0a3e525bbde4d4047396f6a5b874a908fc805c7bf09a00755eddf66528ce"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_12f66979-0beb-4842-9bf8-ea777221e93a-audio_00001.flac",
+      "bytes": 56567,
+      "sha256": "99088b15f45b34c215b967f8b4f7e7b4553c251652f568988c5651fc28a7eb48"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_3633859e-656b-4250-8734-94a5f4bc9bcd-audio_00001.flac",
+      "bytes": 137168,
+      "sha256": "e7252a42169c943f1893a2701e8ae402a31967aacf90fcf0e836cdc58d107ee7"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_4fa778f2-f5f5-46c1-a1d1-da5107df7e99-audio_00001.flac",
+      "bytes": 180700,
+      "sha256": "52b75e69953afbebdeea278f792a709f8a25b78058ef3d225495cb54c452833a"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_59fe4495-c8ef-498c-aa2f-1a05e5e99755-audio_00001.flac",
+      "bytes": 216720,
+      "sha256": "72b4064b5e3b3186eef1154b60915dc496eeb9cbf33d140612a33631bbf65b1e"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_6e836b42-e0f5-442d-8695-4621a4185929-audio_00001.flac",
+      "bytes": 142326,
+      "sha256": "3256fb793bc7c4c7fd661f6b19863e61afe4ace80414430945a6f7acc5a33226"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_770cffb7-ce78-42a8-accc-d85df97b4619-audio_00001.flac",
+      "bytes": 214221,
+      "sha256": "9eb6063f638e470d3e81a0cd93dae9319277dffef0bfde48e6526f753d010263"
+    },
+    {
+      "path": "assets/speech/job_c3d71538-b23b-4e8c-9676-297e6e947300/speech_segment_d09595f5-fe84-479f-aea9-626b714a36df-audio_00001.flac",
+      "bytes": 88061,
+      "sha256": "4c59b3570d67757a8c9327181c7a50ba360f6ececbfac14938642d873b49b57c"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3732,
+      "sha256": "9d97f4161212226f0f9371d038b9e5d2dda5803b7cbc4175f48542c07c511610"
+    }
+  ]
+}

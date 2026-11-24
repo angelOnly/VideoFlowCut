@@ -1,0 +1,91 @@
+{
+  "work": {
+    "name": "机器人进工厂｜真实素材正式首版",
+    "compositing": "opaque",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 1463,
+    "fontBindings": {
+      "title": "noto-sans-sc-bold",
+      "body": "noto-sans-sc-regular"
+    },
+    "videoBindings": {
+      "flip": {
+        "assetId": "asset_54bafc32-c0a2-4e90-99ed-5c5a1bd774c1",
+        "sourceStartMs": 18000,
+        "sourceEndMs": 23500,
+        "startFrame": 0,
+        "endFrame": 165
+      },
+      "car": {
+        "assetId": "asset_3424e6c8-cc7a-40ec-a444-683108d50737",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8367,
+        "startFrame": 165,
+        "endFrame": 416
+      },
+      "yellowA": {
+        "assetId": "asset_dc2caf08-7456-4577-89e9-517364b717f1",
+        "sourceStartMs": 0,
+        "sourceEndMs": 4933,
+        "startFrame": 416,
+        "endFrame": 564
+      },
+      "humanoidA": {
+        "assetId": "asset_91d7724e-5463-4ffc-b3f6-8f16be293b63",
+        "sourceStartMs": 0,
+        "sourceEndMs": 6667,
+        "startFrame": 564,
+        "endFrame": 764
+      },
+      "white": {
+        "assetId": "asset_03fe0c4e-877a-492d-b914-858dcc8320ac",
+        "sourceStartMs": 0,
+        "sourceEndMs": 8300,
+        "startFrame": 764,
+        "endFrame": 1013
+      },
+      "yellowB": {
+        "assetId": "asset_dc2caf08-7456-4577-89e9-517364b717f1",
+        "sourceStartMs": 4933,
+        "sourceEndMs": 9000,
+        "startFrame": 1013,
+        "endFrame": 1135
+      },
+      "humanoidB": {
+        "assetId": "asset_91d7724e-5463-4ffc-b3f6-8f16be293b63",
+        "sourceStartMs": 14000,
+        "sourceEndMs": 26267,
+        "startFrame": 1095,
+        "endFrame": 1463
+      }
+    },
+    "creativeBrief": "同一作品恢复续制，继承R76冻结首段源码89c8b92df40f8bb0cb6a370ccc0aa737ffe514d501bc2e487994c4801cde3fbe，保留中断后未冻结的有效后段草稿并补齐七路受管绑定；不声称中断或失败恢复运行已完成。完整可用[0,1463)，本轮新增[416,1463)，首段[0,416)反馈修订待主任务重新采用。首段按用户真实词时间：99% F53、相互独立F124、100次F218、全部成功问题及无答案幂式F234、37%与公式答案F282才出现；F401撤去可自动恢复并改为停下来找人处理。134-c02迁移为三个整体空间：99%左条件右实拍；100次时产线左下、数字右、条件上；37%揭示时产线右、结果及条件左。数字是假设，与实拍身份分离，不是固定卡只换字；去除制作提示语。后段按导演稿完成黄臂处理条件、人形三个问题、白臂固定工位与任务关系、黄臂接续及末段人形。130-c01迁移：1095–1105独立新窗建立、1105–1120保持、1120–1135推进接管，旧黄臂和设备在新窗建立保持时仍存在；两源各自原速根时钟不重置，1135后人形成为主画面，保留工件料架，未来也许收束。轨迹、具体坐标和交叠为既定方案内深化，保留深中性色、浅色中文和克制黄绿强调；未更换主要素材或参考关系。七路源均按交接指定范围原速静音全画幅contain，不循环或静帧补时；黄臂末段自然左退、右侧设备保留，不伪造停驻。底部180像素留字幕，无声音、普通字幕、播放器或MP4。实际观察：本次重阅恢复的.author-inputs/ref130.jpg、ref134.jpg、flip.jpg、car.jpg、yellow-handoff.jpg、humanoidA.jpg、humanoidB.jpg、white.jpg离散联系表及创意卡、导演稿。这是旧运行的输入证据，不冒称本次连续原速观看。原阶段记录130原片0–2.4秒12fps及134原片18.6–28.4秒2fps采样和五条源视频离散解码，本次仅重阅。技术探测核对源画幅、时长；WAV48.780秒与既有FunASR任务job_3ef82927-a542-4ad1-980f-713a1d4b9996转写用于对照，不是人工听审。尚未执行本版合成播放或声画审阅；显示、字幕避让、接管连续性及参考迁移实效由主任务、原视觉作者与研究负责人在VideoFlowCut工作台检查。无新增主要设计偏离；不把演示当普遍能力证明，不提供本版连续播放通过结论。"
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 416
+    },
+    {
+      "startFrame": 416,
+      "endFrame": 1463
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 416,
+      "reason": "修订概率构图与词时序，F282揭示结果、F401切换人工处理并移除制作提示语；待重新采用。"
+    },
+    {
+      "startFrame": 416,
+      "endFrame": 1463,
+      "reason": "沿有效后段草稿完成五路绑定、工位及问题接续、1095建立保持至1135推进接管与末段可能性收束。"
+    }
+  ],
+  "sourceFile": "robot-factory.html",
+  "authorSubmissionId": "498f8bf4fb403064a479ced512c591fdc7b8fff5ecc292f3d906ecaf06a32fe0",
+  "sourceSha256": "b29b480aa0911f0844bbb8e5a2f02381a522622e1f2aad49e2367dce43a1f389"
+}

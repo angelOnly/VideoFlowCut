@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>逐场复摆对照</title>
+<style>
+* {box-sizing:border-box}
+body {margin:0;background:#191e1c;color:#f4eddf; font:16px/1.5 "Microsoft YaHei",sans-serif}
+main {max-width:1340px;margin:auto;padding:30px}
+h1 {margin:0 0 8px}
+p {margin:8px 0 16px;color:#e0d3be}
+nav,.controls {display:flex;flex-wrap:wrap;gap:6px;margin:14px 0}
+button,select,input {font:inherit}
+button,select {color:#f4eddf;background:#292f2a;border:1px solid #706755;padding:6px 10px;border-radius:3px}
+button {cursor:pointer}
+button[aria-pressed=true] {background:#f0e6d4;color:#202520}
+label {margin-right:8px}
+#stage {position:relative;aspect-ratio:16/9;width:100%;background:#131615}
+#stage img {position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+#stage-a,#stage-b {pointer-events:none}
+#caption {font-variant-numeric:tabular-nums}
+@media(max-width:650px){main{padding:12px}}
+</style>
+<main>
+<h1>逐场复摆对照</h1>
+<p>选择对照点，在同一画框切换干净原帧、原位复摆和统一美术版。叠加时将原帧置于定版上方，拖动滑块检查轮廓与空白。所有本片帧位均为视觉工作帧。</p>
+<nav id="scenes" aria-label="场面"></nav>
+<div class="controls"><label>状态 <select id="moment"></select></label><button id="previous">上一状态</button><button id="next">下一状态</button></div>
+<div class="controls" id="modes"><button data-mode="source">原帧</button><button data-mode="annotated">标注原帧</button><button data-mode="rough">原位复摆</button><button data-mode="final">定版</button><button data-mode="overlay">叠加</button></div>
+<label id="slider" hidden>原帧不透明度 <input id="opacity" type="range" min="0" max="100" value="45"></label>
+<div id="stage"><img id="stage-a" alt=""><img id="stage-b" alt=""></div>
+<p id="caption" aria-live="polite"></p>
+</main>
+<script>
+const rows = [{"id":"A-1","at":"3.720","frame":0,"label":"首组原图","orig":"A-3.720-原帧.jpg"},{"id":"A-2","at":"5.200","frame":105,"label":"拉远定位","orig":"A-5.200-原帧.jpg"},{"id":"A-3","at":"6.680","frame":225,"label":"选中初稿","orig":"A-6.680-原帧.jpg"},{"id":"A-4","at":"8.160","frame":361,"label":"移向补充","orig":"A-8.160-原帧.jpg"},{"id":"A-5","at":"10.400","frame":520,"label":"个人预测","orig":"A-10.400-原帧.jpg"},{"id":"A-6","at":"13.300","frame":650,"label":"文件板收束","orig":"A-13.300-原帧.jpg"},{"id":"B-1","at":"18.700","frame":690,"label":"纸页建立","orig":"B-18.700-原帧.jpg"},{"id":"B-2","at":"19.500","frame":995,"label":"两个口径之一起势","orig":"B-19.500-原帧.jpg"},{"id":"B-3","at":"23.250","frame":1110,"label":"另一口径接手","orig":"B-23.250-原帧.jpg"},{"id":"B-4","at":"24.750","frame":1200,"label":"三窗逐级置入","orig":"B-24.750-原帧.jpg"},{"id":"B-5","at":"25.708","frame":1280,"label":"三窗同时存在","orig":"B-25.708-原帧.jpg"},{"id":"B-6","at":"27.625","frame":1390,"label":"原句回收","orig":"B-27.625-原帧.jpg"},{"id":"C-1","at":"216.250","frame":1440,"label":"原句让位给复盘","orig":"C-216.250-原帧.jpg"},{"id":"C-2","at":"217.667","frame":1545,"label":"上下错片","orig":"C-217.667-原帧.jpg"},{"id":"C-3","at":"219.125","frame":1690,"label":"边与主体同时入画","orig":"C-219.125-原帧.jpg"},{"id":"C-4","at":"222.000","frame":1850,"label":"评估限定出现","orig":"C-222.000-原帧.jpg"},{"id":"C-5","at":"223.400","frame":2020,"label":"回到权限限定","orig":"C-223.400-原帧.jpg"},{"id":"C2-1","at":"8.070","frame":2190,"label":"一方先动","orig":"C2-8.070-原帧.jpg"},{"id":"C2-2","at":"10.630","frame":2310,"label":"共线部位建立","orig":"C2-10.630-原帧.jpg"},{"id":"C2-3","at":"15.730","frame":2470,"label":"同一约束下各自前进","orig":"C2-15.730-原帧.jpg"},{"id":"C2-4","at":"18.300","frame":2590,"label":"保留共同边界","orig":"C2-18.300-原帧.jpg"},{"id":"D-1","at":"7.380","frame":2640,"label":"政策原文与主张","orig":"D-7.380-原帧.jpg"},{"id":"D-2","at":"9.170","frame":2820,"label":"门槛与第三方检测","orig":"D-9.170-原帧.jpg"},{"id":"D-3","at":"10.930","frame":3030,"label":"条件进入主画幅","orig":"D-10.930-原帧.jpg"},{"id":"D-4","at":"14.500","frame":3330,"label":"选择留在人手中","orig":"D-14.500-原帧.jpg"}];
+const labels={A:'A 职业预测',B:'B 算子训练',C:'C 控制边界',C2:'C 竞争压力',D:'D 政策与决定权'};
+const sceneNav=document.querySelector('#scenes');
+const modes=document.querySelector('#modes');
+const moment=document.querySelector('#moment');
+const layer=document.querySelector('#stage-a');
+const overlay=document.querySelector('#stage-b');
+const slider=document.querySelector('#slider');
+const opacity=document.querySelector('#opacity');
+const caption=document.querySelector('#caption');
+let scene='A';
+let mode='final';
+let current=[];
+function draw(){
+  const entry=current[moment.selectedIndex];
+  const src='创意参考帧/'+entry.orig;
+  const marked=src.replace('原帧','标注');
+  const rough='复摆图/'+entry.id+'-原位复摆.jpg';
+  const final='复摆图/'+entry.id+'-定版.jpg';
+  layer.src={source:src,annotated:marked,rough,final,overlay:final}[mode];
+  layer.alt={source:'原片画面',annotated:'标注原片',rough:'本片原位复摆',final:'本片定版构图',overlay:'原片叠加本片定版'}[mode];
+  const isOverlay=mode==='overlay';
+  overlay.hidden=!isOverlay;
+  slider.hidden=!isOverlay;
+  if(isOverlay){overlay.src=src;overlay.style.opacity=String(Number(opacity.value)/100);}
+  for(const button of modes.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.mode===mode));
+  caption.textContent=entry.id+'　'+entry.label+'　原片 '+entry.at+' 秒　｜　本片 F'+entry.frame+'（'+(entry.frame/30).toFixed(2)+' 秒）';
+}
+for(const [id,label] of Object.entries(labels)){
+  const button=document.createElement('button');
+  button.textContent=label;
+  button.dataset.scene=id;
+  button.onclick=()=>{scene=id;selectScene();};
+  sceneNav.append(button);
+}
+function selectScene(){
+  current=rows.filter(row=>row.id.split('-')[0]===scene);
+  moment.replaceChildren();
+  for(const item of current)moment.add(new Option(item.id+' '+item.label+'　F'+item.frame));
+  for(const button of sceneNav.querySelectorAll('button'))button.setAttribute('aria-pressed',String(button.dataset.scene===scene));
+  draw();
+}
+moment.onchange=draw;
+for(const button of modes.querySelectorAll('button'))button.onclick=()=>{mode=button.dataset.mode;draw();};
+document.querySelector('#previous').onclick=()=>{moment.selectedIndex=Math.max(0,moment.selectedIndex-1);draw();};
+document.querySelector('#next').onclick=()=>{moment.selectedIndex=Math.min(current.length-1,moment.selectedIndex+1);draw();};
+opacity.oninput=()=>{overlay.style.opacity=String(Number(opacity.value)/100);};
+selectScene();
+</script>
+</html>

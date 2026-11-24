@@ -1,0 +1,169 @@
+[
+  {
+    "id": "creative_decision_c0fdc12a-2d2a-42cd-a15b-bf5ff04bfd15",
+    "category": "visual",
+    "decision": "130-c01 的一轮素材接管用于固定机械臂到人形机器人；134-c02 的影像与数字共同构图用于假设概率段。",
+    "rationale": "从整体观看关系映射真实素材：连续实拍是主体，数字明确是假设计算；两个不同现场通过旧主体保持、新画面建立、推进和接管形成对比。",
+    "objectIds": [
+      "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+    ],
+    "evidence": [
+      "130-c01 原片 0–4 秒共 120 帧逐帧检查，未听审；原速播放器只取得离散截图。",
+      "134-c02 查看统计文本、大数字和影像共同构图的离散状态；入场运动未知，本片自行设计。",
+      "130 对应黄色机械臂与 Hands On；134 对应后空翻、汽车产线与假设数字。"
+    ],
+    "phase": "creative_research",
+    "assignmentId": "creative_0125",
+    "inputRevision": 62,
+    "inputDecisionIds": [],
+    "researchOutcome": "researched",
+    "researchCoverage": {
+      "overallVisual": "covered",
+      "sceneComposition": "covered",
+      "motionMechanisms": "not_applicable",
+      "notApplicableReasons": {
+        "motionMechanisms": "采用 130 创意原片已实见的一轮接管；032 机制卡仅供研究，不作为独立机制正式采用。"
+      },
+      "blockingQuestions": []
+    },
+    "researchReferences": [
+      {
+        "kind": "creative",
+        "id": "130-c01",
+        "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+        "startMs": 0,
+        "endMs": 4000,
+        "observedRelation": "顺序查看 120 帧：旧主体帆船中出现桥景小窗并保持，再推进至桥景接管；后续月面出现。未完成同期听审。"
+      },
+      {
+        "kind": "creative",
+        "id": "134-c02",
+        "sourceSha256": "cafaa41a1c11d66f850bb4ba3e95fa397cf67ae85732360966fabf7f78d62085",
+        "startMs": 18600,
+        "endMs": 28400,
+        "observedRelation": "已见离散状态中的原文、关键数字与施工影像并置；未核实连续入场运动及声音，动画细节由本片原创。"
+      }
+    ],
+    "operationId": "v125-creative-research-01",
+    "createdAt": "2026-11-16T11:53:47.385Z"
+  },
+  {
+    "id": "creative_decision_3620d2e1-490a-4fb6-83d8-e13c58aa5d54",
+    "category": "visual",
+    "decision": "本片不单独采用动效机制卡；一轮旧素材向新素材接力使用创意原片中已核实的关系。",
+    "rationale": "研究 032-m09 后，其手机框、扫描和结果 UI 与本片真实素材不符；播放时只看到离散状态，不能把未核实的完整速度过程当成已采用。视觉实现按 130-c01 的既定主体关系原创深化。",
+    "objectIds": [
+      "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+    ],
+    "evidence": [
+      "032-m09 已读卡全文并从案例播放器慢放观察若干状态，未完成连续感知或声音审阅。",
+      "130-c01 原片 0–4 秒已顺序检查 120 帧，其中一轮接力提供本片必需的素材关系。"
+    ],
+    "phase": "motion_research",
+    "assignmentId": "visual_0125",
+    "inputRevision": 62,
+    "inputDecisionIds": [],
+    "researchOutcome": "not_applicable",
+    "researchReferences": [
+      {
+        "kind": "motion",
+        "id": "032-m09",
+        "sourceSha256": "712195edd295e621adec873be6b2580bf195d0753240f50ca7da160ef655b024",
+        "startMs": 3875,
+        "endMs": 11750,
+        "observedRelation": "只见框内活动画面扩大和缩回的离散状态；手机及扫描形式不适用本片，未采用。"
+      }
+    ],
+    "operationId": "v125-motion-research-01",
+    "createdAt": "2026-11-16T11:54:13.134Z"
+  },
+  {
+    "id": "creative_decision_b6047815-ca9a-4715-a3cc-9228d59e8621",
+    "category": "visual",
+    "decision": "按完整导演稿组织真实机器人、机械臂与工厂画面，概率与影像共同构图，黄色臂向人形机器人完成一轮接管。",
+    "rationale": "五条已取得真实素材按旁白时间形成跨段观看主线；创意参考决定整体画面关系，首版由 OD 直接制作。",
+    "objectIds": [
+      "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+    ],
+    "evidence": [
+      "视觉作者核对素材离散状态与源范围，导演确认时钟及事实边界。",
+      "清单已固定导演稿、时间计划、采用的参考原片、真实素材与旁白；首版后继续工作台审阅。"
+    ],
+    "phase": "visual_design",
+    "assignmentId": "visual_0125",
+    "inputRevision": 73,
+    "inputDecisionIds": [
+      "creative_decision_c0fdc12a-2d2a-42cd-a15b-bf5ff04bfd15",
+      "creative_decision_3620d2e1-490a-4fb6-83d8-e13c58aa5d54"
+    ],
+    "operationId": "v125-visual-design-01",
+    "deliveryRef": {
+      "manifestPath": "../证据/视觉交接片段.json",
+      "manifestSha256": "f654e146250af5ee20c545691f595de5d343a1c7d7e2c38b92ead3d7a07d67ac",
+      "sceneIds": [
+        "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+      ]
+    },
+    "createdAt": "2026-11-16T12:01:15.447Z"
+  },
+  {
+    "id": "creative_decision_8c8ade84-6d86-4039-9352-e2949afb72f4",
+    "category": "visual",
+    "decision": "采用该整片视觉导演稿和固定交接清单，进入 OD 首版制作。",
+    "rationale": "真实动作、假设概率、工厂可靠性及机械臂对照形成人可理解的连续主线；修正黄臂接管时钟并补齐不同视角素材。",
+    "objectIds": [
+      "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+    ],
+    "evidence": [
+      "用户文案与七段真实旁白时间保持不变。",
+      "首版完成后检查主体、字幕、参考关系、事实与声画；当前仅为导演稿采用。"
+    ],
+    "phase": "adoption",
+    "assignmentId": "director_0125",
+    "inputRevision": 73,
+    "inputDecisionIds": [
+      "creative_decision_b6047815-ca9a-4715-a3cc-9228d59e8621"
+    ],
+    "operationId": "v125-director-adoption-01",
+    "deliveryRef": {
+      "manifestPath": "../证据/视觉交接片段.json",
+      "manifestSha256": "f654e146250af5ee20c545691f595de5d343a1c7d7e2c38b92ead3d7a07d67ac",
+      "sceneIds": [
+        "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+      ]
+    },
+    "createdAt": "2026-11-16T12:01:15.458Z"
+  },
+  {
+    "id": "creative_decision_56cd6889-c67f-48cd-9851-68c6773b9573",
+    "category": "story",
+    "decision": "补录已采用的导演主线：实验室后空翻、独立假设下的连续成功率、生产稳定与异常处理、固定机械臂工位，再到人形机器人利用现有环境的可能性。",
+    "rationale": "遵循用户给定完整文案和已采用视觉导演稿；不同素材不伪装为同一现场或一次真实故障。",
+    "objectIds": [
+      "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+    ],
+    "evidence": [
+      "补录来源：已采用的 production-brief/visual-brief.md 中“主导演采用的整片主线”和“准确旁白”；已在创意采用 creative_decision_8c8ade84-6d86-4039-9352-e2949afb72f4 引用同一导演稿。"
+    ],
+    "assignmentId": "director_0125",
+    "inputRevision": 73,
+    "operationId": "robot_v125_backfill_director_story",
+    "createdAt": "2026-11-16T13:48:50.508Z"
+  },
+  {
+    "id": "creative_decision_4c305934-e25a-49d2-bccc-f12a4e02b94a",
+    "category": "semantic",
+    "decision": "补录已采用的语义边界：单次99%与每次独立是假设，100次全成功约37%是计算结果；工厂关注长期稳定、异常恢复和是否需人看守，人形机器人保留未来可能性的语气。",
+    "rationale": "这些均来自用户原文和导演稿，理论概率不能标为画面中机器人实测，厂商演示不能扩写为普遍能力。",
+    "objectIds": [
+      "scene_be2e2934-d63f-48c3-93fe-bbebeb73f875"
+    ],
+    "evidence": [
+      "补录来源：已采用的 production-brief/visual-brief.md 中“主导演采用的整片主线”和“准确旁白”；已在创意采用 creative_decision_8c8ade84-6d86-4039-9352-e2949afb72f4 引用同一导演稿。"
+    ],
+    "assignmentId": "director_0125",
+    "inputRevision": 73,
+    "operationId": "robot_v125_backfill_director_semantic",
+    "createdAt": "2026-11-16T13:48:50.544Z"
+  }
+]

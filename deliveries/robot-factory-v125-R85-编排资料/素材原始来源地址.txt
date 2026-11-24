@@ -1,0 +1,9 @@
+本片素材原始来源地址记录
+以下为检索时记录的原始文本地址；交付内引用与观看均使用相对路径。
+
+asset_54bafc32-c0a2-4e90-99ed-5c5a1bd774c1 | source.mp4 | https://www.youtube.com/watch?v=fRj34o4hN4I
+asset_91d7724e-5463-4ffc-b3f6-8f16be293b63 | source.mp4 | https://www.youtube.com/watch?v=F_7IPm7f1vI
+asset_3424e6c8-cc7a-40ec-a444-683108d50737 | pexels-6450803.mp4 | https://www.pexels.com/video/automated-car-factory-6450803/
+asset_dc2caf08-7456-4577-89e9-517364b717f1 | pexels-32386532.mp4 | https://www.pexels.com/video/industrial-robot-arm-in-high-tech-factory-32386532/
+asset_212a2209-1619-47f3-b3d4-f10f58d5a1e9 | mixkit-music-175.mp3 | https://mixkit.co/free-stock-music/tag/electronic/
+asset_03fe0c4e-877a-492d-b914-858dcc8320ac | pexels-32386590.mp4 | https://www.pexels.com/video/advanced-robotics-in-automated-factory-32386590/
