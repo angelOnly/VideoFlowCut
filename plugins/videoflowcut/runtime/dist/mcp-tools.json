@@ -6312,6 +6312,33 @@
       }
     },
     {
+      "name": "abandon_unknown_avatar_job",
+      "title": "放弃结果未知的数字人任务",
+      "description": "原 Run 和产物对账后，经用户授权结清指定 Job。保留诊断及历史，记录放弃原因。不向 Provider 发送取消或重提请求。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "job_id",
+          "reason"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
       "name": "resume_avatar_job",
       "title": "恢复 LTX 人物任务",
       "description": "已知 Run 沿原任务查询和回收；明确生成失败才创建固定恢复任务。缺失 Run ID 的未知提交不重复执行，不切换模型。",
@@ -7559,7 +7586,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片用 visualPlan.units 关联独立创意拆解、可解码的画面对照及帧段，用 referenceMappings 的 unitId 和 use 关联主参考或辅助，用 sequence.unitId 关联制作步骤。拆解与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面须提供完整构图、连续发展、观看中心、制作权限及参考成片帧段。完整新制与视觉重做用 researchLayers 关联研究。pending 场面可先交接。返回清单、缺口和就绪场面的冻结 authorRequest。",
+      "description": "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片的 visualPlan.units 填同版 mode、作者原稿、接收回执、可解码的实料试摆及帧段。仅 full_reference 填覆盖单元的 primary；其他参考使用 support 并标实际帧段。sequence.unitId 关联本片演出。原稿与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面提供完整构图、连续发展、观看中心和制作权限。完整新制与视觉重做用 researchLayers 关联研究。返回清单、缺口和就绪场面的冻结 authorRequest。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7872,6 +7899,14 @@
                             "type": "integer",
                             "exclusiveMinimum": 0
                           },
+                          "mode": {
+                            "type": "string",
+                            "enum": [
+                              "original",
+                              "full_reference",
+                              "local_mechanism"
+                            ]
+                          },
                           "creativeDecisionId": {
                             "type": "string",
                             "minLength": 1
@@ -7902,17 +7937,18 @@
                             },
                             "required": [
                               "resourceId",
-                              "sourceMs",
                               "projectFrame"
                             ],
-                            "additionalProperties": false
+                            "additionalProperties": false,
+                            "description": "本片实料试摆证据。完整迁移和局部机制另填原片毫秒，自主创作只填本片帧"
                           }
                         },
                         "required": [
                           "id",
                           "title",
                           "startFrame",
-                          "endFrame"
+                          "endFrame",
+                          "mode"
                         ],
                         "additionalProperties": false
                       }
@@ -12119,7 +12155,7 @@
     {
       "name": "update_production_run",
       "title": "更新制作职责与范围",
-      "description": "登记实际分派、接替、任务目标和逐单元换料交接。record_unit_handoff 记录创意正式交稿、视觉试摆接收或退回，使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
+      "description": "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 原样冻结作者提交的本片正文与素材绑定，按采用方式关联原片观察。视觉作者登记同版试摆接收或退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -12260,7 +12296,9 @@
                     "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
                   },
                   "unitId": {
-                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "^[^\\r\\n]+$"
                   },
                   "startFrame": {
                     "type": "integer",
@@ -12271,6 +12309,53 @@
                   },
                   "creativeDecisionId": {
                     "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "original",
+                      "full_reference",
+                      "local_mechanism"
+                    ],
+                    "description": "自主创作、完整参考迁移或单独委托的局部机制"
+                  },
+                  "body": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "创意作者用本片素材写出的 Markdown 正文，按原文冻结"
+                  },
+                  "assets": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "assetId": {
+                          "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
+                        },
+                        "sourceRange": {
+                          "type": "object",
+                          "properties": {
+                            "startMs": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "endMs": {
+                              "$ref": "#/properties/handoff/anyOf/0/properties/assets/items/properties/sourceRange/properties/startMs"
+                            }
+                          },
+                          "required": [
+                            "startMs",
+                            "endMs"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "required": [
+                        "assetId"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "description": "本片实际使用的受管素材；视频填写源区间"
                   },
                   "reference": {
                     "type": "object",
@@ -12293,11 +12378,10 @@
                         "pattern": "^[a-f0-9]{64}$"
                       },
                       "startMs": {
-                        "type": "number",
-                        "minimum": 0
+                        "$ref": "#/properties/handoff/anyOf/0/properties/assets/items/properties/sourceRange/properties/startMs"
                       },
                       "endMs": {
-                        "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                        "$ref": "#/properties/handoff/anyOf/0/properties/assets/items/properties/sourceRange/properties/startMs"
                       }
                     },
                     "required": [
@@ -12308,41 +12392,8 @@
                       "startMs",
                       "endMs"
                     ],
-                    "additionalProperties": false
-                  },
-                  "draftPath": {
-                    "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
-                  },
-                  "assets": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "assetId": {
-                          "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
-                        },
-                        "sourceRange": {
-                          "type": "object",
-                          "properties": {
-                            "startMs": {
-                              "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
-                            },
-                            "endMs": {
-                              "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
-                            }
-                          },
-                          "required": [
-                            "startMs",
-                            "endMs"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
-                      "required": [
-                        "assetId"
-                      ],
-                      "additionalProperties": false
-                    }
+                    "additionalProperties": false,
+                    "description": "完整迁移或局部机制所采用的连续原片范围；自主创作的参考在研究和视觉映射中关联"
                   }
                 },
                 "required": [
@@ -12354,8 +12405,8 @@
                   "startFrame",
                   "endFrame",
                   "creativeDecisionId",
-                  "reference",
-                  "draftPath",
+                  "mode",
+                  "body",
                   "assets"
                 ],
                 "additionalProperties": false
@@ -12377,7 +12428,7 @@
                     "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
                   },
                   "sourceMs": {
-                    "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assets/items/properties/sourceRange/properties/startMs"
                   },
                   "projectFrame": {
                     "$ref": "#/properties/handoff/anyOf/0/properties/startFrame"
@@ -12394,7 +12445,6 @@
                   "assignmentId",
                   "inputRevision",
                   "draftId",
-                  "sourceMs",
                   "projectFrame",
                   "comparisonPath",
                   "observation"
@@ -12418,7 +12468,10 @@
                     "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
                   },
                   "sourceMs": {
-                    "$ref": "#/properties/handoff/anyOf/0/properties/reference/properties/startMs"
+                    "$ref": "#/properties/handoff/anyOf/0/properties/assets/items/properties/sourceRange/properties/startMs"
+                  },
+                  "projectFrame": {
+                    "$ref": "#/properties/handoff/anyOf/0/properties/startFrame"
                   },
                   "gap": {
                     "$ref": "#/properties/handoff/anyOf/0/properties/assignmentId"
@@ -12432,7 +12485,7 @@
                   "assignmentId",
                   "inputRevision",
                   "draftId",
-                  "sourceMs",
+                  "projectFrame",
                   "gap",
                   "impact"
                 ],
@@ -12782,7 +12835,8 @@
                 "observed_relation": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 2000
+                  "maxLength": 2000,
+                  "description": "原片实见。用于逐单元正式照排时，按实际采用区间逐拍登记完整演出句，只用【名称】标可替换内容。"
                 }
               },
               "required": [

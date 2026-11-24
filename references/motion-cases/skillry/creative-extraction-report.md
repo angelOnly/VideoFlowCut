@@ -160,15 +160,18 @@
 | [045](cases/daniel-haida-636937-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；财务总览、票据与状态 | 1 | 1 个切片、1 张九宫格 |
 | [046](cases/dustindavis-644806-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；信封预算分配与消费 | 2 | 2 个切片、2 张九宫格 |
 | [047](cases/lnkiai-544254-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；组件画布、配色及项目指标；音轨采样全零 | 2 | 2 个切片、2 张九宫格 |
+| [048](cases/goldiez2599-685869-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；多人相约与共享日历 | 1 | 1 个切片、1 张九宫格 |
 | [049](cases/apoorvjain25-150112-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；个人链接页面和统计 | 2 | 2 个切片、2 张九宫格 |
 | [050](cases/seri-nonnon-231813-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；就诊前准备和资料管理 | 2 | 2 个切片、2 张九宫格 |
 | [051](cases/l3d1c-632524-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；同一新闻的标题对照与汇总 | 1 | 1 个切片、1 张九宫格 |
 | [052](cases/groundcontrol-230877-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；气温术语、降雨、气压、日期地图与历史数据比较 | 7 | 7 个切片、7 张九宫格 |
 | [053](cases/stewchan2-369810-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；页面链接、网络权重和来源关系 | 4 | 4 个切片、4 张九宫格 |
+| [054](cases/nikolajankovic-616097-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；借贷风险触发与工具职责；原片无音轨 | 2 | 2 个切片、2 张九宫格 |
 | [055](cases/kureshirfan-386691-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；地震断层、传播和量级图解；音轨采样全零 | 3 | 3 个切片、3 张九宫格 |
 | [056](cases/aylmerth-356252-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；按季度变化的庇护申请累计排行 | 1 | 复用原片，新增 1 张九宫格 |
 | [057](cases/itisrazak-332386-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；文章、水循环图解与输出示例 | 2 | 2 个切片、2 张九宫格 |
 | [058](cases/felipemoller-936736-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；地点与三种支出录入 | 1 | 1 个切片、1 张九宫格 |
+| [059](cases/retropunkai-277590-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；球形场馆建设、演出与参与者 | 3 | 3 个切片、3 张九宫格 |
 | [060](cases/ror-fly-880547-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；同一杯子中的配方过程 | 1 | 复用原片，新增 1 张九宫格 |
 | [061](cases/sudo-kiran-335993-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；文档、脚本审核与图解视频 | 1 | 1 个切片、1 张九宫格 |
 | [063](cases/ajith-io-562538-original/creative/overview.md) | 原有 64 宫格及约每秒源帧；文字粒子、分解和聚合 | 1 | 1 个切片、1 张九宫格 |
@@ -182,8 +185,9 @@
 | [091](cases/petert-540960-original/creative/overview.md) | 约每秒源帧；轻量头戴设备展示 | 1 | 复用完整原片，新增 1 张九宫格 |
 | [092](cases/petert-635793-original/creative/overview.md) | 约每秒源帧；柚子汽水的开罐体验 | 1 | 复用完整原片，新增 1 张九宫格 |
 | [093](cases/dannnnnok-716687-original/creative/overview.md) | 约每秒源帧；运动设计作品展示 | 1 | 复用完整原片，新增 1 张九宫格 |
-| 094（已移除） | 约每秒源帧；数据中心的空间与结构 | 4 | 新增 4 个切片、4 张九宫格 |
+| [094](cases/mdaman010-111079-original/creative/overview.md) | 约每秒源帧；数据中心的空间与结构 | 4 | 新增 4 个切片、4 张九宫格 |
 | [096](cases/buildfastwithai-597035-original/creative/overview.md) | 约每秒源帧；五重塔虚拟漫游 | 1 | 复用完整原片，新增 1 张九宫格 |
+| [098](cases/acoramaa-053577-original/creative/overview.md) | 约每秒源帧；从电脑进入芯片与原子 | 1 | 复用完整原片，新增 1 张九宫格 |
 | [099](cases/konstantinsaifo-501736-original/creative/overview.md) | 约每秒源帧；火箭发动机的外观与剖面 | 1 | 复用完整原片，新增 1 张九宫格 |
 | [107](cases/dheepanratnam-706454-original/creative/overview.md) | 约每秒源帧；助手能力的统一展示 | 1 | 复用完整原片，新增 1 张九宫格 |
 | [108](cases/ajith-io-890146-original/creative/overview.md) | 约每秒源帧；图形与文字的运动设计组合 | 1 | 复用完整原片，新增 1 张九宫格 |

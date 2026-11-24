@@ -58,6 +58,20 @@ test("工作台固定版本、按范围循环时不创建预览文件或切换�
     const port = (vite.httpServer!.address() as { port: number }).port;
     browser = await puppeteer.launch({ executablePath: await resolveRenderBrowser(), headless: true, pipe: true });
     const page = await browser.newPage();
+    await page.evaluateOnNewDocument((runId, decisionId) => {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const response = await originalFetch(...args);
+        if (String(args[0]).includes("/production-status") && response.ok) {
+          const body = await response.clone().json();
+          body.completion.coordinationIssues.push({ code: "REFERENCE_REVIEW_PENDING", scope: { kind: "frames", startFrame: 5, endFrame: 12 },
+            referenceReview: { productionRunId: runId, decisionId, sceneId: "fixture-scene", referenceKind: "creative", referenceId: "fixture-reference",
+              sourceSha256: "a".repeat(64), targetRole: "主体", startMs: 100, endMs: 900 } });
+          return new Response(JSON.stringify(body), { status: response.status, headers: response.headers });
+        }
+        return response;
+      };
+    }, run.id, adoption.id);
     await page.setViewport({ width: 1440, height: 900 });
     const errors: string[] = [];
     const projectReads: string[] = [];

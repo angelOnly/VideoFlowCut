@@ -92,7 +92,8 @@ test('创意索引与卡片正文、原片及预览媒体一致',()=>{
     }
     assert.ok(card.start_ms>=0&&card.end_ms>card.start_ms&&card.end_ms<=Math.ceil(source.duration*1000));
     assert.ok(card.frame_times_ms.length>0&&card.frame_times_ms.every(t=>t>=card.start_ms&&t<card.end_ms));
-    for(const [index,heading] of ['原画面具体怎样设计','为什么这样设计，好在哪里','可直接使用的创意指令'].entries())assert.ok(body.includes('## '+heading)||body.includes(`## ${index+1}. ${heading}`),card.id+' '+heading);
+    for(const heading of ['原画面具体怎样设计','为什么这样设计，好在哪里'])assert.ok(body.includes('## '+heading),card.id+' '+heading);
+    assert.doesNotMatch(body,/^#{1,6}\s+(?:\d+\.\s*)?(?:完整照排指令|可直接使用的创意指令|交给填料作者)[ \t]*$/mu,card.id);
   }
 });
 

@@ -316,7 +316,8 @@ export function visualReferenceUnitCoverage(input: {
   type FrameRange = { startFrame: number; endFrame: number };
   type Entry = { sceneId: string; unitId?: string; title: string; targetRange: FrameRange;
     primary?: { referenceId: string; kind: "creative" | "motion" }; creativeDraftPath?: string;
-    restage?: { deliveredPath: string; sourceMs: number; projectFrame: number }; issues: ProductionCoordinationIssue[] };
+    mode?: NonNullable<NonNullable<ReferenceScene["visualPlan"]>["units"]>[number]["mode"];
+    restage?: { deliveredPath: string; sourceMs?: number; projectFrame: number }; issues: ProductionCoordinationIssue[] };
   const ownerFor = (phase: "creative_research" | "visual_design") => report.assignments.find(assignment =>
     assignment.responsibilities.includes(phase) && coversScene(snapshot, assignment.scope, scene)
     && !report.assignments.some(other => other.supersedesAssignmentId === assignment.assignmentId
@@ -344,34 +345,23 @@ export function visualReferenceUnitCoverage(input: {
     file.localReadable && file.requiredForRun !== false && !!file.sha256
     && file.uses.some(use => use.kind === "reference" && use.id === id)) : undefined;
   return units.filter(unit => !targetRange || rangesOverlap(unit, targetRange)).map(unit => {
-    const entry: Entry = { sceneId: scene.id, unitId: unit.id, title: unit.title,
+    const entry: Entry = { sceneId: scene.id, unitId: unit.id, title: unit.title, mode: unit.mode,
       targetRange: { startFrame: unit.startFrame, endFrame: unit.endFrame }, issues: [] };
     entry.issues.push(...handoffIssues.filter(issue => issue.scope.kind !== "frames"
       || issue.scope.startFrame === unit.startFrame && issue.scope.endFrame === unit.endFrame));
-    const primaries = (plan?.referenceMappings ?? []).filter(mapping => mapping.unitId === unit.id && mapping.use === "primary");
-    const mapping = primaries.length === 1 ? primaries[0] : undefined;
-    const reference = mapping?.referenceKind && delivered.references?.find(ref => ref.kind === mapping.referenceKind
-      && ref.id === mapping.referenceId && ref.startMs === mapping.startMs && ref.endMs === mapping.endMs);
-    if (!reference || !mapping?.preserveRelation?.trim() || !mapping.treatment?.trim()
-      || mapping.targetRange?.startFrame !== unit.startFrame || mapping.targetRange.endFrame !== unit.endFrame) {
-      issue(entry, "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING", "creative_research", "缺少覆盖本单元主要变化的唯一主参考",
-        "请原创意作者补查整场创意原段或完整机制，局部借用只作为辅助");
-    } else {
-      entry.primary = { referenceId: reference.id, kind: reference.kind };
-      const phase = reference.kind === "creative" ? "creative_research" : "motion_research";
-      const researched = report.creativeDecisions.find(decision => decision.id === mapping.researchDecisionId && decision.phase === phase);
-      if (!researched || (phase === "creative_research" && researched.id !== unit.creativeDecisionId)
-        || !decisionCovers(researched, snapshot.project.id, scene)
-        || !referenceResearchOwnerAccepted(report, snapshot, scene, undefined, researched, phase, adoptionOperationId)) {
-        issue(entry, "VISUAL_UNIT_PRIMARY_RESEARCH_MISSING", phase === "creative_research" ? phase : "visual_design",
-          "的主参考缺少对应作者的研究决定", "请原创意或视觉作者接回主参考的实际观察和采用范围");
-      }
-    }
+    const primary = unit.mode === "full_reference"
+      ? plan?.referenceMappings?.find(mapping => mapping.unitId === unit.id && mapping.use === "primary") : undefined;
+    const reference = primary && delivered.references?.find(ref => ref.kind === primary.referenceKind
+      && ref.id === primary.referenceId && ref.startMs === primary.startMs && ref.endMs === primary.endMs);
+    if (reference) entry.primary = { referenceId: reference.id, kind: reference.kind };
+    // 原稿、接收证据和采用方式的匹配由所有入口共用的交件核验负责。
+    const adoptedMappings = plan?.referenceMappings?.filter(mapping => mapping.unitId === unit.id) ?? [];
     const creative = report.creativeDecisions.find(decision => decision.id === unit.creativeDecisionId && decision.phase === "creative_research");
     const creativeOwner = report.assignments.find(assignment => assignment.assignmentId === creative?.assignmentId);
     const draft = resource(unit.creativeDraftId);
     const linkedDesign = creative && creativeOwner && designs.some(design =>
-      design.inputDecisionIds?.includes(creative.id) && (!mapping || design.inputDecisionIds.includes(mapping.researchDecisionId ?? ""))
+      design.inputDecisionIds?.includes(creative.id)
+      && adoptedMappings.every(mapping => design.inputDecisionIds?.includes(mapping.researchDecisionId ?? ""))
       && report.assignments.some(assignment => assignment.assignmentId === design.assignmentId
         && assignment.responsibilities.includes("visual_design") && assignment.agentId !== creativeOwner.agentId));
     if (!creative || !linkedDesign || !decisionCovers(creative, snapshot.project.id, scene)
@@ -382,14 +372,9 @@ export function visualReferenceUnitCoverage(input: {
     } else entry.creativeDraftPath = draft.deliveredPath;
     const restage = unit.restage;
     const restageFile = resource(restage?.resourceId);
-    if (!restage || !reference || !restageFile || restageFile.deliveredPath === draft?.deliveredPath
-      || restageFile.localDecode !== "verified" || !/^(image|video)\//u.test(restageFile.mimeType ?? "")
-      || !Number.isFinite(restage.sourceMs) || restage.sourceMs < reference.startMs || restage.sourceMs >= reference.endMs
-      || !Number.isSafeInteger(restage.projectFrame) || restage.projectFrame < unit.startFrame || restage.projectFrame >= unit.endFrame
-      || !plan?.sequence?.some(step => step.unitId === unit.id && step.action?.trim() && step.transition?.trim())) {
-      issue(entry, "VISUAL_UNIT_RESTAGE_MISSING", "visual_design", "缺少可对照的换料复摆或关联编排步骤",
-        "请原视觉作者交回实际画面对照（可解码图片或视频）、原片时刻、本片帧位与同一单元的制作正文");
-    } else entry.restage = { deliveredPath: restageFile.deliveredPath, sourceMs: restage.sourceMs, projectFrame: restage.projectFrame };
+    if (restage && restageFile) entry.restage = {
+      deliveredPath: restageFile.deliveredPath, sourceMs: restage.sourceMs, projectFrame: restage.projectFrame
+    };
     return entry;
   });
 }

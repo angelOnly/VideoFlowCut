@@ -21,7 +21,8 @@ export interface ReferenceScene {
   visualPlan?: {
     primaryRoles?: string[];
     units?: Array<{ id: string; title: string; startFrame: number; endFrame: number; creativeDecisionId?: string;
-      creativeDraftId?: string; handoffReceiptId?: string; restage?: { resourceId: string; sourceMs: number; projectFrame: number } }>;
+      mode: import("../../contracts/src/production-unit-handoff.js").ProductionUnitMode;
+      creativeDraftId?: string; handoffReceiptId?: string; restage?: { resourceId: string; sourceMs?: number; projectFrame: number } }>;
     researchLayers?: Array<{ level: "overallVisual" | "sceneComposition" | "motionMechanisms"; researchDecisionId: string; designExcerpt: string }>;
     referenceMappings?: Array<{ unitId?: string; use?: "primary" | "support"; referenceId?: string; referenceKind?: "creative" | "motion"; researchDecisionId?: string; startMs?: number; endMs?: number; targetRole?: string; treatment?: string; preserveRelation?: string; targetRange?: { startFrame: number; endFrame: number } }>;
     composition?: { opening?: string; primarySubject?: string; supportingSubjects?: string[];

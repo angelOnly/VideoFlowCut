@@ -1,8 +1,8 @@
 {
   "schema_version": 2,
-  "count": 62,
+  "count": 108,
   "path_base": "本索引所在目录",
-  "scope": "整片源帧观察；41个案例已有机制拆解，另有21个案例目前仅有待复核创意卡；原速、声音和迁移未全面核验。",
+  "scope": "整片源帧观察；87个案例已有机制拆解，另有21个案例目前仅有待复核创意卡；原速、声音和迁移未全面核验。",
   "vocabulary": {
     "original_form": [
       "固定视频",
@@ -852,6 +852,78 @@
       "storyboard": "cases/koldo2k-778767-original/storyboard.jpg"
     },
     {
+      "case_number": 13,
+      "original_form": "固定视频",
+      "video_types": [
+        "影像展示",
+        "品牌展示"
+      ],
+      "scenes": [
+        "跨场景接力",
+        "空间关系",
+        "重点强调"
+      ],
+      "materials": [
+        "照片",
+        "插画",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "剪字逐词建立",
+        "道具覆盖开口",
+        "书架转开揭房间"
+      ],
+      "art": [
+        "蓝灰钢笔画",
+        "奶白剪纸边",
+        "红色情绪重音"
+      ],
+      "scenario": "虚构故事或文化评论用书架、锁和剪字引导观众进入下一叙事空间。",
+      "material_requirements": "需要可分层插画空间、书架开口、手掌道具和短词剪字。",
+      "transfer_cost": "资产种类多且恐怖语气强，不能把虚构人像关联搬到事实报道；原速观感与声音同步未认证。",
+      "aliases": [
+        "恐怖",
+        "拼贴",
+        "剪字",
+        "书架",
+        "开门",
+        "道具",
+        "音乐视频"
+      ],
+      "slug": "paranoidamerica-686717",
+      "recommended_segments": [
+        {
+          "start": 79,
+          "end": 84,
+          "reason": "手掌与锁引导书架开口，旧词退去后揭露粉色房间"
+        }
+      ],
+      "title": "拼贴影像、旧纸与字体",
+      "author": "ParanoidAmerica",
+      "duration": 141.226,
+      "directory": "cases/paranoidamerica-686717-original",
+      "detail": "detail.html?case=paranoidamerica-686717",
+      "analysis": "cases/paranoidamerica-686717-original/overview.md",
+      "source_sha256": "b02d11f9fe280932cbb51ff529ee6b1bb492f6d935df71df923fde6a32792bc5",
+      "media": "cases/paranoidamerica-686717-original/video.mp4",
+      "media_sha256": "b02d11f9fe280932cbb51ff529ee6b1bb492f6d935df71df923fde6a32792bc5",
+      "media_bytes": 29836281,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/paranoidamerica-686717",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "013-m01",
+        "013-m02",
+        "013-m07",
+        "013-m03",
+        "013-m04",
+        "013-m05",
+        "013-m06"
+      ],
+      "storyboard": "cases/paranoidamerica-686717-original/storyboard.jpg"
+    },
+    {
       "case_number": 14,
       "original_form": "固定视频",
       "video_types": [
@@ -1061,6 +1133,76 @@
       "storyboard": "cases/monokern-613142-original/storyboard.jpg"
     },
     {
+      "case_number": 18,
+      "original_form": "网页交互演示",
+      "video_types": [
+        "产品介绍",
+        "操作教程",
+        "品牌展示"
+      ],
+      "scenes": [
+        "多来源对照",
+        "前后变化",
+        "空间关系"
+      ],
+      "materials": [
+        "照片",
+        "桌面界面",
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "整页滚动换分区",
+        "色片共轴扇开",
+        "当前片轮换到前景"
+      ],
+      "art": [
+        "左说明右对象",
+        "低饱和底随选片",
+        "白标签与厚度阴影"
+      ],
+      "scenario": "比较材料或产品版本时，让选择对象变化而说明区保持稳定。",
+      "material_requirements": "需要同尺度候选色样或图片、清楚名称及版本信息。",
+      "transfer_cost": "原片分区题材互不连续，不能当整片叙事；小标签需放大或减片数；原速观感与声音同步未认证。",
+      "aliases": [
+        "滚动网页",
+        "色卡",
+        "扇形",
+        "材料",
+        "版本",
+        "选择"
+      ],
+      "slug": "ercankeskinx-897906",
+      "recommended_segments": [
+        {
+          "start": 18,
+          "end": 23,
+          "reason": "路线页上推接到色样扇，随后轮换前景片与说明"
+        }
+      ],
+      "title": "滚动网页中的建筑、路线与色样展示",
+      "author": "ercankeskinx",
+      "duration": 29.9,
+      "directory": "cases/ercankeskinx-897906-original",
+      "detail": "detail.html?case=ercankeskinx-897906",
+      "analysis": "cases/ercankeskinx-897906-original/overview.md",
+      "source_sha256": "bcbab9cb6378207f1d18e5c9d622b8f7d657be79f466d370b1d25f1292c4af03",
+      "media": "cases/ercankeskinx-897906-original/video.mp4",
+      "media_sha256": "bcbab9cb6378207f1d18e5c9d622b8f7d657be79f466d370b1d25f1292c4af03",
+      "media_bytes": 1218740,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ercankeskinx-897906",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "018-m01",
+        "018-m02",
+        "018-m03",
+        "018-m04"
+      ],
+      "storyboard": "cases/ercankeskinx-897906-original/storyboard.jpg"
+    },
+    {
       "case_number": 19,
       "original_form": "固定视频",
       "video_types": [
@@ -1130,6 +1272,75 @@
         "019-m05"
       ],
       "storyboard": "cases/vince-builds-355650-original/storyboard.jpg"
+    },
+    {
+      "case_number": 20,
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "品牌展示",
+        "科普解释"
+      ],
+      "scenes": [
+        "整体到局部",
+        "条件解释",
+        "重点强调"
+      ],
+      "materials": [
+        "照片",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "标志接材质特写",
+        "特写回整衣",
+        "规格逐条建立"
+      ],
+      "art": [
+        "黑衣黄蓝边缘光",
+        "白字配黄重音",
+        "暗产品与空白栏"
+      ],
+      "scenario": "介绍服饰或物品材质时，先观察可辨细节，再回到完整形态说明规格。",
+      "material_requirements": "需要清晰材料特写、完整产品形态及已核对规格。",
+      "transfer_cost": "黑物黑底容易丢细节，宣传光不是测量证据，需重做明暗和文字安全区；原速观感与声音同步未认证。",
+      "aliases": [
+        "卫衣",
+        "刺绣",
+        "材质",
+        "黑底",
+        "边缘光",
+        "规格"
+      ],
+      "slug": "bridgemindai-286423",
+      "recommended_segments": [
+        {
+          "start": 3,
+          "end": 8,
+          "reason": "刺绣特写保持后回到整衣，左规格分次进入"
+        }
+      ],
+      "title": "服装影像与产品文字",
+      "author": "bridgemindai",
+      "duration": 30.101,
+      "directory": "cases/bridgemindai-286423-original",
+      "detail": "detail.html?case=bridgemindai-286423",
+      "analysis": "cases/bridgemindai-286423-original/overview.md",
+      "source_sha256": "a10c114c1eda9cc7b9c3bfda76d083ecbacf7822271fdf9e87f8ecfc2512082f",
+      "media": "cases/bridgemindai-286423-original/video.mp4",
+      "media_sha256": "a10c114c1eda9cc7b9c3bfda76d083ecbacf7822271fdf9e87f8ecfc2512082f",
+      "media_bytes": 2966048,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/bridgemindai-286423",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "020-m01",
+        "020-m02",
+        "020-m03",
+        "020-m04",
+        "020-m05"
+      ],
+      "storyboard": "cases/bridgemindai-286423-original/storyboard.jpg"
     },
     {
       "case_number": 21,
@@ -1407,6 +1618,79 @@
       "storyboard": "cases/justincooperman-188876-original/storyboard.jpg"
     },
     {
+      "case_number": 26,
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "科普解释",
+        "品牌展示"
+      ],
+      "scenes": [
+        "跨场景接力",
+        "前后变化",
+        "空间关系"
+      ],
+      "materials": [
+        "照片",
+        "手机界面",
+        "桌面界面",
+        "图表",
+        "三维",
+        "文字"
+      ],
+      "methods": [
+        "家具向上释放",
+        "人物起身保身份",
+        "新环境重组后坐下"
+      ],
+      "art": [
+        "奶白等距小景",
+        "统一微缩材质",
+        "橙色品牌重音"
+      ],
+      "scenario": "生活服务说明中，用同一人物群体从客厅转到就餐空间表现用途变化。",
+      "material_requirements": "需要可分别运动的人物、家具、底座和不同用途环境资产。",
+      "transfer_cost": "微缩空间不是实拍，不能用单张照片重组；统计与产品界面另核实；原速观感与声音同步未认证。",
+      "aliases": [
+        "微缩",
+        "家具",
+        "人物群",
+        "客厅",
+        "餐厅",
+        "等距",
+        "环境重组"
+      ],
+      "slug": "jesscaroline7-955094",
+      "recommended_segments": [
+        {
+          "start": 25,
+          "end": 30,
+          "reason": "客厅家具散开、人物站起、餐桌重组并重新坐下"
+        }
+      ],
+      "title": "餐厅数据、微缩人物场景与手机展示",
+      "author": "jesscaroline7",
+      "duration": 59.562,
+      "directory": "cases/jesscaroline7-955094-original",
+      "detail": "detail.html?case=jesscaroline7-955094",
+      "analysis": "cases/jesscaroline7-955094-original/overview.md",
+      "source_sha256": "fce81e5570f02aab2d8bc49fb84c9ff5b19af6b8f4ecd35a0a2bd5d4f0e7233f",
+      "media": "cases/jesscaroline7-955094-original/video.mp4",
+      "media_sha256": "fce81e5570f02aab2d8bc49fb84c9ff5b19af6b8f4ecd35a0a2bd5d4f0e7233f",
+      "media_bytes": 6010646,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/jesscaroline7-955094",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "026-m01",
+        "026-m07",
+        "026-m04",
+        "026-m05",
+        "026-m06"
+      ],
+      "storyboard": "cases/jesscaroline7-955094-original/storyboard.jpg"
+    },
+    {
       "case_number": 27,
       "original_form": "固定视频",
       "video_types": [
@@ -1475,6 +1759,73 @@
         "027-m05"
       ],
       "storyboard": "cases/georgejimenez98-431559-original/storyboard.jpg"
+    },
+    {
+      "case_number": 28,
+      "original_form": "固定视频",
+      "video_types": [
+        "空间导览",
+        "新闻解读",
+        "科普解释"
+      ],
+      "scenes": [
+        "整体到局部",
+        "空间关系"
+      ],
+      "materials": [
+        "照片",
+        "桌面界面",
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "线框保留空间",
+        "照片副本中央放大",
+        "退回注释更新点位"
+      ],
+      "art": [
+        "奶白细棕线",
+        "照片白边轻影",
+        "大面积空白"
+      ],
+      "scenario": "解释楼梯或转角位置时，先看路线关系，再放大对应地点照片辨识。",
+      "material_requirements": "需要真实地点照片与相对应的路线或建筑线框。",
+      "transfer_cost": "低对比线框小屏难辨，照片与图解必须核对同一位置，示意不能认证导航；原速观感与声音同步未认证。",
+      "aliases": [
+        "建筑",
+        "楼梯",
+        "路线",
+        "导览",
+        "地点照片",
+        "局部观察"
+      ],
+      "slug": "pwntastickev-664257",
+      "recommended_segments": [
+        {
+          "start": 8,
+          "end": 13,
+          "reason": "右侧照片放大副本到中央，线框仍留后方，随后返回上下文"
+        }
+      ],
+      "title": "建筑照片与地图布局",
+      "author": "PwntasticKev",
+      "duration": 25.45,
+      "directory": "cases/pwntastickev-664257-original",
+      "detail": "detail.html?case=pwntastickev-664257",
+      "analysis": "cases/pwntastickev-664257-original/overview.md",
+      "source_sha256": "dcae3915833500e2b090a636ac70a5eafe896f34077e0524d01eae76df278b55",
+      "media": "cases/pwntastickev-664257-original/video.mp4",
+      "media_sha256": "dcae3915833500e2b090a636ac70a5eafe896f34077e0524d01eae76df278b55",
+      "media_bytes": 1440783,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/pwntastickev-664257",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "028-m05",
+        "028-m03",
+        "028-m04"
+      ],
+      "storyboard": "cases/pwntastickev-664257-original/storyboard.jpg"
     },
     {
       "case_number": 29,
@@ -1686,6 +2037,76 @@
       "storyboard": "cases/tycenjm-098014-original/storyboard.jpg"
     },
     {
+      "case_number": 32,
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "操作教程",
+        "科普解释"
+      ],
+      "scenes": [
+        "步骤累积",
+        "条件解释",
+        "成果展示"
+      ],
+      "materials": [
+        "背景视频",
+        "手机界面",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "目标卡确定任务",
+        "摄影窗扩为满幅",
+        "照片缩卡核验状态"
+      ],
+      "art": [
+        "蓝紫等待",
+        "暖黄行动",
+        "绿色完成"
+      ],
+      "scenario": "解释需要现场行动的服务时，从手机任务进入摄影画面再展示验证结果。",
+      "material_requirements": "需要目标图标、对应摄影素材、拍摄结果和真实核验状态或明确示意。",
+      "transfer_cost": "真实外观未认证实拍，绿色勾不能代替核查依据，屏幕与全幅要用同一素材；原速观感与声音同步未认证。",
+      "aliases": [
+        "手机",
+        "摄影",
+        "拍照",
+        "验证",
+        "闹钟",
+        "任务",
+        "满幅"
+      ],
+      "slug": "zakisbuilding-495680",
+      "recommended_segments": [
+        {
+          "start": 5,
+          "end": 10,
+          "reason": "目标确定后摄影画面扩大，照片缩卡扫描，再以绿色结果接管"
+        }
+      ],
+      "title": "手机、任务与拍照展示",
+      "author": "zakisbuilding",
+      "duration": 15.061,
+      "directory": "cases/zakisbuilding-495680-original",
+      "detail": "detail.html?case=zakisbuilding-495680",
+      "analysis": "cases/zakisbuilding-495680-original/overview.md",
+      "source_sha256": "789e7fd9f7fef23d1b3c365b1f6127aecda24eeec4b5a8c8bf7962476a5c5315",
+      "media": "cases/zakisbuilding-495680-original/video.mp4",
+      "media_sha256": "789e7fd9f7fef23d1b3c365b1f6127aecda24eeec4b5a8c8bf7962476a5c5315",
+      "media_bytes": 1801653,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/zakisbuilding-495680",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "032-m01",
+        "032-m02",
+        "032-m09",
+        "032-m08"
+      ],
+      "storyboard": "cases/zakisbuilding-495680-original/storyboard.jpg"
+    },
+    {
       "case_number": 33,
       "original_form": "固定视频",
       "video_types": [
@@ -1754,6 +2175,497 @@
         "033-m05"
       ],
       "storyboard": "cases/gabrielbuzziv-057430-original/storyboard.jpg"
+    },
+    {
+      "case_number": 34,
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "产品介绍",
+        "操作教程"
+      ],
+      "scenes": [
+        "前后变化",
+        "成果展示",
+        "多来源对照"
+      ],
+      "materials": [
+        "照片",
+        "桌面界面",
+        "手机界面",
+        "文章页面",
+        "图表",
+        "文字"
+      ],
+      "methods": [
+        "黑圆在网页内扩展",
+        "主题变更保留结构",
+        "窗口退暗换模块"
+      ],
+      "art": [
+        "暖纸外舞台",
+        "衬线身份字",
+        "网页轻影"
+      ],
+      "scenario": "个人或产品网站展示同页明暗主题变化，同时保留网址和页面身份。",
+      "material_requirements": "需要同一网页浅深主题采集、真实资料和品牌字体。",
+      "transfer_cost": "小数据须另放大，原要求不代表已核验事实与拍点，全片并非全程对象变形；原速观感与声音同步未认证。",
+      "aliases": [
+        "作品履历",
+        "网站",
+        "暗色主题",
+        "开发者",
+        "网址",
+        "黑圆"
+      ],
+      "slug": "wani-shola-459278",
+      "recommended_segments": [
+        {
+          "start": 19,
+          "end": 24,
+          "reason": "右上黑圆仅在网页边界内扩大，外舞台和网址保持"
+        }
+      ],
+      "title": "网页、手机与作品履历",
+      "author": "wani_shola",
+      "duration": 102.101,
+      "directory": "cases/wani-shola-459278-original",
+      "detail": "detail.html?case=wani-shola-459278",
+      "analysis": "cases/wani-shola-459278-original/overview.md",
+      "source_sha256": "9a96c85f4562f438327a2a01e9a3fcb6112bc7a9756f28939a8b03a64daeb884",
+      "media": "cases/wani-shola-459278-original/video.mp4",
+      "media_sha256": "9a96c85f4562f438327a2a01e9a3fcb6112bc7a9756f28939a8b03a64daeb884",
+      "media_bytes": 4959282,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/wani-shola-459278",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "034-m01",
+        "034-m02",
+        "034-m03",
+        "034-m04",
+        "034-m05",
+        "034-m06",
+        "034-m07"
+      ],
+      "storyboard": "cases/wani-shola-459278-original/storyboard.jpg"
+    },
+    {
+      "case_number": 35,
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "品牌展示"
+      ],
+      "scenes": [
+        "步骤累积",
+        "重点强调",
+        "成果展示"
+      ],
+      "materials": [
+        "照片",
+        "手机界面",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "同手机换功能页",
+        "月相环展开退场",
+        "左侧短句递增提亮"
+      ],
+      "art": [
+        "近黑深绿暖金",
+        "旧行减暗当前提亮",
+        "左文右手机"
+      ],
+      "scenario": "仪式、读书或自然主题产品用同一手机串联功能和安静收益短句。",
+      "material_requirements": "需要实际功能页、相关图像和与题材有关的环形品牌符号。",
+      "transfer_cost": "低亮小字不适合高信息新闻，月相装饰不应无关套用，当前文字要足够对比；原速观感与声音同步未认证。",
+      "aliases": [
+        "月相",
+        "深色",
+        "手机",
+        "祈祷",
+        "安静",
+        "左右布局"
+      ],
+      "slug": "mustaphafenzar-973906",
+      "recommended_segments": [
+        {
+          "start": 5,
+          "end": 10,
+          "reason": "计数页与月相环接长文页、时刻页，左侧当前短句依次补齐"
+        }
+      ],
+      "title": "月相、手机与深色舞台",
+      "author": "MustaphaFenzar",
+      "duration": 15.104,
+      "directory": "cases/mustaphafenzar-973906-original",
+      "detail": "detail.html?case=mustaphafenzar-973906",
+      "analysis": "cases/mustaphafenzar-973906-original/overview.md",
+      "source_sha256": "ed5079ed022672f78b057687de3ea3cb730e9e332204a733481edd5e211979d4",
+      "media": "cases/mustaphafenzar-973906-original/video.mp4",
+      "media_sha256": "ed5079ed022672f78b057687de3ea3cb730e9e332204a733481edd5e211979d4",
+      "media_bytes": 1241096,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/mustaphafenzar-973906",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "035-m01",
+        "035-m05",
+        "035-m04"
+      ],
+      "storyboard": "cases/mustaphafenzar-973906-original/storyboard.jpg"
+    },
+    {
+      "case_number": 36,
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "产品介绍",
+        "科普解释"
+      ],
+      "scenes": [
+        "跨场景接力",
+        "前后变化",
+        "成果展示"
+      ],
+      "materials": [
+        "手机界面",
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "金属组收成矩形",
+        "手机像素逐格填入",
+        "推屏后像素获得厚度"
+      ],
+      "art": [
+        "黑奶白饱和橙",
+        "镜面反射环境色",
+        "白环定义范围"
+      ],
+      "scenario": "展示品牌图形或抽象机制时，让手机内的二维标志进入三维体块场。",
+      "material_requirements": "需要原创品牌几何、手机界面和可生成厚度的立方体资产。",
+      "transfer_cost": "金属到手机有场面切换，百分比不是实际渲染证据，强橙底不适合长正文；原速观感与声音同步未认证。",
+      "aliases": [
+        "金属",
+        "镜面",
+        "像素",
+        "立方体",
+        "橙色",
+        "标志",
+        "渲染"
+      ],
+      "slug": "sahildesigner23-307120",
+      "recommended_segments": [
+        {
+          "start": 6,
+          "end": 11,
+          "reason": "金属组收为手机，橙像素完成后放大进入立方体与白环场"
+        }
+      ],
+      "title": "金属物体与手机画面",
+      "author": "sahildesigner23",
+      "duration": 14.93,
+      "directory": "cases/sahildesigner23-307120-original",
+      "detail": "detail.html?case=sahildesigner23-307120",
+      "analysis": "cases/sahildesigner23-307120-original/overview.md",
+      "source_sha256": "755a9c8bff380e9ed9b01b286de0289f05bb159f2296c636c7f73a83580133a6",
+      "media": "cases/sahildesigner23-307120-original/video.mp4",
+      "media_sha256": "755a9c8bff380e9ed9b01b286de0289f05bb159f2296c636c7f73a83580133a6",
+      "media_bytes": 2151937,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/sahildesigner23-307120",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "036-m07",
+        "036-m04",
+        "036-m08"
+      ],
+      "storyboard": "cases/sahildesigner23-307120-original/storyboard.jpg"
+    },
+    {
+      "case_number": 37,
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "操作教程",
+        "品牌展示"
+      ],
+      "scenes": [
+        "步骤累积",
+        "前后变化",
+        "成果展示"
+      ],
+      "materials": [
+        "照片",
+        "手机界面",
+        "文字"
+      ],
+      "methods": [
+        "固定外框内页滚动",
+        "标题按内容换",
+        "同素材更换主题"
+      ],
+      "art": [
+        "外深蓝内浅彩",
+        "关键词色块",
+        "照片保留自然色"
+      ],
+      "scenario": "介绍个人主页时，依次展示服务、作品网格和同内容的可定制主题。",
+      "material_requirements": "需要真实主页录屏、头像照片和同内容的不同主题版本。",
+      "transfer_cost": "双手机嵌套压小内容，中文须重排，长新闻画面应减少框体；原速观感与声音同步未认证。",
+      "aliases": [
+        "主页",
+        "链接页",
+        "头像",
+        "服务",
+        "作品网格",
+        "主题",
+        "手机"
+      ],
+      "slug": "charliie-334026",
+      "recommended_segments": [
+        {
+          "start": 3,
+          "end": 8,
+          "reason": "主页滚动到服务与作品后回顶部，头像和餐食图保留再换暗主题"
+        }
+      ],
+      "title": "手机中的照片与主页",
+      "author": "charliie",
+      "duration": 17.266667,
+      "directory": "cases/charliie-334026-original",
+      "detail": "detail.html?case=charliie-334026",
+      "analysis": "cases/charliie-334026-original/overview.md",
+      "source_sha256": "e30f66faa616b68136331cc464c4c5761dd0e55123ea3cbb02acd4d867a153e9",
+      "media": "cases/charliie-334026-original/video.mp4",
+      "media_sha256": "e30f66faa616b68136331cc464c4c5761dd0e55123ea3cbb02acd4d867a153e9",
+      "media_bytes": 443217,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/charliie-334026",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "037-m05",
+        "037-m03",
+        "037-m04"
+      ],
+      "storyboard": "cases/charliie-334026-original/storyboard.jpg"
+    },
+    {
+      "case_number": 38,
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "操作教程",
+        "科普解释"
+      ],
+      "scenes": [
+        "步骤累积",
+        "条件解释",
+        "跨场景接力"
+      ],
+      "materials": [
+        "照片",
+        "手机界面",
+        "图表",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "新旧手机叠入交接",
+        "日历标记逐行建立",
+        "标题与旧组同退"
+      ],
+      "art": [
+        "粉薄荷紫渐变",
+        "深衬线配粉斜体",
+        "左上标题右下手机"
+      ],
+      "scenario": "解释记录服务时，从完成状态接到日历，并把不同记录类别引到页外。",
+      "material_requirements": "需要实际日记录与日历界面、准确类别和对应标签。",
+      "transfer_cost": "健康预测与已发生记录须区分，原片新旧手机层叠而非同一框变形，小字需核验；原速观感与声音同步未认证。",
+      "aliases": [
+        "健康",
+        "日历",
+        "记录",
+        "标签",
+        "粉色",
+        "数据标记",
+        "新旧交接"
+      ],
+      "slug": "andre-lucaxxs-846347",
+      "recommended_segments": [
+        {
+          "start": 8,
+          "end": 13,
+          "reason": "完成弹层接日历手机，三个标记依次建立，再叠入下一用途页"
+        }
+      ],
+      "title": "粉色手机与数据标记",
+      "author": "andre_lucaxxs",
+      "duration": 26.453,
+      "directory": "cases/andre-lucaxxs-846347-original",
+      "detail": "detail.html?case=andre-lucaxxs-846347",
+      "analysis": "cases/andre-lucaxxs-846347-original/overview.md",
+      "source_sha256": "015f8f2875329544fc9ad00f3b95e6ea78d1018fef9b851eca8552267c46ef0b",
+      "media": "cases/andre-lucaxxs-846347-original/video.mp4",
+      "media_sha256": "015f8f2875329544fc9ad00f3b95e6ea78d1018fef9b851eca8552267c46ef0b",
+      "media_bytes": 2037112,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/andre-lucaxxs-846347",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "038-m01",
+        "038-m02",
+        "038-m03",
+        "038-m04",
+        "038-m05",
+        "038-m06"
+      ],
+      "storyboard": "cases/andre-lucaxxs-846347-original/storyboard.jpg"
+    },
+    {
+      "case_number": 39,
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释",
+        "新闻解读",
+        "操作教程"
+      ],
+      "scenes": [
+        "整体到局部",
+        "条件解释",
+        "重点强调"
+      ],
+      "materials": [
+        "手机界面",
+        "文章页面",
+        "文字"
+      ],
+      "methods": [
+        "全文与解释卡并置",
+        "补原句高亮目标词",
+        "保存状态替换说明"
+      ],
+      "art": [
+        "奶纸黑衬线",
+        "小面积暖黄",
+        "右来源左解释"
+      ],
+      "scenario": "讲术语、新闻句子或产品条款时，保留全文并放大要解释的局部。",
+      "material_requirements": "需要准确原文、词义或解释、引用范围与真实状态或明确示意。",
+      "transfer_cost": "未见词卡飞出路径，不能推断精确移动实现，长中文需改行且关键证据另放大；原速观感与声音同步未认证。",
+      "aliases": [
+        "阅读",
+        "词义",
+        "术语",
+        "原文",
+        "上下文",
+        "引用",
+        "保存"
+      ],
+      "slug": "1stnoel-603851",
+      "recommended_segments": [
+        {
+          "start": 23,
+          "end": 28,
+          "reason": "全文保留时词卡显出，原句随后加入，保存说明再替换原句"
+        }
+      ],
+      "title": "手机阅读、文字与语音",
+      "author": "1stnoel_",
+      "duration": 60.053,
+      "directory": "cases/1stnoel-603851-original",
+      "detail": "detail.html?case=1stnoel-603851",
+      "analysis": "cases/1stnoel-603851-original/overview.md",
+      "source_sha256": "49a60ff4f7809618d43408dd300ffae92be0949875c6f35ed88e98f33ef06f0f",
+      "media": "cases/1stnoel-603851-original/video.mp4",
+      "media_sha256": "49a60ff4f7809618d43408dd300ffae92be0949875c6f35ed88e98f33ef06f0f",
+      "media_bytes": 2253833,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/1stnoel-603851",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "039-m01",
+        "039-m02",
+        "039-m03",
+        "039-m04",
+        "039-m05"
+      ],
+      "storyboard": "cases/1stnoel-603851-original/storyboard.jpg"
+    },
+    {
+      "case_number": 40,
+      "original_form": "游戏演示",
+      "video_types": [
+        "操作教程",
+        "科普解释",
+        "产品介绍"
+      ],
+      "scenes": [
+        "步骤累积",
+        "前后变化",
+        "空间关系"
+      ],
+      "materials": [
+        "桌面界面",
+        "三维",
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "录屏近景聚焦操作",
+        "步骤纸条随事件进退",
+        "图纸环境转模拟总览"
+      ],
+      "art": [
+        "手写白纸条",
+        "蓝绿复用环境色",
+        "标注避开轨迹"
+      ],
+      "scenario": "软件或实验演示围绕Play和Fire操作，解释图纸如何进入可运行模拟。",
+      "material_requirements": "需要真实操作录屏、关键按钮时点及清楚的短步骤说明。",
+      "transfer_cost": "产品内部转场不可归为外部动画制作，模拟不等于现实物理结论，加速需说明；原速观感与声音同步未认证。",
+      "aliases": [
+        "投石器",
+        "物理",
+        "模拟",
+        "录屏",
+        "手写标注",
+        "图纸",
+        "按钮"
+      ],
+      "slug": "brainwavepub-812667",
+      "recommended_segments": [
+        {
+          "start": 10,
+          "end": 15,
+          "reason": "先看Play和预测终点，拉回总览看图纸转模拟，再聚焦Fire"
+        }
+      ],
+      "title": "屏幕录制与手写标注",
+      "author": "BrainWavePub",
+      "duration": 52.633333,
+      "directory": "cases/brainwavepub-812667-original",
+      "detail": "detail.html?case=brainwavepub-812667",
+      "analysis": "cases/brainwavepub-812667-original/overview.md",
+      "source_sha256": "213f6551b9afdf2fe56b4994d9fc3a31b8a2a5e9628f8cc11eeb1f96de850641",
+      "media": "cases/brainwavepub-812667-original/video.mp4",
+      "media_sha256": "213f6551b9afdf2fe56b4994d9fc3a31b8a2a5e9628f8cc11eeb1f96de850641",
+      "media_bytes": 3249560,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/brainwavepub-812667",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "040-m01",
+        "040-m02",
+        "040-m03",
+        "040-m04"
+      ],
+      "storyboard": "cases/brainwavepub-812667-original/storyboard.jpg"
     },
     {
       "case_number": 41,
@@ -2161,6 +3073,139 @@
       "storyboard": "cases/dustindavis-644806-original/storyboard.jpg"
     },
     {
+      "case_number": 47,
+      "slug": "lnkiai-544254",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "品牌展示"
+      ],
+      "scenes": [
+        "前后变化",
+        "成果展示"
+      ],
+      "materials": [
+        "手机界面",
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "固定结构换主题",
+        "中心主屏侧屏对照",
+        "推近引入新观察阶段"
+      ],
+      "art": [
+        "大面积主题色",
+        "粗标题配细斜体",
+        "薄边设备保留对比"
+      ],
+      "scenario": "用于展示同一应用的多种视觉主题，让布局不变而配色气质改变。",
+      "material_requirements": "需要同布局的多套主题界面、主题名称和可辨的真实内容。",
+      "transfer_cost": "快速换色需补辨认时间，实拍肤色和证据颜色不能随意染色；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 12,
+          "end": 17,
+          "reason": "倾斜多屏推近后接三机主题组合，中央界面和外场配色连续换主题。"
+        }
+      ],
+      "aliases": [
+        "主题切换",
+        "设计系统",
+        "同布局换色",
+        "多手机主题",
+        "视觉方案对照"
+      ],
+      "title": "多手机与色彩主题",
+      "author": "lnkiai",
+      "duration": 32.182993,
+      "directory": "cases/lnkiai-544254-original",
+      "detail": "detail.html?case=lnkiai-544254",
+      "analysis": "cases/lnkiai-544254-original/overview.md",
+      "source_sha256": "317d6bd061c004e25316e255e220b03f5af62204cf6b9194d5cd768a3bbc1798",
+      "media": "cases/lnkiai-544254-original/video.mp4",
+      "media_sha256": "317d6bd061c004e25316e255e220b03f5af62204cf6b9194d5cd768a3bbc1798",
+      "media_bytes": 4561578,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/lnkiai-544254",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "047-m01",
+        "047-m02",
+        "047-m08",
+        "047-m05",
+        "047-m06",
+        "047-m07"
+      ],
+      "storyboard": "cases/lnkiai-544254-original/storyboard.jpg"
+    },
+    {
+      "case_number": 48,
+      "slug": "goldiez2599-685869",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍"
+      ],
+      "scenes": [
+        "整体到局部",
+        "步骤累积",
+        "成果展示"
+      ],
+      "materials": [
+        "手机界面",
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "生活问题先于功能",
+        "邀请卡外抽",
+        "先标题后细节"
+      ],
+      "art": [
+        "米白粉紫柔晕",
+        "紫色身份贯穿",
+        "浅影分开设备与卡"
+      ],
+      "scenario": "用于协作预约应用介绍，从约时间的困扰转到可读的共享邀请卡。",
+      "material_requirements": "需要真实协作问题、设备界面、邀请内容与参与状态。",
+      "transfer_cost": "角色主要陪衬，三机展示不证明同步，浅灰细字需提高可读性；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 9,
+          "end": 14,
+          "reason": "问题句让位给双栏构图，手机稳定后邀请卡向外浮出并累积参与头像。"
+        }
+      ],
+      "aliases": [
+        "共享邀请",
+        "协作预约",
+        "功能卡外抽",
+        "生活问题转工具",
+        "柔和产品片"
+      ],
+      "title": "手机、角色与协作场景",
+      "author": "Goldiez2599",
+      "duration": 32.085,
+      "directory": "cases/goldiez2599-685869-original",
+      "detail": "detail.html?case=goldiez2599-685869",
+      "analysis": "cases/goldiez2599-685869-original/overview.md",
+      "source_sha256": "4627c27c1d02c4862f97685bd99ed52cf86165f2d43fab28dbeb8a009feb4f74",
+      "media": "cases/goldiez2599-685869-original/video.mp4",
+      "media_sha256": "4627c27c1d02c4862f97685bd99ed52cf86165f2d43fab28dbeb8a009feb4f74",
+      "media_bytes": 1647171,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/goldiez2599-685869",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "048-m01",
+        "048-m06",
+        "048-m04",
+        "048-m05"
+      ],
+      "storyboard": "cases/goldiez2599-685869-original/storyboard.jpg"
+    },
+    {
       "case_number": 49,
       "slug": "apoorvjain25-150112",
       "original_form": "固定视频",
@@ -2293,6 +3338,670 @@
         "050-m05"
       ],
       "storyboard": "cases/seri-nonnon-231813-original/storyboard.jpg"
+    },
+    {
+      "case_number": 51,
+      "slug": "l3d1c-632524",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍"
+      ],
+      "scenes": [
+        "多来源对照",
+        "整体到局部",
+        "空间关系"
+      ],
+      "materials": [
+        "文章页面",
+        "照片",
+        "图表",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "报道先并列",
+        "扫描提取关键词",
+        "媒体身份保留接分类"
+      ],
+      "art": [
+        "黑底编辑排版",
+        "白衬线配蓝关键词",
+        "活跃行短时增亮"
+      ],
+      "scenario": "用于新闻解读的多来源对照段，让原文标题先可见，再提取字段进入关系图。",
+      "material_requirements": "需要可靠报道原文、媒体身份、可读引用和明确的分类依据。",
+      "transfer_cost": "原片没有新闻实拍人物视频，扫描与颜色不证明AI分析准确，低对比列表需简化；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 7,
+          "end": 12,
+          "reason": "报道列表建立后蓝条逐行扫描，关键词着色，文本退后保留媒体色点接关系图。"
+        }
+      ],
+      "aliases": [
+        "多来源报道",
+        "文章比较",
+        "媒体立场",
+        "原文到图表",
+        "新闻产品广告"
+      ],
+      "title": "新闻产品与文章排版",
+      "author": "l3d1c",
+      "duration": 34.087007,
+      "directory": "cases/l3d1c-632524-original",
+      "detail": "detail.html?case=l3d1c-632524",
+      "analysis": "cases/l3d1c-632524-original/overview.md",
+      "source_sha256": "4a881e28a9bb5f3f83fe5f1b5bc9b0b7ef40823d8c198216352d5c9e2fc0567d",
+      "media": "cases/l3d1c-632524-original/video.mp4",
+      "media_sha256": "4a881e28a9bb5f3f83fe5f1b5bc9b0b7ef40823d8c198216352d5c9e2fc0567d",
+      "media_bytes": 1880905,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/l3d1c-632524",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "051-m01",
+        "051-m02",
+        "051-m12",
+        "051-m13",
+        "051-m07",
+        "051-m08",
+        "051-m09",
+        "051-m10",
+        "051-m11"
+      ],
+      "storyboard": "cases/l3d1c-632524-original/storyboard.jpg"
+    },
+    {
+      "case_number": 52,
+      "slug": "groundcontrol-230877",
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释",
+        "新闻解读"
+      ],
+      "scenes": [
+        "条件解释",
+        "空间关系",
+        "重点强调"
+      ],
+      "materials": [
+        "图表",
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "地图留场补剖面",
+        "双色身份跨视图",
+        "章节共用纸面文法"
+      ],
+      "art": [
+        "米黄纸面与淡墨",
+        "热雨采用语义色",
+        "标题主图注释分层"
+      ],
+      "scenario": "用于天气事件或地理机制解读，保留位置地图同时补一个解释成因的局部剖面。",
+      "material_requirements": "需要地图、气象数据、机制资料及清楚的日期和来源限定。",
+      "transfer_cost": "示意不是精确模拟，历史与年度数据须核查，薄线注释需提高对比；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 63,
+          "end": 68,
+          "reason": "日本地图和气流保留，局部圈强调后在右侧建立双色高压剖面与下降指向。"
+        }
+      ],
+      "aliases": [
+        "日本高温",
+        "地图剖面并置",
+        "气象机制",
+        "主视图留场",
+        "纸面数据解释"
+      ],
+      "title": "地图、历史时间与统计",
+      "author": "GroundControl",
+      "duration": 180.053,
+      "directory": "cases/groundcontrol-230877-original",
+      "detail": "detail.html?case=groundcontrol-230877",
+      "analysis": "cases/groundcontrol-230877-original/overview.md",
+      "source_sha256": "50c18f1c4a02064a7be46fad6ee9bea8426103d24656b10dfdaafd472d19d20d",
+      "media": "cases/groundcontrol-230877-original/video.mp4",
+      "media_sha256": "50c18f1c4a02064a7be46fad6ee9bea8426103d24656b10dfdaafd472d19d20d",
+      "media_bytes": 14346369,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/groundcontrol-230877",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "052-m01",
+        "052-m02",
+        "052-m03",
+        "052-m04",
+        "052-m05",
+        "052-m06",
+        "052-m07"
+      ],
+      "storyboard": "cases/groundcontrol-230877-original/storyboard.jpg"
+    },
+    {
+      "case_number": 53,
+      "slug": "stewchan2-369810",
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释"
+      ],
+      "scenes": [
+        "多来源对照",
+        "空间关系",
+        "整体到局部"
+      ],
+      "materials": [
+        "文章页面",
+        "图表",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "连接从原句出发",
+        "来源目标同时留场",
+        "关系先于技术写法"
+      ],
+      "art": [
+        "暗蓝细青网络",
+        "橙主体白灰邻点",
+        "标题图示限定分区"
+      ],
+      "scenario": "用于引用来源、反向链接或传播路径解释，先给两张具体页面再说明连接方向。",
+      "material_requirements": "需要可辨来源页面与目标页面、真实连接关系及必要技术说明。",
+      "transfer_cost": "节点与线不能替代来源，权重如需精确必须给定义，暗细字需放大；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 11,
+          "end": 16,
+          "reason": "左页超链接沿曲线连接右产品页，目标轮廓增强后再出现代码示意。"
+        }
+      ],
+      "aliases": [
+        "反向链接",
+        "引用关系",
+        "来源目标",
+        "链接方向",
+        "传播网络"
+      ],
+      "title": "关系网络与层级展开",
+      "author": "stewchan2",
+      "duration": 114.048,
+      "directory": "cases/stewchan2-369810-original",
+      "detail": "detail.html?case=stewchan2-369810",
+      "analysis": "cases/stewchan2-369810-original/overview.md",
+      "source_sha256": "5c8c05324861c0dbd2fbdfa3be6aa649143b9b70b2f16c6ede447e09a5f99001",
+      "media": "cases/stewchan2-369810-original/video.mp4",
+      "media_sha256": "5c8c05324861c0dbd2fbdfa3be6aa649143b9b70b2f16c6ede447e09a5f99001",
+      "media_bytes": 4443198,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/stewchan2-369810",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "053-m01",
+        "053-m02",
+        "053-m03",
+        "053-m04",
+        "053-m05",
+        "053-m06",
+        "053-m07"
+      ],
+      "storyboard": "cases/stewchan2-369810-original/storyboard.jpg"
+    },
+    {
+      "case_number": 54,
+      "slug": "nikolajankovic-616097",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "科普解释"
+      ],
+      "scenes": [
+        "条件解释",
+        "步骤累积",
+        "前后变化"
+      ],
+      "materials": [
+        "图表",
+        "插画",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "风险量尺持续留场",
+        "触发后展开三步交易",
+        "操作结束才更新结果"
+      ],
+      "art": [
+        "淡灰绿纸面",
+        "蓝规则红风险黄触发",
+        "手写纸签与虚线容器"
+      ],
+      "scenario": "用于阈值触发和异常处理解释，让观众在同一风险尺上比较操作前后。",
+      "material_requirements": "需要准确阈值、单位、变化方向、实际处理步骤及权限条件。",
+      "transfer_cost": "金融能力与授权不能凭动画证明，量尺方向须重核，底字需按实际声音安排；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 19,
+          "end": 24,
+          "reason": "价格曲线与床退出而风险尺保留，交易框内三步依次落位，比例值随后改善。"
+        }
+      ],
+      "aliases": [
+        "阈值触发",
+        "清算距离",
+        "自动处理",
+        "风险量尺",
+        "操作结果对照"
+      ],
+      "title": "手绘图表与故事解释",
+      "author": "_nikolajankovic",
+      "duration": 58,
+      "directory": "cases/nikolajankovic-616097-original",
+      "detail": "detail.html?case=nikolajankovic-616097",
+      "analysis": "cases/nikolajankovic-616097-original/overview.md",
+      "source_sha256": "17cf0553534b93728a3ba8ff5580a44effdc60325e00bb6a037e3c6f677d9fec",
+      "media": "cases/nikolajankovic-616097-original/video.mp4",
+      "media_sha256": "17cf0553534b93728a3ba8ff5580a44effdc60325e00bb6a037e3c6f677d9fec",
+      "media_bytes": 5923045,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/nikolajankovic-616097",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "054-m01",
+        "054-m02",
+        "054-m03",
+        "054-m04",
+        "054-m05",
+        "054-m06"
+      ],
+      "storyboard": "cases/nikolajankovic-616097-original/storyboard.jpg"
+    },
+    {
+      "case_number": 55,
+      "slug": "kureshirfan-386691",
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释"
+      ],
+      "scenes": [
+        "条件解释",
+        "前后变化",
+        "空间关系"
+      ],
+      "materials": [
+        "图表",
+        "插画",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "参照固定呈现储能",
+        "释放与对象变化对应",
+        "事后补测量标签"
+      ],
+      "art": [
+        "深蓝灰细网格",
+        "黄道路橙能量",
+        "标题机制计量分地址"
+      ],
+      "scenario": "用于压力积累与突然释放机制说明，让同一对象的变形与储量变化对应。",
+      "material_requirements": "需要机制依据、固定结构图、触发条件及可核对测量口径。",
+      "transfer_cost": "道路变形是示意，不能当现场地震证据，未经核验不给精确能量；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 14,
+          "end": 19,
+          "reason": "弯道路和储能条保留，震中标记接入后量条缩短，道路回直错位，测量括号随后出现。"
+        }
+      ],
+      "aliases": [
+        "地震机制",
+        "储能释放",
+        "固定参照",
+        "道路错位",
+        "变化后测量"
+      ],
+      "title": "地震机制与数据示意",
+      "author": "kureshirfan",
+      "duration": 35.526009,
+      "directory": "cases/kureshirfan-386691-original",
+      "detail": "detail.html?case=kureshirfan-386691",
+      "analysis": "cases/kureshirfan-386691-original/overview.md",
+      "source_sha256": "6a5f1978bf51dded647dd8f804ff37a1f5bef3279b6a66f1921d7118cd9051e5",
+      "media": "cases/kureshirfan-386691-original/video.mp4",
+      "media_sha256": "6a5f1978bf51dded647dd8f804ff37a1f5bef3279b6a66f1921d7118cd9051e5",
+      "media_bytes": 864189,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/kureshirfan-386691",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "055-m01",
+        "055-m07",
+        "055-m04",
+        "055-m05",
+        "055-m06"
+      ],
+      "storyboard": "cases/kureshirfan-386691-original/storyboard.jpg"
+    },
+    {
+      "case_number": 56,
+      "slug": "aylmerth-356252",
+      "original_form": "固定视频",
+      "video_types": [
+        "新闻解读"
+      ],
+      "scenes": [
+        "前后变化",
+        "重点强调"
+      ],
+      "materials": [
+        "图表",
+        "文字"
+      ],
+      "methods": [
+        "类别身份随条移动",
+        "量与排名分别变化",
+        "时间口径固定位置"
+      ],
+      "art": [
+        "黑底彩条",
+        "标签紧随条端",
+        "右空区容纳大时间"
+      ],
+      "scenario": "用于新闻数据的累计排名演变，追踪类别增长、换位和最后的比较结果。",
+      "material_requirements": "需要完整可核对时间序列、累计定义、缺失处理、类别及来源。",
+      "transfer_cost": "单场景条形竞赛不是多镜头连续动画，横轴会变，长度不能跨帧直接比较；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 28,
+          "end": 33,
+          "reason": "2016年第二季度到2019年第一季度的增长与换位，名称旗帜数值随条一起移动。"
+        }
+      ],
+      "aliases": [
+        "累计排名",
+        "条形竞赛",
+        "季度数据",
+        "身份随条",
+        "庇护申请统计"
+      ],
+      "title": "资讯数据与排名图表",
+      "author": "AylmerTH",
+      "duration": 50.09,
+      "directory": "cases/aylmerth-356252-original",
+      "detail": "detail.html?case=aylmerth-356252",
+      "analysis": "cases/aylmerth-356252-original/overview.md",
+      "source_sha256": "2d3494a8e8a2a1c671719955a5dd0f4a2e2a7efa8fdaf51448abbcb525e1886e",
+      "media": "cases/aylmerth-356252-original/video.mp4",
+      "media_sha256": "2d3494a8e8a2a1c671719955a5dd0f4a2e2a7efa8fdaf51448abbcb525e1886e",
+      "media_bytes": 1501838,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/aylmerth-356252",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "056-m01"
+      ],
+      "storyboard": "cases/aylmerth-356252-original/storyboard.jpg"
+    },
+    {
+      "case_number": 57,
+      "slug": "itisrazak-332386",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍"
+      ],
+      "scenes": [
+        "步骤累积",
+        "跨场景接力",
+        "成果展示"
+      ],
+      "materials": [
+        "文章页面",
+        "桌面界面",
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "高亮语义接对应图形",
+        "解释成果先于播放器",
+        "同图缩入工具容器"
+      ],
+      "art": [
+        "白纸少量蓝黄",
+        "来源正文与产品标题分字形",
+        "标签围绕对象"
+      ],
+      "scenario": "用于文档转解释视频介绍，把一段具体原文先解释成图，再展示产品如何承接成果。",
+      "material_requirements": "需要准确原文、关键词关系、对应图像或示意及真实播放器界面。",
+      "transfer_cost": "词语散开不能自动解释复杂概念，小字和产品统计须核对；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 9,
+          "end": 14,
+          "reason": "高亮文字退散后海水太阳蒸汽云建立，完整示意再缩入白色视频播放器。"
+        }
+      ],
+      "aliases": [
+        "文档转视频",
+        "文字转插画",
+        "水循环示意",
+        "成果进播放器",
+        "语义接力"
+      ],
+      "title": "书页、插画与字幕叙事",
+      "author": "itisRazak",
+      "duration": 40.042,
+      "directory": "cases/itisrazak-332386-original",
+      "detail": "detail.html?case=itisrazak-332386",
+      "analysis": "cases/itisrazak-332386-original/overview.md",
+      "source_sha256": "9c871d4bcead77df4545a02026263efc7251547e48c048b2f12a1bd0232926d2",
+      "media": "cases/itisrazak-332386-original/video.mp4",
+      "media_sha256": "9c871d4bcead77df4545a02026263efc7251547e48c048b2f12a1bd0232926d2",
+      "media_bytes": 4107837,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/itisrazak-332386",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "057-m10",
+        "057-m11",
+        "057-m05",
+        "057-m06",
+        "057-m12"
+      ],
+      "storyboard": "cases/itisrazak-332386-original/storyboard.jpg"
+    },
+    {
+      "case_number": 58,
+      "slug": "felipemoller-936736",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍"
+      ],
+      "scenes": [
+        "跨场景接力",
+        "步骤累积",
+        "成果展示"
+      ],
+      "materials": [
+        "三维",
+        "桌面界面",
+        "文字"
+      ],
+      "methods": [
+        "同底座替换生活布景",
+        "结果卡先退再换场",
+        "输入与记录位置对应"
+      ],
+      "art": [
+        "浅紫底与淡黄地砖",
+        "微缩物件软影",
+        "紫标签及白卡分层"
+      ],
+      "scenario": "用于同一记账功能跨消费情境的展示，市场、加油站和餐馆共用一个承载舞台。",
+      "material_requirements": "需要每种情境的输入方式、对应记录、可用场景模型或统一取景素材。",
+      "transfer_cost": "原环境是微缩模型而非生活实拍，布景成本高，凭证与金额需独立核验；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 7,
+          "end": 12,
+          "reason": "市场结果卡退出，棋盘地面和架子收起，保留圆盘空间后建立加油站布景。"
+        }
+      ],
+      "aliases": [
+        "多场景记账",
+        "微缩舞台",
+        "保持底座换景",
+        "市场加油站餐馆",
+        "输入方式"
+      ],
+      "title": "竖屏消费过程与物体拆解",
+      "author": "felipemoller",
+      "duration": 30.058,
+      "directory": "cases/felipemoller-936736-original",
+      "detail": "detail.html?case=felipemoller-936736",
+      "analysis": "cases/felipemoller-936736-original/overview.md",
+      "source_sha256": "301d0c376234f927f4da0a88bf89878f5cc2cb869a9e873f435219a582aeb26a",
+      "media": "cases/felipemoller-936736-original/video.mp4",
+      "media_sha256": "301d0c376234f927f4da0a88bf89878f5cc2cb869a9e873f435219a582aeb26a",
+      "media_bytes": 1530216,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/felipemoller-936736",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "058-m07",
+        "058-m08",
+        "058-m05",
+        "058-m06"
+      ],
+      "storyboard": "cases/felipemoller-936736-original/storyboard.jpg"
+    },
+    {
+      "case_number": 59,
+      "slug": "retropunkai-277590",
+      "original_form": "固定视频",
+      "video_types": [
+        "新闻解读"
+      ],
+      "scenes": [
+        "前后变化",
+        "跨场景接力",
+        "重点强调"
+      ],
+      "materials": [
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "地点与时间坐标固定",
+        "暂停保留未完结构",
+        "去色与撤章表达状态"
+      ],
+      "art": [
+        "米黄纸与细黑建筑",
+        "日期色标和漫画标题",
+        "事件类别改变局部调色"
+      ],
+      "scenario": "用于建筑变迁或事件进程解读，在固定地点展示建设、暂停与恢复。",
+      "material_requirements": "需要可靠阶段日期、结构资料、活动海报或阶段照片及来源。",
+      "transfer_cost": "原片是场馆历史而非音乐海报集，手绘不能虚构事实，精细数值需核验；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 11,
+          "end": 16,
+          "reason": "球形钢骨在原底座长高，整体去色并压暂停章，恢复时复色撤章而结构保留。"
+        }
+      ],
+      "aliases": [
+        "Sphere场馆",
+        "建设历史",
+        "暂停恢复",
+        "时间线状态",
+        "地点连续"
+      ],
+      "title": "Sphere场馆建设与活动时间线",
+      "author": "RetropunkAI",
+      "duration": 60.032,
+      "directory": "cases/retropunkai-277590-original",
+      "detail": "detail.html?case=retropunkai-277590",
+      "analysis": "cases/retropunkai-277590-original/overview.md",
+      "source_sha256": "68724892beccec2b481a8daef9220831009d1923a72465942e1a3a3cff5081a1",
+      "media": "cases/retropunkai-277590-original/video.mp4",
+      "media_sha256": "68724892beccec2b481a8daef9220831009d1923a72465942e1a3a3cff5081a1",
+      "media_bytes": 8128337,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/retropunkai-277590",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "059-m07",
+        "059-m04",
+        "059-m05",
+        "059-m06"
+      ],
+      "storyboard": "cases/retropunkai-277590-original/storyboard.jpg"
+    },
+    {
+      "case_number": 60,
+      "slug": "ror-fly-880547",
+      "original_form": "固定视频",
+      "video_types": [
+        "操作教程"
+      ],
+      "scenes": [
+        "步骤累积",
+        "成果展示"
+      ],
+      "materials": [
+        "插画",
+        "文字"
+      ],
+      "methods": [
+        "同杯持续累积",
+        "来源用量结果分工",
+        "旧工具退出后接新材料"
+      ],
+      "art": [
+        "暖白底和淡蓝杯壁",
+        "红标题与递深液色",
+        "轻线步骤节点"
+      ],
+      "scenario": "用于配方或装配过程，把每次输入的身份、用量和累积成果同步呈现。",
+      "material_requirements": "需要准确配比和步骤、可辨材料工具、统一容器及操作时长说明。",
+      "transfer_cost": "手绘液体不是实拍或精密容积测量，演示秒数不等于真实操作时间；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 10,
+          "end": 15,
+          "reason": "旧浅蓝瓶退场，右量卡与进度换步，新红瓶倒入，同杯液色和液面继续累计。"
+        }
+      ],
+      "aliases": [
+        "Negroni",
+        "鸡尾酒配方",
+        "同杯累积",
+        "材料接续",
+        "加入量卡"
+      ],
+      "title": "手绘鸡尾酒制作过程",
+      "author": "Ror_Fly",
+      "duration": 30,
+      "directory": "cases/ror-fly-880547-original",
+      "detail": "detail.html?case=ror-fly-880547",
+      "analysis": "cases/ror-fly-880547-original/overview.md",
+      "source_sha256": "ccaed62515000b49f9ba080c1180c67ae19d588ef0c566f293d44e2bafe14769",
+      "media": "cases/ror-fly-880547-original/video.mp4",
+      "media_sha256": "ccaed62515000b49f9ba080c1180c67ae19d588ef0c566f293d44e2bafe14769",
+      "media_bytes": 2278766,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ror-fly-880547",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "060-m08",
+        "060-m09",
+        "060-m10"
+      ],
+      "storyboard": "cases/ror-fly-880547-original/storyboard.jpg"
     },
     {
       "case_number": 61,
@@ -2433,6 +4142,73 @@
         "063-m06"
       ],
       "storyboard": "cases/ajith-io-562538-original/storyboard.jpg"
+    },
+    {
+      "case_number": 64,
+      "slug": "nolkeeg-635633",
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释"
+      ],
+      "scenes": [
+        "跨场景接力",
+        "条件解释",
+        "重点强调"
+      ],
+      "materials": [
+        "三维",
+        "图表",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "共同问题串不同尺度",
+        "旧计量退后建新单位",
+        "对象缩放给信息留位"
+      ],
+      "art": [
+        "黑场白大数字",
+        "蓝地球金白太阳",
+        "左右分栏底进度"
+      ],
+      "scenario": "用于每单位时间发生的事实串联，让同一问题连接多个尺度而不混淆计量。",
+      "material_requirements": "需要各段核验数字、单位与口径、尺度对象及稳定信息区。",
+      "transfer_cost": "量纲不同不能作直接数值比较，示意球体不按真实比例，极小标签需放大；原速观感与声音未核验。",
+      "recommended_segments": [
+        {
+          "start": 12,
+          "end": 17,
+          "reason": "光速计量退场，地球缩向右下，旧环退新轨道建，再接地球运动数字。"
+        }
+      ],
+      "aliases": [
+        "一秒尺度",
+        "单位切换",
+        "宇宙数字",
+        "地球锚点",
+        "大数对象分栏"
+      ],
+      "title": "宇宙尺度与数字解释",
+      "author": "nolkeeg",
+      "duration": 45.056,
+      "directory": "cases/nolkeeg-635633-original",
+      "detail": "detail.html?case=nolkeeg-635633",
+      "analysis": "cases/nolkeeg-635633-original/overview.md",
+      "source_sha256": "f90c5d3d1facc24969de30eef4894be98197f7bc41a11d11c176b13e6a3174bc",
+      "media": "cases/nolkeeg-635633-original/video.mp4",
+      "media_sha256": "f90c5d3d1facc24969de30eef4894be98197f7bc41a11d11c176b13e6a3174bc",
+      "media_bytes": 7621016,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/nolkeeg-635633",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "064-m01",
+        "064-m02",
+        "064-m03",
+        "064-m04",
+        "064-m07"
+      ],
+      "storyboard": "cases/nolkeeg-635633-original/storyboard.jpg"
     },
     {
       "case_number": 66,
@@ -2704,6 +4480,611 @@
       "storyboard": "cases/localjulius-625706-original/storyboard.jpg"
     },
     {
+      "case_number": 88,
+      "slug": "ceowinkz-683602",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "品牌展示"
+      ],
+      "scenes": [
+        "前后变化",
+        "空间关系",
+        "成果展示"
+      ],
+      "materials": [
+        "桌面界面",
+        "文字",
+        "图表",
+        "抽象图形"
+      ],
+      "methods": [
+        "固定页面扫描改版",
+        "商品身份缩成节点",
+        "渠道逐个建立连线"
+      ],
+      "art": [
+        "深蓝白字青重音",
+        "页面明度对照",
+        "稳定圆角与细引线"
+      ],
+      "scenario": "讲同一商品页面改善后如何被分发到多个渠道。",
+      "material_requirements": "需真实商品与改善前后页面、可比变化及准确渠道和业务数字。",
+      "transfer_cost": "原片页面与销售数字是广告示意，扫描不可篡改证据；金额与列表须另设阅读；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 7,
+          "end": 12,
+          "reason": "竖向扫描在固定页面内改变商品图与层级，页面缩成商品节点后右侧渠道卡逐一连接。"
+        }
+      ],
+      "aliases": [
+        "商品页",
+        "电商",
+        "页面优化",
+        "渠道分发",
+        "扫描对照",
+        "关系网"
+      ],
+      "title": "商品卡片与销售数字",
+      "author": "ceowinkz",
+      "duration": 15.061,
+      "directory": "cases/ceowinkz-683602-original",
+      "detail": "detail.html?case=ceowinkz-683602",
+      "analysis": "cases/ceowinkz-683602-original/overview.md",
+      "source_sha256": "577d7522900a370ca98928ffee836d28c730a67b21266c159899de122d5b910c",
+      "media": "cases/ceowinkz-683602-original/video.mp4",
+      "media_sha256": "577d7522900a370ca98928ffee836d28c730a67b21266c159899de122d5b910c",
+      "media_bytes": 1520317,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ceowinkz-683602",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "088-m01",
+        "088-m08",
+        "088-m04",
+        "088-m05",
+        "088-m09"
+      ],
+      "storyboard": "cases/ceowinkz-683602-original/storyboard.jpg"
+    },
+    {
+      "case_number": 90,
+      "slug": "ewashoku-201053",
+      "original_form": "网页交互演示",
+      "video_types": [
+        "产品介绍",
+        "科普解释"
+      ],
+      "scenes": [
+        "整体到局部",
+        "空间关系"
+      ],
+      "materials": [
+        "三维",
+        "桌面界面",
+        "文字"
+      ],
+      "methods": [
+        "整机定位后内部观察",
+        "外壳弱化保留参照",
+        "局部标签近部位建立"
+      ],
+      "art": [
+        "白底工业编辑排版",
+        "黑灰材质与轻地影",
+        "少色细线标注"
+      ],
+      "scenario": "在整体产品已被识别后解释内部电池、驱动或关键构件的位置关系。",
+      "material_requirements": "需准确产品模型与结构事实，或清楚标示的内部示意，准备必要局部标签。",
+      "transfer_cost": "网页滚动需改为固定影片阅读段，原片不认证真实结构参数；窄幅细字需重排；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 15,
+          "end": 20,
+          "reason": "整车外框降低对比，电池与驱动随镜头推进显出，轮轴继续提供局部定位参照。"
+        }
+      ],
+      "aliases": [
+        "自行车",
+        "内部结构",
+        "透明外壳",
+        "工业产品",
+        "电池",
+        "滚动产品网页"
+      ],
+      "title": "自行车三维产品网页滚动与内部结构演示",
+      "author": "EWashoku",
+      "duration": 48.516667,
+      "directory": "cases/ewashoku-201053-original",
+      "detail": "detail.html?case=ewashoku-201053",
+      "analysis": "cases/ewashoku-201053-original/overview.md",
+      "source_sha256": "3cc3261f2eec4bc1f4edd28793dc883d2a96f424c2174df48d9cf479db9b9d15",
+      "media": "cases/ewashoku-201053-original/video.mp4",
+      "media_sha256": "3cc3261f2eec4bc1f4edd28793dc883d2a96f424c2174df48d9cf479db9b9d15",
+      "media_bytes": 4099959,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ewashoku-201053",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "090-m01",
+        "090-m02",
+        "090-m08",
+        "090-m05",
+        "090-m06",
+        "090-m07"
+      ],
+      "storyboard": "cases/ewashoku-201053-original/storyboard.jpg"
+    },
+    {
+      "case_number": 91,
+      "slug": "petert-540960",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "科普解释"
+      ],
+      "scenes": [
+        "整体到局部",
+        "跨场景接力",
+        "成果展示"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "设备内画面预告内容",
+        "同内容扩为全幅",
+        "体验接显示结构示意"
+      ],
+      "art": [
+        "暗底轮廓反光",
+        "屏内暖色局部重音",
+        "大参数与小字幕层级"
+      ],
+      "scenario": "介绍手机、投影或显示设备，把小屏观看体验扩成后续解释舞台。",
+      "material_requirements": "需准确设备外观、能在小屏中识别的同一段内容及真实显示规格。",
+      "transfer_cost": "暗底黑物体易丢轮廓，镜片与大画面为位置匹配而非真实变形；RGB图样非显微证据；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 6,
+          "end": 11,
+          "reason": "眼镜转正后镜片山景扩大到后方画幅，保持内容方向，再由RGB长条接管显示主题。"
+        }
+      ],
+      "aliases": [
+        "眼镜",
+        "显示设备",
+        "屏中画面",
+        "屏幕扩展",
+        "RGB",
+        "观看体验"
+      ],
+      "title": "眼镜产品与显示技术",
+      "author": "_petert",
+      "duration": 30.058,
+      "directory": "cases/petert-540960-original",
+      "detail": "detail.html?case=petert-540960",
+      "analysis": "cases/petert-540960-original/overview.md",
+      "source_sha256": "201bf93e794846cec0844f882b142f443c7f94da95cfbbe51ad95857fd586387",
+      "media": "cases/petert-540960-original/video.mp4",
+      "media_sha256": "201bf93e794846cec0844f882b142f443c7f94da95cfbbe51ad95857fd586387",
+      "media_bytes": 1742113,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/petert-540960",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "091-m01",
+        "091-m06",
+        "091-m04",
+        "091-m05"
+      ],
+      "storyboard": "cases/petert-540960-original/storyboard.jpg"
+    },
+    {
+      "case_number": 92,
+      "slug": "petert-635793",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "品牌展示"
+      ],
+      "scenes": [
+        "整体到局部",
+        "跨场景接力",
+        "重点强调"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "使用动作引出感官",
+        "局部拉远给产品全貌",
+        "包装色接管舞台"
+      ],
+      "art": [
+        "黄绿包装与成分呼应",
+        "金属高光区分材质",
+        "边缘水果留中央标签"
+      ],
+      "scenario": "用开罐、倒液或开包装的具体使用动作引出产品的口味与体验卖点。",
+      "material_requirements": "需真实商品或准确模型、符合器物的使用动作及核实的成分和短卖点。",
+      "transfer_cost": "原片为合成商品表现，开口结构未作工程认证；水果气泡不可遮住品牌；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 6,
+          "end": 11,
+          "reason": "罐口出现开口和气泡，随后拉远为整罐与柑橘舞台，动作结果接产品卖点。"
+        }
+      ],
+      "aliases": [
+        "汽水",
+        "食品广告",
+        "开罐",
+        "感官卖点",
+        "包装色",
+        "柑橘"
+      ],
+      "title": "饮料罐与明亮产品舞台",
+      "author": "_petert",
+      "duration": 24.042,
+      "directory": "cases/petert-635793-original",
+      "detail": "detail.html?case=petert-635793",
+      "analysis": "cases/petert-635793-original/overview.md",
+      "source_sha256": "6ed3ab179553d8d13a3d20255d08c38a64b7b29e5659ebb463759c6b794be1b3",
+      "media": "cases/petert-635793-original/video.mp4",
+      "media_sha256": "6ed3ab179553d8d13a3d20255d08c38a64b7b29e5659ebb463759c6b794be1b3",
+      "media_bytes": 2866861,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/petert-635793",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "092-m06",
+        "092-m07"
+      ],
+      "storyboard": "cases/petert-635793-original/storyboard.jpg"
+    },
+    {
+      "case_number": 93,
+      "slug": "dannnnnok-716687",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "产品介绍"
+      ],
+      "scenes": [
+        "集合聚焦",
+        "跨场景接力",
+        "成果展示"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形",
+        "桌面界面"
+      ],
+      "methods": [
+        "对象色抽为平面构图",
+        "覆盖连接空间与排印",
+        "完整场面缩回集合"
+      ],
+      "art": [
+        "灰阵列配橙蓝重音",
+        "填字与描边字分层",
+        "编辑刻度统一舞台"
+      ],
+      "scenario": "展示若干产品能力或课程章节后，将各完整场面缩成集合做回顾。",
+      "material_requirements": "需每项可独立辨认的场面及统一内容身份，不用不可读缩略窗承载核心说明。",
+      "transfer_cost": "球到圆到文字带是图形接力，非原三维网格认证；展示片快段需按新内容减密；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 11,
+          "end": 16,
+          "reason": "橙球覆盖后压成文字带，蓝纹理再缩为集合窗口，连接单项展示和多项回顾。"
+        }
+      ],
+      "aliases": [
+        "作品集",
+        "能力回顾",
+        "球体接力",
+        "橙蓝",
+        "缩略集合",
+        "文字纹理"
+      ],
+      "title": "方块阵列与球体接力",
+      "author": "Dannnnnok",
+      "duration": 20.061995,
+      "directory": "cases/dannnnnok-716687-original",
+      "detail": "detail.html?case=dannnnnok-716687",
+      "analysis": "cases/dannnnnok-716687-original/overview.md",
+      "source_sha256": "f7ec9d35cf4512343dc6366e18a0270141b2e0133eb1254bb53e31f165dbf8c5",
+      "media": "cases/dannnnnok-716687-original/video.mp4",
+      "media_sha256": "f7ec9d35cf4512343dc6366e18a0270141b2e0133eb1254bb53e31f165dbf8c5",
+      "media_bytes": 4230562,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/dannnnnok-716687",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "093-m01",
+        "093-m02",
+        "093-m03",
+        "093-m04",
+        "093-m08"
+      ],
+      "storyboard": "cases/dannnnnok-716687-original/storyboard.jpg"
+    },
+    {
+      "case_number": 94,
+      "slug": "mdaman010-111079",
+      "original_form": "网页交互演示",
+      "video_types": [
+        "科普解释",
+        "产品介绍"
+      ],
+      "scenes": [
+        "整体到局部",
+        "步骤累积",
+        "空间关系"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "桌面界面",
+        "抽象图形"
+      ],
+      "methods": [
+        "系统全貌分层进入",
+        "稳定部件关系后换尺度",
+        "功能路径分色"
+      ],
+      "art": [
+        "白灰建筑与设备模型",
+        "系统职责局部色",
+        "固定角落技术标题"
+      ],
+      "scenario": "从系统全貌进入一项部件，解释它在电力、计算或散热路径中的作用。",
+      "material_requirements": "需真实系统结构、路径资料与准确模型，准备少量关键层级和标签。",
+      "transfer_cost": "托盘观察点以淡去淡入更换，非连续穿入；交互长停留需重新编排，参数未核实；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 40,
+          "end": 44.966667,
+          "reason": "机柜与抽出托盘先稳定，淡去后建立近处计算托盘，展示换尺度所需的定位与观察。"
+        }
+      ],
+      "aliases": [
+        "数据中心",
+        "机柜",
+        "计算托盘",
+        "系统循环",
+        "散热",
+        "分层设备"
+      ],
+      "title": "数据中心三维系统与设备层级交互演示",
+      "author": "mdaman010",
+      "duration": 97.962,
+      "directory": "cases/mdaman010-111079-original",
+      "detail": "detail.html?case=mdaman010-111079",
+      "analysis": "cases/mdaman010-111079-original/overview.md",
+      "source_sha256": "1e3bfcfdb7bc82ff583f32511bbdc0681daec942a918f761017219f74996911b",
+      "media": "cases/mdaman010-111079-original/video.mp4",
+      "media_sha256": "1e3bfcfdb7bc82ff583f32511bbdc0681daec942a918f761017219f74996911b",
+      "media_bytes": 10432665,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/mdaman010-111079",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "094-m01",
+        "094-m02",
+        "094-m03",
+        "094-m04",
+        "094-m05",
+        "094-m06",
+        "094-m07"
+      ],
+      "storyboard": "cases/mdaman010-111079-original/storyboard.jpg"
+    },
+    {
+      "case_number": 96,
+      "slug": "buildfastwithai-597035",
+      "original_form": "网页交互演示",
+      "video_types": [
+        "空间导览",
+        "产品介绍"
+      ],
+      "scenes": [
+        "整体到局部",
+        "跨场景接力",
+        "空间关系"
+      ],
+      "materials": [
+        "三维",
+        "桌面界面",
+        "文字"
+      ],
+      "methods": [
+        "整体与入口先建立",
+        "越过门框保留空间参照",
+        "楼梯引出下一观察"
+      ],
+      "art": [
+        "建筑构件稳定配色",
+        "几何重复组织室内",
+        "冷夜环境配暖内光"
+      ],
+      "scenario": "引导观众从建筑外部进入一个房间，再看楼梯或内部功能。",
+      "material_requirements": "需可控建筑模型、清楚路线与每个空间的观察目标，真实版本需入口和方向匹配的片段。",
+      "transfer_cost": "自由导航的旋转和重复进出不能原样当影片节奏，控件需退让；碰撞与建筑事实未核实；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 10,
+          "end": 15,
+          "reason": "门框与栏杆逐步放大，越过门槛后陈设和楼梯接管；仰视处也暴露需要保留水平参照的代价。"
+        }
+      ],
+      "aliases": [
+        "建筑参观",
+        "五层塔",
+        "门槛",
+        "楼梯",
+        "三维导航",
+        "室内外"
+      ],
+      "title": "五层塔三维导航与昼夜空间演示",
+      "author": "BuildFastWithAI",
+      "duration": 78.848,
+      "directory": "cases/buildfastwithai-597035-original",
+      "detail": "detail.html?case=buildfastwithai-597035",
+      "analysis": "cases/buildfastwithai-597035-original/overview.md",
+      "source_sha256": "9d8f9cd2c728fbb1f4188623174a8dcdef7b7910dbd7d2d92660968436292aa9",
+      "media": "cases/buildfastwithai-597035-original/video.mp4",
+      "media_sha256": "9d8f9cd2c728fbb1f4188623174a8dcdef7b7910dbd7d2d92660968436292aa9",
+      "media_bytes": 17038027,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/buildfastwithai-597035",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "096-m01",
+        "096-m02",
+        "096-m03"
+      ],
+      "storyboard": "cases/buildfastwithai-597035-original/storyboard.jpg"
+    },
+    {
+      "case_number": 98,
+      "slug": "acoramaa-053577",
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释",
+        "产品介绍"
+      ],
+      "scenes": [
+        "整体到局部",
+        "步骤累积",
+        "空间关系"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "解除遮挡再进入",
+        "层名与尺度参照持续",
+        "材料明度区分层级"
+      ],
+      "art": [
+        "黑底金线导视",
+        "银盖绿板暗芯片",
+        "固定边缘定位标识"
+      ],
+      "scenario": "从熟悉设备进入内部部件和材料层，给每次缩小尺度一个可见入口。",
+      "material_requirements": "需核实设备层级、尺度及对应结构模型，真实外观转图解时须注明材料身份。",
+      "transfer_cost": "原片不是显微证据，全片无隐藏换景尚未认证；密纹与小标签需重测；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 10,
+          "end": 15,
+          "reason": "CPU盖先扩大，再向上解除遮挡，绿板与晶粒从盖下显出，局部进入有明确结构理由。"
+        }
+      ],
+      "aliases": [
+        "电脑内部",
+        "CPU",
+        "尺度推进",
+        "揭盖",
+        "微观结构",
+        "遮挡解除"
+      ],
+      "title": "电脑结构与微观推进",
+      "author": "Acoramaa",
+      "duration": 44,
+      "directory": "cases/acoramaa-053577-original",
+      "detail": "detail.html?case=acoramaa-053577",
+      "analysis": "cases/acoramaa-053577-original/overview.md",
+      "source_sha256": "031c5973d5f79f52efaf320e58444ac8fd8d8279d17034a5a4f2bd3978826498",
+      "media": "cases/acoramaa-053577-original/video.mp4",
+      "media_sha256": "031c5973d5f79f52efaf320e58444ac8fd8d8279d17034a5a4f2bd3978826498",
+      "media_bytes": 8367804,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/acoramaa-053577",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "098-m05"
+      ],
+      "storyboard": "cases/acoramaa-053577-original/storyboard.jpg"
+    },
+    {
+      "case_number": 99,
+      "slug": "konstantinsaifo-501736",
+      "original_form": "网页交互演示",
+      "video_types": [
+        "科普解释",
+        "产品介绍"
+      ],
+      "scenes": [
+        "整体到局部",
+        "空间关系",
+        "条件解释"
+      ],
+      "materials": [
+        "三维",
+        "桌面界面",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "同装置逐层剖切",
+        "喷流方向保持锚点",
+        "剖面建立后局部观察"
+      ],
+      "art": [
+        "暗蓝实验台",
+        "银金属与暖截面",
+        "彩色内部流体编码"
+      ],
+      "scenario": "解释同一机械装置的管路、腔体和流向，逐次打开必要可见层。",
+      "material_requirements": "需准确结构、流向与比较参数，准备剖面模型或明确示意图，不据参考猜工程事实。",
+      "transfer_cost": "喷流颜色与剖切未作物理认证，互动面板须改为一次一个条件；发光需避免遮蔽；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 4,
+          "end": 9,
+          "reason": "外壳剖切由右向左展开，喷流与实验台方向保持，内部先显露后镜头靠近涡轮。"
+        }
+      ],
+      "aliases": [
+        "火箭发动机",
+        "剖切",
+        "喷流",
+        "管路",
+        "涡轮",
+        "机械原理"
+      ],
+      "title": "火箭发动机剖切与喷流交互演示",
+      "author": "konstantinsaifo",
+      "duration": 34.7,
+      "directory": "cases/konstantinsaifo-501736-original",
+      "detail": "detail.html?case=konstantinsaifo-501736",
+      "analysis": "cases/konstantinsaifo-501736-original/overview.md",
+      "source_sha256": "d92fdeb2586a2f863a32367b3fecf69a4f3e3e7a2ee807e8c5d676ba5561b799",
+      "media": "cases/konstantinsaifo-501736-original/video.mp4",
+      "media_sha256": "d92fdeb2586a2f863a32367b3fecf69a4f3e3e7a2ee807e8c5d676ba5561b799",
+      "media_bytes": 3558064,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/konstantinsaifo-501736",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "099-m06",
+        "099-m05"
+      ],
+      "storyboard": "cases/konstantinsaifo-501736-original/storyboard.jpg"
+    },
+    {
       "case_number": 107,
       "slug": "dheepanratnam-706454",
       "original_form": "固定视频",
@@ -2772,6 +5153,689 @@
         "107-m06"
       ],
       "storyboard": "cases/dheepanratnam-706454-original/storyboard.jpg"
+    },
+    {
+      "case_number": 108,
+      "slug": "ajith-io-890146",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "科普解释"
+      ],
+      "scenes": [
+        "步骤累积",
+        "空间关系",
+        "跨场景接力"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "轮廓拆成同组元素",
+        "点群密度重组形状",
+        "透视建立平面到空间"
+      ],
+      "art": [
+        "一场一主色面积",
+        "满形与细框分主次",
+        "蓝场白点空间层次"
+      ],
+      "scenario": "解释单元如何组成集合、区域或空间关系，或做有明确内容的几何展示。",
+      "material_requirements": "需一个能辨识的基本轮廓及新关系，事实集合另需准确元素与数量。",
+      "transfer_cost": "示意点群不证明真实拓扑或数量，不能为好看任意拆解图表；密点需测压缩；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 4,
+          "end": 9,
+          "reason": "中心形状变花形后拆成点阵，点阵倾斜并在蓝场聚成球、环和立方体轮廓。"
+        }
+      ],
+      "aliases": [
+        "点阵",
+        "形状重组",
+        "面到体",
+        "元素集合",
+        "几何",
+        "粒子密度"
+      ],
+      "title": "几何、粒子与色块组合",
+      "author": "ajith_io",
+      "duration": 15.061,
+      "directory": "cases/ajith-io-890146-original",
+      "detail": "detail.html?case=ajith-io-890146",
+      "analysis": "cases/ajith-io-890146-original/overview.md",
+      "source_sha256": "c5a3ab733f148791c454f95290818d5007f3ba2a6a31f600a75c10c23c7aec52",
+      "media": "cases/ajith-io-890146-original/video.mp4",
+      "media_sha256": "c5a3ab733f148791c454f95290818d5007f3ba2a6a31f600a75c10c23c7aec52",
+      "media_bytes": 2281743,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ajith-io-890146",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "108-m09",
+        "108-m03",
+        "108-m04",
+        "108-m05",
+        "108-m06",
+        "108-m07",
+        "108-m08"
+      ],
+      "storyboard": "cases/ajith-io-890146-original/storyboard.jpg"
+    },
+    {
+      "case_number": 109,
+      "slug": "twoclipping-402193",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "操作教程"
+      ],
+      "scenes": [
+        "前后变化",
+        "条件解释",
+        "空间关系"
+      ],
+      "materials": [
+        "桌面界面",
+        "图表",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "容器先分配内容空间",
+        "内容先退容器后收",
+        "选中位置连续迁移"
+      ],
+      "art": [
+        "暖灰黑白控件",
+        "统一圆角与线宽",
+        "轻软影区分平面"
+      ],
+      "scenario": "在操作结果讲解中让同一窗口扩大容纳信息，再恢复为较小的控制状态。",
+      "material_requirements": "需真实或明确示意的界面状态、操作结果与数值；与视频材料融合需另设计外层构图。",
+      "transfer_cost": "纯控件演出与用户目标视频差距较大，只宜借局部容器关系；不证明真实产品或单DOM；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 5,
+          "end": 10,
+          "reason": "音量容器收成开关，再扩为时间标签与图表；图表内容淡退后容器收为搜索条。"
+        }
+      ],
+      "aliases": [
+        "UI局部参考",
+        "容器变化",
+        "选中胶囊",
+        "控件状态",
+        "先空间后内容",
+        "界面演出"
+      ],
+      "title": "纯控件的连续状态变化",
+      "author": "twoclipping",
+      "duration": 14.058,
+      "directory": "cases/twoclipping-402193-original",
+      "detail": "detail.html?case=twoclipping-402193",
+      "analysis": "cases/twoclipping-402193-original/overview.md",
+      "source_sha256": "8b5f37f318f069454dcdbd451c969497402e72dcf6c2ee2845cbd4b504f1bbe9",
+      "media": "cases/twoclipping-402193-original/video.mp4",
+      "media_sha256": "8b5f37f318f069454dcdbd451c969497402e72dcf6c2ee2845cbd4b504f1bbe9",
+      "media_bytes": 811394,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/twoclipping-402193",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "109-m07",
+        "109-m08",
+        "109-m06"
+      ],
+      "storyboard": "cases/twoclipping-402193-original/storyboard.jpg"
+    },
+    {
+      "case_number": 110,
+      "slug": "codestackr-328129",
+      "original_form": "固定视频",
+      "video_types": [
+        "操作教程",
+        "科普解释",
+        "品牌展示"
+      ],
+      "scenes": [
+        "条件解释",
+        "前后变化",
+        "重点强调"
+      ],
+      "materials": [
+        "图表",
+        "文字",
+        "抽象图形",
+        "三维"
+      ],
+      "methods": [
+        "规则与效果并置",
+        "参照轴不变比较形态",
+        "扩大色点接下一舞台"
+      ],
+      "art": [
+        "米白网格解释页",
+        "橙色连接控制与结果",
+        "衬线观点与粗字功能"
+      ],
+      "scenario": "展示一个参数或运动规则如何影响同场示范对象，帮助观众比较前后结果。",
+      "material_requirements": "需真实规则、函数或参数与准确图例，让演示结果和图中关系对应。",
+      "transfer_cost": "原片曲线与胶囊只见对应，未证明同一数学函数；快词段不宜承载事实；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 9,
+          "end": 14,
+          "reason": "左曲线与右胶囊共同建立，曲线形态改变时右侧动作姿态变化，随后橙圆覆盖接文字。"
+        }
+      ],
+      "aliases": [
+        "缓动曲线",
+        "规则效果",
+        "参数教学",
+        "并置示范",
+        "胶囊动作",
+        "设计教程"
+      ],
+      "title": "字体、空间与曲线示意",
+      "author": "codeSTACKr",
+      "duration": 15.061,
+      "directory": "cases/codestackr-328129-original",
+      "detail": "detail.html?case=codestackr-328129",
+      "analysis": "cases/codestackr-328129-original/overview.md",
+      "source_sha256": "f4945eac8445706d1bbadf208ff0c51d3d85447af3db0e0354c248f77df8955f",
+      "media": "cases/codestackr-328129-original/video.mp4",
+      "media_sha256": "f4945eac8445706d1bbadf208ff0c51d3d85447af3db0e0354c248f77df8955f",
+      "media_bytes": 2568727,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/codestackr-328129",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "110-m08",
+        "110-m03",
+        "110-m04",
+        "110-m09",
+        "110-m07"
+      ],
+      "storyboard": "cases/codestackr-328129-original/storyboard.jpg"
+    },
+    {
+      "case_number": 111,
+      "slug": "brainextends-606193",
+      "original_form": "固定视频",
+      "video_types": [
+        "产品介绍",
+        "影像展示"
+      ],
+      "scenes": [
+        "集合聚焦",
+        "成果展示",
+        "重点强调"
+      ],
+      "materials": [
+        "桌面界面",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "同内容从结果接详情",
+        "播放器保留场景关系",
+        "固定舞台内调整尺度"
+      ],
+      "art": [
+        "深色舞台绿色重音",
+        "彩色封面统一边界",
+        "白主字灰辅字"
+      ],
+      "scenario": "从内容集合选出一项，进入详情或重点展示，并持续保留该内容的身份。",
+      "material_requirements": "需真实内容封面或图片、准确选择与详情信息，换主题须重选持续语义锚点。",
+      "transfer_cost": "示意搜索不证明真实产品操作，标题约一秒需按事实阅读重编；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 4,
+          "end": 9,
+          "reason": "搜索结果中的同一封面放大为主视区，移左形成详情，再进入绿色舞台与近景，播放器多次保留。"
+        }
+      ],
+      "aliases": [
+        "音乐封面",
+        "内容选择",
+        "集合到详情",
+        "封面身份",
+        "持续播放器",
+        "绿色舞台"
+      ],
+      "title": "音乐封面与界面接力",
+      "author": "brainextends",
+      "duration": 18.065011,
+      "directory": "cases/brainextends-606193-original",
+      "detail": "detail.html?case=brainextends-606193",
+      "analysis": "cases/brainextends-606193-original/overview.md",
+      "source_sha256": "c73df062b1e6fc408c9fee66ad2c5a8c1f4a565713c13d901c031051c5805e7e",
+      "media": "cases/brainextends-606193-original/video.mp4",
+      "media_sha256": "c73df062b1e6fc408c9fee66ad2c5a8c1f4a565713c13d901c031051c5805e7e",
+      "media_bytes": 892060,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/brainextends-606193",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "111-m01",
+        "111-m06",
+        "111-m07"
+      ],
+      "storyboard": "cases/brainextends-606193-original/storyboard.jpg"
+    },
+    {
+      "case_number": 112,
+      "slug": "levabashidze-184909",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "科普解释"
+      ],
+      "scenes": [
+        "步骤累积",
+        "空间关系",
+        "跨场景接力"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "单元扩成重复系统",
+        "系统表面接为纹理",
+        "遮挡边缘交接排印"
+      ],
+      "art": [
+        "橙重音与黑白纹理",
+        "三面明暗建立立体",
+        "填行与弱行层次"
+      ],
+      "scenario": "从一个可辨认单元展开到规模或材料结构，再把系统表面作为下一解释舞台。",
+      "material_requirements": "需明确单元与整体关系，若涉及事实数量或材料结构必须提供准确资料。",
+      "transfer_cost": "任意阵列不能代替真实数量，三维到纹理不证明真实改拓扑；密线需测闪烁；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 5,
+          "end": 10,
+          "reason": "橙形建立立方体三面后缩入白块阵列，阵列铺满接线纹，黑横条遮走纹理后文字接管。"
+        }
+      ],
+      "aliases": [
+        "单元系统",
+        "方块阵列",
+        "平面空间",
+        "纹理接力",
+        "规模示意",
+        "黑白曲线"
+      ],
+      "title": "几何纹理与平面转空间",
+      "author": "levabashidze",
+      "duration": 15.061,
+      "directory": "cases/levabashidze-184909-original",
+      "detail": "detail.html?case=levabashidze-184909",
+      "analysis": "cases/levabashidze-184909-original/overview.md",
+      "source_sha256": "f20e19a16175d2519eef63aa0406d53f87f4ddf7f3fb87a9d7d6532479f8fff5",
+      "media": "cases/levabashidze-184909-original/video.mp4",
+      "media_sha256": "f20e19a16175d2519eef63aa0406d53f87f4ddf7f3fb87a9d7d6532479f8fff5",
+      "media_bytes": 2623108,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/levabashidze-184909",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "112-m01",
+        "112-m02",
+        "112-m03",
+        "112-m09",
+        "112-m06",
+        "112-m07",
+        "112-m08"
+      ],
+      "storyboard": "cases/levabashidze-184909-original/storyboard.jpg"
+    },
+    {
+      "case_number": 113,
+      "slug": "mounnna-497266",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示"
+      ],
+      "scenes": [
+        "重点强调",
+        "成果展示"
+      ],
+      "materials": [
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "局部线索提高辨识度",
+        "点群参与填出标识",
+        "稳定后减少外围动势"
+      ],
+      "art": [
+        "深蓝紫白窄色域",
+        "中心密外围疏",
+        "低对比晕光与完成环"
+      ],
+      "scenario": "逐步揭示一个简单图标或品牌名字，让识别从线索走向明确身份。",
+      "material_requirements": "需简单可辨识标志、品牌授权与最少结尾文案，根据标志材料决定是否用点群。",
+      "transfer_cost": "实际粒子聚合不等于提示要求的逐面三维装配；暗场铺垫应按用途缩短；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 4,
+          "end": 9,
+          "reason": "紫点与细线逐渐集中，圆角块和P轮廓清楚后形成实字，外围减少并出现完成环。"
+        }
+      ],
+      "aliases": [
+        "标志揭示",
+        "品牌图标",
+        "P字",
+        "紫色粒子",
+        "辨识度",
+        "轮廓聚合"
+      ],
+      "title": "粒子聚合图标与品牌揭示",
+      "author": "Mounnna",
+      "duration": 16.042,
+      "directory": "cases/mounnna-497266-original",
+      "detail": "detail.html?case=mounnna-497266",
+      "analysis": "cases/mounnna-497266-original/overview.md",
+      "source_sha256": "312f8b83782168a6ab745446cbcf3ce67b38935cd1e389d738cf4c914ec2324a",
+      "media": "cases/mounnna-497266-original/video.mp4",
+      "media_sha256": "312f8b83782168a6ab745446cbcf3ce67b38935cd1e389d738cf4c914ec2324a",
+      "media_bytes": 1936282,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/mounnna-497266",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "113-m05"
+      ],
+      "storyboard": "cases/mounnna-497266-original/storyboard.jpg"
+    },
+    {
+      "case_number": 114,
+      "slug": "seflless-929329",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "影像展示"
+      ],
+      "scenes": [
+        "前后变化",
+        "跨场景接力",
+        "重点强调"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "同中心延续材料身份",
+        "背景退让主体留场",
+        "亮闪连接材料阶段"
+      ],
+      "art": [
+        "橙红对黑米白",
+        "金属高光与细轨道",
+        "暖粒子密度分层"
+      ],
+      "scenario": "围绕一个核心形态展示不同材料或品牌质感，同时保持观看重心。",
+      "material_requirements": "需稳定主体、每种材质的内容理由与关键构图，真实物性说明另需事实资料。",
+      "transfer_cost": "金属到粒子经亮闪，不能当真实材料转化；新闻证据不宜被碎化遮住；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 5,
+          "end": 10,
+          "reason": "格纸散开时橙圆留中心，暗底建立金属团，再以亮闪接暖粒子与旋涡，身份由中心和颜色维持。"
+        }
+      ],
+      "aliases": [
+        "材料变化",
+        "金属团",
+        "暖粒子",
+        "中心保留",
+        "格网退场",
+        "橙红质感"
+      ],
+      "title": "动态字体与红黑粒子",
+      "author": "seflless",
+      "duration": 15.061,
+      "directory": "cases/seflless-929329-original",
+      "detail": "detail.html?case=seflless-929329",
+      "analysis": "cases/seflless-929329-original/overview.md",
+      "source_sha256": "3657fac679a813b080de86914dfa5de2edebb2c456718c103662217b1260b0ff",
+      "media": "cases/seflless-929329-original/video.mp4",
+      "media_sha256": "3657fac679a813b080de86914dfa5de2edebb2c456718c103662217b1260b0ff",
+      "media_bytes": 2719156,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/seflless-929329",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "114-m01",
+        "114-m02",
+        "114-m03",
+        "114-m04",
+        "114-m05",
+        "114-m06",
+        "114-m07"
+      ],
+      "storyboard": "cases/seflless-929329-original/storyboard.jpg"
+    },
+    {
+      "case_number": 115,
+      "slug": "blue-clarity-449603",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "产品介绍"
+      ],
+      "scenes": [
+        "集合聚焦",
+        "成果展示",
+        "跨场景接力"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "散点聚为短标识",
+        "基线稳定读形",
+        "集合回顾不同能力"
+      ],
+      "art": [
+        "蓝底黄线白点",
+        "分阶段暖冷面积",
+        "多窗白缝划分内容"
+      ],
+      "scenario": "将分散元素收成一个简短身份，再用多窗口回顾已展示的能力或内容。",
+      "material_requirements": "需短而易辨的标识和各窗口内容，重要能力须另有单独放大解释。",
+      "transfer_cost": "粒子字比实心字难读，多窗只适合总览而非同时深读；没有真实材料融合验证；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 6,
+          "end": 11,
+          "reason": "圆形色场里点群聚为CLAUDE，黄基线保留，字拆开后接暗空间点球与浅底多格回顾。"
+        }
+      ],
+      "aliases": [
+        "粒子聚字",
+        "能力集合",
+        "九宫格",
+        "基线",
+        "蓝黄",
+        "章节回顾"
+      ],
+      "title": "图形阵列、节奏与线条",
+      "author": "blue_clarity",
+      "duration": 15.061,
+      "directory": "cases/blue-clarity-449603-original",
+      "detail": "detail.html?case=blue-clarity-449603",
+      "analysis": "cases/blue-clarity-449603-original/overview.md",
+      "source_sha256": "2f44fd62dfd824baf38bc6e9ef7c50ae8a361af5d56e61c17760f4a8471046ec",
+      "media": "cases/blue-clarity-449603-original/video.mp4",
+      "media_sha256": "2f44fd62dfd824baf38bc6e9ef7c50ae8a361af5d56e61c17760f4a8471046ec",
+      "media_bytes": 4306497,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/blue-clarity-449603",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "115-m01",
+        "115-m02",
+        "115-m03",
+        "115-m04",
+        "115-m05",
+        "115-m08"
+      ],
+      "storyboard": "cases/blue-clarity-449603-original/storyboard.jpg"
+    },
+    {
+      "case_number": 116,
+      "slug": "samuel-spitz-503053",
+      "original_form": "固定视频",
+      "video_types": [
+        "科普解释",
+        "产品介绍",
+        "影像展示"
+      ],
+      "scenes": [
+        "整体到局部",
+        "空间关系",
+        "步骤累积"
+      ],
+      "materials": [
+        "三维",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "完整画面显露层次",
+        "分层后沿原轴复合",
+        "图内主体接材质近景"
+      ],
+      "art": [
+        "米白红蓝印刷秩序",
+        "蓝场黑板白网格",
+        "灰银球与暖边高光"
+      ],
+      "scenario": "先建立图文完整画面，再解释前中后层次，最后进入其中一个主体的细节。",
+      "material_requirements": "需层次确有内容关系的图、文字和参照，实拍主体放大需足够分辨率与准确裁切。",
+      "transfer_cost": "随机分层没有解释价值，平面图不能据此恢复真实物体三维；材质强高光需检查；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 4,
+          "end": 9,
+          "reason": "几何收成蓝舞台，文字、球图和格板从同一黑板分开复合，再推进板内球成为近景。"
+        }
+      ],
+      "aliases": [
+        "深度分层",
+        "图内进入",
+        "金属球",
+        "层次复合",
+        "平面到空间",
+        "图文结构"
+      ],
+      "title": "几何图形与金属球体",
+      "author": "samuel_spitz",
+      "duration": 15.046009,
+      "directory": "cases/samuel-spitz-503053-original",
+      "detail": "detail.html?case=samuel-spitz-503053",
+      "analysis": "cases/samuel-spitz-503053-original/overview.md",
+      "source_sha256": "9e57911f3fb14c8739270171e1d803dc8238b3bb956388817e88d87571cf6171",
+      "media": "cases/samuel-spitz-503053-original/video.mp4",
+      "media_sha256": "9e57911f3fb14c8739270171e1d803dc8238b3bb956388817e88d87571cf6171",
+      "media_bytes": 1568625,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/samuel-spitz-503053",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "116-m01",
+        "116-m02",
+        "116-m03",
+        "116-m04",
+        "116-m07"
+      ],
+      "storyboard": "cases/samuel-spitz-503053-original/storyboard.jpg"
+    },
+    {
+      "case_number": 117,
+      "slug": "ghinaiya-nirmal-308943",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "影像展示"
+      ],
+      "scenes": [
+        "前后变化",
+        "跨场景接力",
+        "重点强调"
+      ],
+      "materials": [
+        "三维",
+        "图表",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "点群空洞变化延续",
+        "覆盖边缘预告换场",
+        "短词配中心软团"
+      ],
+      "art": [
+        "暗场彩色点密度",
+        "浅底暖团细斜字",
+        "图表阶段单色重音"
+      ],
+      "scenario": "为短品牌展示选择一个由点群到软形的局部接续，或比较不同图形语汇。",
+      "material_requirements": "需明确主体与品牌短词，若采用数据画面必须换成真实数字与图例。",
+      "transfer_cost": "后半图表频繁硬切，不是整段无缝形变；软团遮字不能用于长事实句；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 8,
+          "end": 13,
+          "reason": "点球开环扭结散开后接浅底fluid软团，黑滴覆盖后图表明确硬切，兼有可借接续和限制证据。"
+        }
+      ],
+      "aliases": [
+        "流体字",
+        "点球开环",
+        "图形语汇",
+        "快速图表",
+        "硬切限制",
+        "fluid"
+      ],
+      "title": "形状、粒子与数据画面",
+      "author": "ghinaiya_nirmal",
+      "duration": 15.104,
+      "directory": "cases/ghinaiya-nirmal-308943-original",
+      "detail": "detail.html?case=ghinaiya-nirmal-308943",
+      "analysis": "cases/ghinaiya-nirmal-308943-original/overview.md",
+      "source_sha256": "a5c6b7160eeb111e9d0cbce09563a61d049e4423e2775c5acf9af21f32b26776",
+      "media": "cases/ghinaiya-nirmal-308943-original/video.mp4",
+      "media_sha256": "a5c6b7160eeb111e9d0cbce09563a61d049e4423e2775c5acf9af21f32b26776",
+      "media_bytes": 2395206,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/ghinaiya-nirmal-308943",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "117-m01",
+        "117-m16",
+        "117-m04",
+        "117-m05",
+        "117-m06",
+        "117-m17",
+        "117-m18"
+      ],
+      "storyboard": "cases/ghinaiya-nirmal-308943-original/storyboard.jpg"
     },
     {
       "case_number": 118,
@@ -2907,6 +5971,81 @@
       "storyboard": "cases/techhalla-498547-original/storyboard.jpg"
     },
     {
+      "case_number": 120,
+      "slug": "mtvneo-148436",
+      "original_form": "固定视频",
+      "video_types": [
+        "品牌展示",
+        "产品介绍"
+      ],
+      "scenes": [
+        "前后变化",
+        "跨场景接力",
+        "成果展示"
+      ],
+      "materials": [
+        "插画",
+        "三维",
+        "图表",
+        "桌面界面",
+        "文字",
+        "抽象图形"
+      ],
+      "methods": [
+        "角色识别组合持续",
+        "文字退出角色留场",
+        "材料变化维持中心"
+      ],
+      "art": [
+        "橙脸黑眼放射轮廓",
+        "地影与高光区分体积",
+        "暗浅舞台随材料分工"
+      ],
+      "scenario": "让同一栏目角色或品牌标志以少数有用途的表现方式介绍不同能力。",
+      "material_requirements": "需稳定角色身份点、每次风格变化的内容理由，图表和时间线若用于事实需真实输入。",
+      "transfer_cost": "多风格展示不宜照搬成严肃主题片，波形与图表不能当真实工程输出；不证明实拍跟踪；原速与声音未认证。",
+      "recommended_segments": [
+        {
+          "start": 5,
+          "end": 10,
+          "reason": "timing接easing后字退脸留，角色从三维压缩接软团、粒子、柱图与时间线，识别组合跨样式保留。"
+        }
+      ],
+      "aliases": [
+        "角色多风格",
+        "星形吉祥物",
+        "材料身份",
+        "三维流体粒子",
+        "栏目角色",
+        "风格接力"
+      ],
+      "title": "图形角色与数据排版",
+      "author": "mtvneo_",
+      "duration": 15.061,
+      "directory": "cases/mtvneo-148436-original",
+      "detail": "detail.html?case=mtvneo-148436",
+      "analysis": "cases/mtvneo-148436-original/overview.md",
+      "source_sha256": "15b45d69009483517009dd3028d52a5d81bae8534fc0bf6e46818f3bb5fa4c6b",
+      "media": "cases/mtvneo-148436-original/video.mp4",
+      "media_sha256": "15b45d69009483517009dd3028d52a5d81bae8534fc0bf6e46818f3bb5fa4c6b",
+      "media_bytes": 2027318,
+      "media_note": "网站原片，未重新编码。",
+      "source_url": "https://skillry.dev/ai-videos/opus-5-5/mtvneo-148436",
+      "analysis_kind": "mechanisms-v1",
+      "mechanism_ids": [
+        "120-m16",
+        "120-m17",
+        "120-m05",
+        "120-m06",
+        "120-m07",
+        "120-m18",
+        "120-m11",
+        "120-m19",
+        "120-m15"
+      ],
+      "storyboard": "cases/mtvneo-148436-original/storyboard.jpg"
+    },
+    {
       "case_number": 121,
       "slug": "creative-ref-20261112-p04",
       "original_form": "固定视频",
@@ -2920,8 +6059,8 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 40,
+          "start": 0.0,
+          "end": 40.0,
           "reason": "从档案局部走进历史影像，再回到证据对照"
         }
       ],
@@ -2930,7 +6069,7 @@
       ],
       "title": "档案纸张与照片聚焦",
       "author": "未核实",
-      "duration": 40,
+      "duration": 40.0,
       "directory": "cases/creative-ref-20261112-p04-original",
       "detail": "detail.html?case=creative-ref-20261112-p04",
       "analysis": "cases/creative-ref-20261112-p04-original/overview.md",
@@ -2957,7 +6096,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 18.2,
           "reason": "先回到比赛现场，再用并列视角解释判定"
         },
@@ -2999,8 +6138,8 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 21,
+          "start": 0.0,
+          "end": 21.0,
           "reason": "从单车新闻到两车型对照，再扩成整体价格背景"
         }
       ],
@@ -3009,7 +6148,7 @@
       ],
       "title": "汽车图片与新闻信息_前27秒",
       "author": "未核实",
-      "duration": 27,
+      "duration": 27.0,
       "directory": "cases/creative-ref-20261112-p08-original",
       "detail": "detail.html?case=creative-ref-20261112-p08",
       "analysis": "cases/creative-ref-20261112-p08-original/overview.md",
@@ -3036,7 +6175,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 24.042667,
           "reason": "让城市从夜到早晨，承接一项任务的进度与结果"
         }
@@ -3110,13 +6249,13 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 12,
+          "start": 12.0,
           "end": 18.1,
           "reason": "在画作原貌上同时展示局部标注和一句引文"
         },
         {
           "start": 18.1,
-          "end": 32,
+          "end": 32.0,
           "reason": "从同一作品的版本集合进入一处细节"
         }
       ],
@@ -3125,7 +6264,7 @@
       ],
       "title": "呐喊背后的故事",
       "author": "未核实",
-      "duration": 38,
+      "duration": 38.0,
       "directory": "cases/creative-ref-20261112-s01-original",
       "detail": "detail.html?case=creative-ref-20261112-s01",
       "analysis": "cases/creative-ref-20261112-s01-original/overview.md",
@@ -3152,7 +6291,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 14.528,
           "reason": "用同一视觉线索把版画、文字和品牌标志串成一组"
         }
@@ -3189,7 +6328,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 6.9,
           "reason": "在同一展台上切换海报，并展开选中作品的说明"
         },
@@ -3200,16 +6339,16 @@
         },
         {
           "start": 14.3,
-          "end": 21,
+          "end": 21.0,
           "reason": "让书页本身承担作品浏览与详情展示"
         },
         {
-          "start": 21,
-          "end": 33,
+          "start": 21.0,
+          "end": 33.0,
           "reason": "在有透视的画廊空间里选中作品并展开详情"
         },
         {
-          "start": 33,
+          "start": 33.0,
           "end": 42.533,
           "reason": "在产品集合里固定一个展位，再展开单品"
         }
@@ -3246,8 +6385,8 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 14,
+          "start": 0.0,
+          "end": 14.0,
           "reason": "从图片浏览进入一张画面，再在画内定位对象"
         }
       ],
@@ -3256,7 +6395,7 @@
       ],
       "title": "从图片列表进入画面",
       "author": "未核实",
-      "duration": 14,
+      "duration": 14.0,
       "directory": "cases/creative-ref-20261112-s04-original",
       "detail": "detail.html?case=creative-ref-20261112-s04",
       "analysis": "cases/creative-ref-20261112-s04-original/overview.md",
@@ -3283,7 +6422,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 10.5,
           "reason": "让一张画面中的小窗口接力成为下一张画面"
         }
@@ -3320,8 +6459,8 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 8,
+          "start": 0.0,
+          "end": 8.0,
           "reason": "把图片集合重组成标题，再让一张图片接管"
         }
       ],
@@ -3330,7 +6469,7 @@
       ],
       "title": "图片墙转标题",
       "author": "未核实",
-      "duration": 8,
+      "duration": 8.0,
       "directory": "cases/creative-ref-20261112-s06-original",
       "detail": "detail.html?case=creative-ref-20261112-s06",
       "analysis": "cases/creative-ref-20261112-s06-original/overview.md",
@@ -3357,8 +6496,8 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 9,
+          "start": 0.0,
+          "end": 9.0,
           "reason": "让同一个小对象穿过多张风格不同的画面"
         }
       ],
@@ -3367,7 +6506,7 @@
       ],
       "title": "纸飞机连接画面",
       "author": "未核实",
-      "duration": 9,
+      "duration": 9.0,
       "directory": "cases/creative-ref-20261112-s07-original",
       "detail": "detail.html?case=creative-ref-20261112-s07",
       "analysis": "cases/creative-ref-20261112-s07-original/overview.md",
@@ -3394,7 +6533,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 11.4,
           "reason": "从图片墙中沿线定位几处，再回到整体"
         }
@@ -3441,7 +6580,7 @@
           "reason": "让档案原文、关键数字和照片共同解释工作进度"
         },
         {
-          "start": 35,
+          "start": 35.0,
           "end": 55.6,
           "reason": "先比较建筑高度，再回到施工层数与完成结果"
         }
@@ -3451,7 +6590,7 @@
       ],
       "title": "410Days档案影像与数字编排",
       "author": "未核实",
-      "duration": 60,
+      "duration": 60.0,
       "directory": "cases/creative-ref-20261112-a01-original",
       "detail": "detail.html?case=creative-ref-20261112-a01",
       "analysis": "cases/creative-ref-20261112-a01-original/overview.md",
@@ -3515,18 +6654,18 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 20,
+          "start": 0.0,
+          "end": 20.0,
           "reason": "从一个生成画面扩展到图片墙，再回到单张详情"
         },
         {
-          "start": 20,
+          "start": 20.0,
           "end": 32.7,
           "reason": "让输入与多个并列结果同处一屏，再展示结果的不同状态"
         },
         {
-          "start": 33,
-          "end": 43,
+          "start": 33.0,
+          "end": 43.0,
           "reason": "在工作区中让单个素材发展成一组输出"
         }
       ],
@@ -3599,7 +6738,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 3,
+          "start": 3.0,
           "end": 20.7,
           "reason": "从人物关系网找到一个人物，再把他放回具体语境"
         },
@@ -3641,12 +6780,12 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 16.1,
           "reason": "把船、日期和冰山放进同一舞台来展示事件"
         },
         {
-          "start": 16,
+          "start": 16.0,
           "end": 28.4,
           "reason": "由新闻资料切到人物证据墙，集中查看一位角色"
         }
@@ -3683,7 +6822,7 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
+          "start": 0.0,
           "end": 26.9,
           "reason": "从系列封面集合进入品牌关系，再展开作品时间线"
         },
@@ -3725,8 +6864,8 @@
       "transfer_cost": "尚未进行新题材迁移实做；动态与声音仍待复核。",
       "recommended_segments": [
         {
-          "start": 0,
-          "end": 10,
+          "start": 0.0,
+          "end": 10.0,
           "reason": "从手机部件展开元素，再把数量收回到整机"
         }
       ],
@@ -3735,7 +6874,7 @@
       ],
       "title": "手机里藏着多少种元素",
       "author": "未核实",
-      "duration": 10,
+      "duration": 10.0,
       "directory": "cases/creative-ref-20261112-n05-original",
       "detail": "detail.html?case=creative-ref-20261112-n05",
       "analysis": "cases/creative-ref-20261112-n05-original/overview.md",
