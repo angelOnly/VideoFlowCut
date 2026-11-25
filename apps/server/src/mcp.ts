@@ -2747,7 +2747,7 @@ server.registerTool("start_production_run", {
 
 server.registerTool("update_production_run", {
   title: "更新制作职责与范围",
-  description: "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 原样冻结作者提交的本片正文与素材绑定，按采用方式关联原片观察。视觉作者登记同版试摆接收或退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
+  description: "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 原样冻结作者提交的本片正文与素材绑定，完整解说主单元使用 full_reference 并绑定实际原片观察，独立局部机制使用 local_mechanism。视觉作者为完整迁移登记同状态及连续过程视频对照，存在具体缺口时退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
   inputSchema: {
     project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
     action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact", "record_unit_handoff"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
@@ -2782,7 +2782,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。创意与动效两类采用均须由本片具体场段映射到对应作者的研究原段。前期研究、局部接件和候选设计可按其实际范围登记。",
+  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),

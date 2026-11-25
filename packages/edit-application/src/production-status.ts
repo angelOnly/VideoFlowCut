@@ -1,9 +1,9 @@
 import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
 import type { EditingApplication } from "./index.js";
 import type { MotionContinuationResult, ProductionCompletionScope } from "@videocut/contracts";
-import { assignmentScopesOverlap, evaluateProductionCoordination, requiresVisualReferenceUnits } from "./production-coordination.js";
+import { assignmentScopesOverlap, evaluateProductionCoordination } from "./production-coordination.js";
 import { readReferenceDecision, referenceComparisonsForRevision } from "./reference-comparison.js";
-import { readUnitHandoffs } from "./production-unit-handoff.js";
+import { readUnitHandoffs, requiresVisualReferenceUnits } from "./production-unit-handoff.js";
 
 export type ProductionStatusContext = { runId?: string; completionScope?: ProductionCompletionScope;
   referenceDecisionId?: string; referenceArtifactId?: string };
@@ -25,6 +25,8 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
     report: run, snapshot: state.snapshot, scope, phase: "authoring",
     readRevision: revision => app.readProject(projectId, revision).snapshot
   }) : undefined;
+  const fullReferenceUnits = run && requiresVisualReferenceUnits(run, state.snapshot);
+  const draftedSceneIds = new Set(run?.unitHandoffs?.flatMap(event => event.action === "submit_draft" ? [event.draft.sceneId] : []));
   return {
     projectId, revision: state.revision.number, generatedAt: new Date().toISOString(),
     ...(comparison ? { referenceComparisons: comparison.referenceComparisons } : {}),
@@ -33,9 +35,10 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
     ...(comparisonArtifact ? { referenceArtifact: { id: comparisonArtifact.id, revision: comparisonArtifact.revision } } : {}),
     ...(completion ? { completion } : {}),
     ...(preparationIssues && scope ? { preparation: { revision: state.revision.number, scope, ready: preparationIssues.length === 0, issues: preparationIssues } } : {}),
-    ...(run && scope && requiresVisualReferenceUnits(run, state.snapshot) ? {
+    ...(run && scope && (fullReferenceUnits || draftedSceneIds.size) ? {
       unitHandoffs: readUnitHandoffs(run, state.snapshot, state.snapshot.scenes.filter(scene =>
-        assignmentScopesOverlap(state.snapshot, scope, { kind: "objects", objectIds: [scene.id] })))
+        (fullReferenceUnits || draftedSceneIds.has(scene.id))
+        && assignmentScopesOverlap(state.snapshot, scope, { kind: "objects", objectIds: [scene.id] })))
     } : {}),
     ...(run ? { responsibilityOptions: run.assignments.flatMap(assignment => assignment.responsibilities
       .filter((responsibility): responsibility is "creative_research" | "motion_research" | "visual_design" =>

@@ -6,9 +6,9 @@ import { DomainError } from "@videocut/domain";
 import { missingReviewRanges } from "../../quality-system/src/editorial-review.js";
 import type { EditingApplication } from "./index.js";
 import { readFrozenAuthorRequest, type ReferenceManifest } from "./opendesign-reference-package.mjs";
-import { requiresVisualReferenceUnits, visualReferenceUnitCoverage } from "./production-coordination.js";
+import { visualReferenceUnitCoverage } from "./production-coordination.js";
 import { sameVisualDelivery } from "./visual-design-revisions.js";
-import { unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
+import { requiresVisualReferenceUnits, unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
 
 type FrameRange = { startFrame: number; endFrame: number };
 const overlapsReferenceRange = (a: FrameRange, b: FrameRange) => a.startFrame < b.endFrame && b.startFrame < a.endFrame;
@@ -34,9 +34,11 @@ export async function readReferenceDecision(app: EditingApplication, report: Ski
   if (includeAuthorRequest) {
     const current = app.readProject(report.projectId).snapshot;
     const assignments = designs.flatMap(design => design.assignmentId ? [design.assignmentId] : []);
-    const usable = !requiresVisualReferenceUnits(report, current) || delivery.sceneIds.every(sceneId => {
+    const fullCreation = requiresVisualReferenceUnits(report, current);
+    const usable = delivery.sceneIds.every(sceneId => {
       const scene = current.scenes.find(item => item.id === sceneId);
       const delivered = manifest.scenes?.find(item => item.sceneId === sceneId && item.status === "ready");
+      if (!fullCreation && !delivered?.visualPlan?.units?.length) return true;
       return scene && delivered && !unitHandoffDeliveryIssues(report, current, manifest, scene, delivered, assignments).length;
     });
     if (usable) request = await readFrozenAuthorRequest(manifest, delivery.manifestPath);

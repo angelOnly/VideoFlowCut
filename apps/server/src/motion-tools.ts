@@ -20,8 +20,7 @@ import { MOTION_ENGINE_VERSION } from "../../../packages/motion-work/src/compile
 import { frozenMotionBundleSchema, importMotionBundle, readFrozenMotionWork } from "../../../packages/edit-application/src/motion-input.js";
 import { prepareReferencePackage, readFrozenAuthorRequest } from "../../../packages/edit-application/src/opendesign-reference-package.mjs";
 import { readReferenceDecision } from "../../../packages/edit-application/src/reference-comparison.js";
-import { requiresVisualReferenceUnits } from "../../../packages/edit-application/src/production-coordination.js";
-import { unitHandoffDeliveryIssues } from "../../../packages/edit-application/src/production-unit-handoff.js";
+import { requiresVisualReferenceUnits, unitHandoffDeliveryIssues } from "../../../packages/edit-application/src/production-unit-handoff.js";
 import { productionUnitModeSchema } from "../../../packages/contracts/src/production-unit-handoff.js";
 import { MotionAuthoringCoordinationError } from "../../../packages/edit-application/src/motion-coordination-error.js";
 import { DomainError } from "@videocut/domain";
@@ -57,7 +56,7 @@ const handoffSceneSchema = z.object({
       handoffReceiptId: z.string().trim().min(1).optional(),
       restage: z.object({ resourceId: z.string().trim().min(1), sourceMs: z.number().finite().nonnegative().optional(),
         projectFrame: z.number().int().nonnegative() }).strict().optional()
-        .describe("本片实料试摆证据。完整迁移和局部机制另填原片毫秒，自主创作只填本片帧")
+        .describe("本片对照证据，填写原片毫秒和本片帧；完整迁移使用同状态及连续过程视频")
     }).strict()).optional(),
     researchLayers: z.array(z.object({ level: z.enum(["overallVisual", "sceneComposition", "motionMechanisms"]),
       researchDecisionId: z.string().trim().min(1), designExcerpt: z.string().trim().min(1)
@@ -95,7 +94,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片的 visualPlan.units 填同版 mode、作者原稿、接收回执、可解码的实料试摆及帧段。仅 full_reference 填覆盖单元的 primary；其他参考使用 support 并标实际帧段。sequence.unitId 关联本片演出。原稿与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面提供完整构图、连续发展、观看中心和制作权限。完整新制与视觉重做用 researchLayers 关联研究。返回清单、缺口和就绪场面的冻结 authorRequest。完整解说新片按实际采用在 creative、motion 及对应场面的 referenceMappings 记录两类来源。原稿、复摆等通用附件按各自用途交付。准备交付会返回候选包和缺口，正式整片委托以同版导演稿中的创意与动效实际采用为准。",
+    description: "固定当前导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场，写入对应场面 odBoundaries.locked 原文。完整解说新片每个 visualPlan.units 使用 full_reference，关联原稿、接件回执及可解码的同状态和连续过程对照视频；primary 覆盖单元，其他采用以 support 定位。创意或动效来源按对应集合登记，原稿和对照由 references 与场面 resourceIds 随包交付。sequence.unitId 关联连续演出，researchLayers 关联研究。返回冻结清单、就绪场面请求或按场缺口。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(),
       production_run_id: z.string().min(1).optional().describe("完整解说新片正式组包须提供当前 Run，逐单元核对视觉接件回执"),
       brief_path: z.string().min(1),
@@ -113,7 +112,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
       throw new DomainError("含逐单元创意交件的正式组包需要当前制作 Run", "PRODUCTION_UNIT_HANDOFF_RUN_REQUIRED");
     }
     const report = production_run_id ? await application.readSkillExecutionReport({ projectId, runId: production_run_id }) : undefined;
-    const verifyHandoffs = report && requiresVisualReferenceUnits(report, current.snapshot);
+    const fullCreation = report && requiresVisualReferenceUnits(report, current.snapshot);
     const handoffId = randomUUID();
     const output = join(current.snapshot.project.rootPath, "reports", "motion-handoffs", handoffId);
     await mkdir(output, { recursive: true });
@@ -124,13 +123,14 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
       creative, motion, references, scenes }, output);
     const manifestPath = join(output, "delivery-manifest.json");
     const manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
-    if (verifyHandoffs) {
+    if (report && (fullCreation || scenes.some(scene => scene.status === "ready" && scene.visualPlan?.units?.length))) {
       const latest = application.readProject(projectId);
       if (latest.revision.number !== base_revision_id) throw new DomainError("组包期间项目版本变化，请按当前输入重新准备", "PRODUCTION_AUDIT_CONFLICT");
       const liveReport = await application.readSkillExecutionReport({ projectId, runId: report.id });
       const issues = selected_scene_ids.flatMap(id => {
         const scene = latest.snapshot.scenes.find(item => item.id === id);
         const delivered = manifest.scenes?.find(item => item.sceneId === id);
+        if (!fullCreation && !scenes.find(item => item.sceneId === id)?.visualPlan?.units?.length) return [];
         if (scene && delivered?.status === "ready") return unitHandoffDeliveryIssues(liveReport, latest.snapshot, manifest, scene, delivered);
         return [{ code: "VISUAL_SCENE_HANDOFF_NOT_READY", scope: { kind: "objects" as const, objectIds: [id] },
           state: "pending" as const, relatedDecisionIds: [], relatedObjectIds: [id],
@@ -151,7 +151,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("start_motion_authoring", {
     title: "启动阶段画面制作",
-    description: "完整横屏或竖屏纯解说新片使用 target.action=whole_film，一次发送已采用的整片冻结稿及资料，阶段回件按场接回。新增画面从冻结稿取正文，省略 prompt。局部返修使用范围正文、新幂等键和 continue_from_run_id。完整解说新片的首次正式委托使用 whole_film。开工前复核同一份全片冻结稿中可追溯的创意采用和动效采用。两类可以在不同场。沿这次委托的同一时钟接回阶段成果。",
+    description: "完整横屏或竖屏纯解说新片使用 target.action=whole_film，一次发送已采用的整片冻结稿及资料，阶段回件按场接回。新增画面从冻结稿取正文，省略 prompt。局部返修使用范围正文、新幂等键和 continue_from_run_id。完整解说新片的首次正式委托使用 whole_film。开工前复核本版每个主要单元的完整参考、实际采用的辅助机制和视觉锁定正文。沿这次委托的同一时钟接回阶段成果。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1),
       visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), target: motionAuthoringTargetSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
   }, async ({ project_id, base_revision_id, production_run_id, visual_treatment_ids, target, opendesign_request, idempotency_key }) => { try {

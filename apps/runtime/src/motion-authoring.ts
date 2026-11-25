@@ -304,7 +304,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
   const checkTarget = (snapshot: ProjectSnapshot) => {
     if (sceneTargets.length) {
       for (const entry of sceneTargets) {
-        try { app.assertMotionAuthoringInputsCurrent(snapshot, entry.target.sceneId, entry.authoringInputs); }
+        try { app.assertMotionAuthoringInputsCurrent(snapshot, entry.target.sceneId, entry.authoringInputs, true, entry.target); }
         catch (error) { targetConflict(error instanceof Error ? error.message : String(error), error instanceof DomainError ? error.code : undefined); }
         if (motionTargetDependencyHash(snapshot, entry.target, entry.authoringInputs.map(item => item.visualTreatmentId)) !== entry.initialTargetHash) {
           targetConflict("整片制作的场面在启动前已变化");
@@ -314,7 +314,7 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
     }
     const hash = target.action === "create_cue" ? motionTargetDependencyHash(snapshot, target, input.visualTreatmentIds)
       : existingHash(snapshot, target.cueId, input.visualTreatmentIds);
-    try { app.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), authoringInputs); }
+    try { app.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), authoringInputs, true, targetRange); }
     catch (error) { targetConflict(error instanceof Error ? error.message : String(error), error instanceof DomainError ? error.code : undefined); }
     if (hash !== initialHash) targetConflict("制作目标或当前采用在启动前已变化");
   };
@@ -499,7 +499,10 @@ export async function runMotionAuthoringJob(app: EditingApplication, job: JobRec
         if (position >= range.endFrame) { stage.rangeIndex++; stage.cursor = undefined; save(); continue; }
         if (!stage.operation) {
           const current = app.readProject(job.projectId), snapshot = current.snapshot;
-          try { app.assertMotionAuthoringInputsCurrent(snapshot, sceneTarget?.target.sceneId ?? String(job.payload.targetSceneId), rangeInputs); }
+          try {
+            app.assertMotionAuthoringInputsCurrent(snapshot, sceneTarget?.target.sceneId ?? String(job.payload.targetSceneId), rangeInputs,
+              true, { startFrame: position, endFrame: range.endFrame });
+          }
           catch (error) { deferRemaining(position, error instanceof Error ? error.message : String(error)); break; }
           if (rangeTarget.action === "create_cue") {
             const own = new Set(state!.owned.map(item => item.cueId));

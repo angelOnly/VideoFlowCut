@@ -105,7 +105,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
     app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 30 }));
     const a = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "A", purpose: "建立", startFrame: 0, endFrame: 18 }).snapshot.scenes[0]!;
     const b = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "B", purpose: "接续", startFrame: 18, endFrame: 36 }).snapshot.scenes.find(scene => scene.id !== a.id)!;
-    const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" }, operationId: "start", loadedSkills: ["production-coordinator"] });
+    const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "visual_rework", completionScope: { kind: "project" }, operationId: "start", loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "authors", action: "add_assignment",
       assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research"],
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"],
@@ -113,7 +113,7 @@ test("候选登记不切换采用，正式采用在排队、传输和结果接�
     const research = async (phase: "creative_research" | "motion_research") => (await app.recordCreativeDecision({ projectId, runId: run.id,
       operationId: randomUUID(), category: "visual", phase, assignmentId: "authors", inputRevision: rev(), objectIds: [a.id, b.id],
       decision: "研究当前场面", rationale: "按本次素材判断", researchOutcome: phase === "creative_research" ? "researched" : "not_applicable",
-      ...(phase === "creative_research" ? { researchCoverage: completeResearchCoverage } : {}), evidence: ["已检查候选并原创画面"] })).creativeDecisions.at(-1)!;
+      ...(phase === "creative_research" ? { researchCoverage: completeResearchCoverage } : {}), evidence: ["已检查候选并确认现有画面关系"] })).creativeDecisions.at(-1)!;
     const creative = await research("creative_research"), motion = await research("motion_research");
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
     const visualBrief = directorBrief(visualPlan("主体")) + `\n\n## 发给 OD 的完整请求\n### 场面 ${a.id}\n制作 A 场\n### 场面 ${b.id}\n制作 B 场`;

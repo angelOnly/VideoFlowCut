@@ -63,6 +63,8 @@ function visualPlanErrors(plan, visualRoles, briefText) {
     return value;
   };
   if (!plan || typeof plan!=='object' || Array.isArray(plan)) return ['正式制作场面缺少视觉导演稿'];
+  if (plan.units !== undefined && (!Array.isArray(plan.units)
+    || plan.units.some(unit => unit?.mode !== 'full_reference' && unit?.mode !== 'local_mechanism'))) fail('视觉单元需要有效的采用方式');
   const roles=new Set(visualRoles.map(role=>role.role));
   const primary=list(plan.primaryRoles,'主要角色',true);
   if (primary.some(role=>!roles.has(role))) fail('视觉计划主要角色必须对应场面视觉角色');
@@ -107,6 +109,18 @@ function visualPlanErrors(plan, visualRoles, briefText) {
   }
   return errors;
 }
+
+/** 锁定项必须出现在实际派发的场面正文或共用段，避免仅留在导演稿的研究部分。 */
+function lockedAuthorRequestErrors(plan, sceneId, briefText) {
+  if (!Array.isArray(plan?.units) || !plan.units.some(unit => unit?.mode === 'full_reference')) return [];
+  const request = extractAuthorRequest(briefText, [sceneId]);
+  if (!request) return ['缺少本场发给 OD 的完整请求'];
+  const locked = plan.odBoundaries?.locked;
+  if (!Array.isArray(locked)) return [];
+  return locked.filter(item => typeof item === 'string' && !request.text.includes(normalizeAuthorRequest(item)))
+    .map(item => '发给 OD 的场面请求缺少锁定视觉关系，请交视觉作者确认：' + item);
+}
+
 /** 把场面里的角色和范围绑定到本次实际交付文件，不把候选或缺失素材标成可制作。 */
 function prepareScenes(input, entries, creativeRecords, motionRecords, project, delivered, briefText) {
   const ids = new Set(), assets = new Map((input.assets ?? []).map(asset => [asset.id,asset]));
@@ -174,6 +188,7 @@ function prepareScenes(input, entries, creativeRecords, motionRecords, project, 
       else {
         const roles=new Set(visualRoles.map(role=>role.role));
         for (const error of visualPlanErrors(plan,visualRoles,briefText)) fail(error);
+        if (typeof briefText === 'string') for (const error of lockedAuthorRequestErrors(plan, scene.sceneId, briefText)) fail(error);
         if (plan.referenceMappings !== undefined && !Array.isArray(plan.referenceMappings)) fail('参考映射必须是列表');
         for (const mapping of Array.isArray(plan.referenceMappings) ? plan.referenceMappings : []) {
           const matches=refs.filter(ref=>(ref.id ?? ref.creativeCaseId)===mapping?.referenceId);
@@ -450,12 +465,19 @@ export async function readFrozenAuthorRequest(manifest, manifestPath, sceneIds =
   if (!brief) return undefined;
   const bytes=await readFile(join(dirname(manifestPath),brief.deliveredPath));
   if (createHash('sha256').update(bytes).digest('hex')!==brief.sha256) throw new Error('冻结导演稿已变化');
-  return extractAuthorRequest(bytes.toString('utf8'),sceneIds);
+  const markdown = bytes.toString('utf8');
+  for (const scene of manifest.scenes ?? []) {
+    if (!sceneIds.includes(scene.sceneId) || scene.status !== 'ready') continue;
+    const errors = lockedAuthorRequestErrors(scene.visualPlan, scene.sceneId, markdown);
+    if (errors.length) throw new Error(errors.join('；'));
+  }
+  return extractAuthorRequest(markdown,sceneIds);
 }
 
 export function assertVisualDesign(scenes, briefText) {
   for (const scene of scenes.filter(item=>item.status==='ready')) {
     const designErrors=visualPlanErrors(scene.visualPlan,scene.visualRoles ?? [],briefText);
+    if (typeof briefText === 'string') designErrors.push(...lockedAuthorRequestErrors(scene.visualPlan, scene.sceneId, briefText));
     if (designErrors.length) throw new Error(`场面 ${scene.sceneId} 的视觉设计不完整：${designErrors.join('；')}`);
   }
 }

@@ -2,7 +2,7 @@ import { readProductionStatus, type ProductionStatusContext } from "./production
 import { referenceComparisonsForRevision } from "./reference-comparison.js";
 import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
-import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, referenceUsesFrozenMaterials, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresVisualReferenceUnits, requiresWholeFilmReferenceAdoption, responsibilityDecisionRanges, visualReferenceUnitCoverage, wholeFilmReferenceAdoptionIssues } from "./production-coordination.js";
+import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
 import { responsibilityReviewFindings, validateResponsibilityReviews } from "./responsibility-review.js";
 import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "./motion-coordination-error.js";
 import { assertVisualDesign, readFrozenAuthorRequest, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
@@ -13,7 +13,7 @@ import { checkMotionRangeCompatibility, motionRangeExpectation, replaceMotionRan
 import { applyMotionAdoption, motionHandoffDependencyHash, motionTargetDependencyHash, validateMotionContinuation } from "./motion-adoption.js";
 import { motionAuthoringInputsCurrent, motionTreatmentSignature } from "./motion-dependencies.js";
 import { sameVisualDelivery, visualDesignCovers, visualScopeSceneIds } from "./visual-design-revisions.js";
-import { buildUnitHandoffEvent, unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
+import { buildUnitHandoffEvent, requiresVisualReferenceUnits, unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
 import { productionUnitHandoffSchema, type ProductionUnitHandoffInput } from "../../contracts/src/production-unit-handoff.js";
 import { motionOnSuccessSchema } from "../../contracts/src/motion-continuation.js";
 import { motionAuthoringInputSchema, type MotionAuthoringInput, type MotionAuthoringSceneTarget } from "../../contracts/src/motion-authoring.js";
@@ -490,7 +490,6 @@ function assertReferenceResearch(report: SkillExecutionReport, snapshot: Project
     || sceneIds.some(id => !manifest.selectedSceneIds?.includes(id)))) {
     throw new DomainError("整片采用须引用同一份覆盖全部场面的冻结交付清单", "PRODUCTION_ADOPTION_DELIVERY_INVALID");
   }
-  const adoptedKinds = new Set<"creative" | "motion">();
   for (const sceneId of sceneIds) {
     const scene = snapshot.scenes.find(item => item.id === sceneId);
     const delivered = manifest.scenes?.find(item => item.sceneId === sceneId && item.status === "ready");
@@ -502,9 +501,6 @@ function assertReferenceResearch(report: SkillExecutionReport, snapshot: Project
         .flatMap(unit => unit.issues));
     }
     for (const issue of referenceResearchIssues({ report, snapshot, scene, delivered, designs: applicable, treatment,
-      onVerifiedMapping: wholeFilm ? (reference, mapping) => {
-        if (referenceUsesFrozenMaterials(manifest, scene, delivered, reference, mapping)) adoptedKinds.add(reference.kind);
-      } : undefined,
       accepted: (research, phase) => {
         const targets = treatment ? [treatment] : snapshot.visualTreatments.filter(item =>
           (item.sceneId === scene.id || !!item.narrativeBeatId && scene.narrativeBeatIds.includes(item.narrativeBeatId))
@@ -523,7 +519,6 @@ function assertReferenceResearch(report: SkillExecutionReport, snapshot: Project
         message: issue.message, nextAction: issue.nextAction });
     }
   }
-  if (wholeFilm && !issues.length) issues.push(...wholeFilmReferenceAdoptionIssues(report, sceneIds, adoptedKinds));
   if (issues.length) throw new ProductionReferenceResearchError(issues);
 }
 
@@ -2515,7 +2510,6 @@ export class EditingApplication {
       } else if (input.action === "record_unit_handoff") {
         const handoff = productionUnitHandoffSchema.parse(input.handoff);
         const current = this.readProject(input.projectId).snapshot;
-        if (!requiresVisualReferenceUnits(report, current)) throw new DomainError("逐场创意接件用于完整解说新片", "PRODUCTION_UNIT_HANDOFF_INVALID");
         const source = this.repository.getRevision(input.projectId, handoff.inputRevision).snapshot;
         const event = await buildUnitHandoffEvent(report, source, current, handoff,
           join(this.getProjectRoot(input.projectId), "reports", "unit-drafts", report.id), sha256File);
@@ -2731,14 +2725,14 @@ export class EditingApplication {
         if (sceneDocument.projectId !== manifest.projectId || sceneDocument.revision !== manifest.revision
           || JSON.stringify(sceneDocument.scenes) !== JSON.stringify(manifest.scenes)) throw new Error("固定场面文件与清单内容不一致");
         scopeReferenceManifest(manifest, selected);
-        if (requiresVisualReferenceUnits(report, snapshot)) {
-          const current = this.readProject(input.projectId).snapshot;
-          const issues = selected.flatMap(id => unitHandoffDeliveryIssues(report, current, manifest,
-            snapshot.scenes.find(scene => scene.id === id)!, manifest.scenes!.find(scene => scene.sceneId === id)!, [input.assignmentId!]));
-          if (issues.length) throw new ProductionReferenceResearchError(issues);
-        }
+        const current = this.readProject(input.projectId).snapshot;
+        const selectedScenes = manifest.scenes!.filter(scene => selected.includes(scene.sceneId));
+        const issues = selectedScenes.flatMap(delivered => requiresVisualReferenceUnits(report, snapshot) || delivered.visualPlan?.units?.length
+          ? unitHandoffDeliveryIssues(report, current, manifest, snapshot.scenes.find(scene => scene.id === delivered.sceneId)!,
+            delivered, [input.assignmentId!], input.inputDecisionIds ?? []) : []);
+        if (issues.length) throw new ProductionReferenceResearchError(issues);
         // 研究关联由视觉作者填写，核对同一设计实际消费的研究正文。
-        for (const scene of manifest.scenes!.filter(item => selected.includes(item.sceneId))) {
+        for (const scene of selectedScenes) {
           for (const layer of scene.visualPlan?.researchLayers ?? []) {
             const research = report.creativeDecisions.find(item => item.id === layer.researchDecisionId
               && item.phase === "creative_research" && input.inputDecisionIds?.includes(item.id));
@@ -2749,7 +2743,7 @@ export class EditingApplication {
             }
           }
         }
-        assertVisualDesign(manifest.scenes!.filter(scene => selected.includes(scene.sceneId)), await readFile(join(manifest.packageRoot, brief.deliveredPath), "utf8"));
+        assertVisualDesign(selectedScenes, await readFile(join(manifest.packageRoot, brief.deliveredPath), "utf8"));
       } catch (error) {
         if (error instanceof ProductionReferenceResearchError) throw error;
         throw new DomainError(`视觉设计交付不可用：${error instanceof Error ? error.message : String(error)}`, "VISUAL_REVISION_DELIVERY_INVALID");
@@ -3337,7 +3331,8 @@ export class EditingApplication {
   }
 
   /** 同时核对项目采用和制作记录中本场的正式视觉修订。 */
-  assertMotionAuthoringInputsCurrent(snapshot: ProjectSnapshot, sceneId: string, inputs: MotionAuthoringTreatmentInput[], verifyHandoffs = false): void {
+  assertMotionAuthoringInputsCurrent(snapshot: ProjectSnapshot, sceneId: string, inputs: MotionAuthoringTreatmentInput[],
+    verifyHandoffs = false, targetRange?: MotionFrameRange): void {
     if (!motionAuthoringInputsCurrent(snapshot, inputs)) throw new DomainError("当前采用稿已变化，请重新确认制作输入", "MOTION_AUTHORING_ADOPTION_CHANGED");
     if (!inputs.length) return;
     const scene = snapshot.scenes.find(item => item.id === sceneId);
@@ -3363,7 +3358,8 @@ export class EditingApplication {
       if (!sameVisualDelivery(adoption?.deliveryRef, input.deliveryRef) || !designs.length) {
         throw new DomainError("本场视觉设计与导演采用没有引用同一份固定交付", "MOTION_AUTHORING_ADOPTION_CHANGED");
       }
-      if (verifyHandoffs && requiresVisualReferenceUnits(report, snapshot)) {
+      const fullCreation = requiresVisualReferenceUnits(report, snapshot);
+      if (verifyHandoffs && (fullCreation || report.unitHandoffs?.some(event => event.action === "submit_draft" && event.draft.sceneId === sceneId))) {
         let delivered: NonNullable<ReferenceManifest["scenes"]>[number] | undefined;
         let manifest: ReferenceManifest;
         try {
@@ -3375,9 +3371,13 @@ export class EditingApplication {
         } catch (error) {
           throw new DomainError(`当前冻结交付不可用：${String(error)}`, "MOTION_AUTHORING_ADOPTION_CHANGED");
         }
-        const issues = unitHandoffDeliveryIssues(report, snapshot, manifest, scene, delivered,
-          designs.flatMap(design => design.assignmentId ? [design.assignmentId] : []));
-        if (issues.length) throw new MotionAuthoringCoordinationError(issues);
+        if (fullCreation || delivered.visualPlan?.units?.length) {
+          const issues = unitHandoffDeliveryIssues(report, snapshot, manifest, scene, delivered,
+            designs.flatMap(design => design.assignmentId ? [design.assignmentId] : []))
+            .filter(issue => !targetRange || issue.scope.kind !== "frames"
+              || issue.scope.startFrame < targetRange.endFrame && issue.scope.endFrame > targetRange.startFrame);
+          if (issues.length) throw new MotionAuthoringCoordinationError(issues);
+        }
       }
     }
   }
@@ -3397,7 +3397,7 @@ export class EditingApplication {
         }
         return;
       }
-      this.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), inputs, input.target.action === "create_cue");
+      this.assertMotionAuthoringInputsCurrent(snapshot, String(job.payload.targetSceneId), inputs, true, job.payload.targetRange as MotionFrameRange);
       const target = input.target.action === "create_cue" ? input.target
         : { action: "replace_cue" as const, cueId: input.target.cueId, audioPolicy: input.target.audioPolicy };
       if (motionTargetDependencyHash(snapshot, target, input.visualTreatmentIds) !== job.payload.initialTargetHash) {
@@ -3703,7 +3703,8 @@ export class EditingApplication {
     const targetSceneId = target.action === "create_cue" ? target.sceneId : existingCue?.sceneId;
     const inputs = frozen.authoringInputs?.length ? frozen.authoringInputs : existingCue?.authoringInputs;
     if (inputs?.length) {
-      try { this.assertMotionAuthoringInputsCurrent(snapshot, targetSceneId ?? "", inputs); }
+      const range = target.action === "create_cue" ? target : target.action === "replace_range" ? target.targetRange : existingCue;
+      try { this.assertMotionAuthoringInputsCurrent(snapshot, targetSceneId ?? "", inputs, true, range); }
       catch (error) {
         if (!(error instanceof DomainError)) throw error;
         return { status: "needs_reconfirmation", workId, conflicts: [{ objectId: targetSceneId ?? workId, reason: error.message }] };

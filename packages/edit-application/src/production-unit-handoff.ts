@@ -10,6 +10,17 @@ import { visualScopeSceneIds } from "./visual-design-revisions.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
 type Responsibility = "creative_research" | "visual_design" | "motion_research";
+const videoComparison = /^\.(?:mp4|m4v|mov|webm|ogv)$/iu;
+const imageComparison = /^\.(?:jpeg|jpg|png|webp)$/iu;
+
+export function requiresVisualReferenceUnits(report: SkillExecutionReport, snapshot: ProjectSnapshot): boolean {
+  return report.intent === "full_creation" && snapshot.project.profile !== "vlog";
+}
+
+function unitModeAllowed(report: SkillExecutionReport, snapshot: ProjectSnapshot, mode: unknown): boolean {
+  return requiresVisualReferenceUnits(report, snapshot) ? mode === "full_reference"
+    : report.intent === "local_edit" && mode === "local_mechanism";
+}
 
 function invalid(message: string): never {
   throw new DomainError(message, "PRODUCTION_UNIT_HANDOFF_INVALID");
@@ -59,15 +70,17 @@ export function readUnitHandoff(report: SkillExecutionReport, snapshot: ProjectS
   const base = { sceneId: scene.id, unitId, draft };
   if (!draft) return { ...base, status: "waiting_for_draft" as const, assignmentId: creative[0]?.assignmentId, gap: undefined,
     nextAction: "续接创意作者提交本单元的本片正文与素材绑定" };
-  if (!draft.mode || !unitDraftMatchesSnapshot(draft, snapshot) || !creative.some(owner => owner.assignmentId === draft.assignmentId)) {
+  if (!unitModeAllowed(report, snapshot, draft.mode) || !draft.reference || !unitDraftMatchesSnapshot(draft, snapshot)
+    || !creative.some(owner => owner.assignmentId === draft.assignmentId)) {
     return { ...base, status: "waiting_for_draft" as const, assignmentId: creative[0]?.assignmentId,
-      gap: draft.mode ? "本场范围、素材或创意负责者已变化" : "本单元仍使用旧换料稿，须提交作者本片正文",
+      gap: "原稿的采用方式、参考、范围、素材或作者与当前任务不符",
       nextAction: "按当前输入重新提交该单元" };
   }
   if (response?.action === "return_draft") return { ...base, status: "returned" as const,
     assignmentId: draft.assignmentId, gap: response.gap, sourceMs: response.sourceMs, projectFrame: response.projectFrame, impact: response.impact,
     nextAction: "续接创意作者补稿，需要时补材或重选原段，补完后重新交视觉试摆" };
-  if (response?.action === "accept_draft" && visual.some(owner => owner.assignmentId === response.assignmentId)) {
+  if (response?.action === "accept_draft" && response.sourceMs >= draft.reference.startMs && response.sourceMs < draft.reference.endMs
+    && visual.some(owner => owner.assignmentId === response.assignmentId)) {
     return { ...base, status: "accepted" as const, assignmentId: response.assignmentId, receipt: response,
       nextAction: "沿同版原稿完成正式视觉编排，将回执和试摆依据纳入本场制作包" };
   }
@@ -77,30 +90,24 @@ export function readUnitHandoff(report: SkillExecutionReport, snapshot: ProjectS
 
 type DraftSubmission = Extract<ProductionUnitHandoffInput, { action: "submit_draft" }>;
 
-function validateDraftReference(report: SkillExecutionReport, current: ProjectSnapshot, scene: Scene,
-  input: DraftSubmission, creativeDecisionId: string): void {
-  const source = input.reference;
-  if (input.mode === "original") {
-    if (source) invalid("自主创作的采用参考请在研究和导演稿映射中关联");
-    return;
-  }
-  if (!source || source.endMs <= source.startMs || input.mode === "local_mechanism" && source.kind !== "motion") {
-    invalid("完整迁移须有有效原片区间，局部机制须有有效机制原片区间");
-  }
+function observedReferenceGap(report: SkillExecutionReport, current: ProjectSnapshot, scene: Scene,
+  target: { startFrame: number; endFrame: number }, source: DraftSubmission["reference"], submitting = false): string | undefined {
   const phase = source.kind === "creative" ? "creative_research" : "motion_research";
   const research = report.creativeDecisions.find(item => item.id === source.researchDecisionId && item.phase === phase);
-  if (!research || research.researchOutcome === "not_applicable"
+  // 已冻结的观察保留原作者。提交新稿须由当前负责人承接，正式采用另核对接替链。
+  const owners = submitting ? unitHandoffOwners(report, current, scene, target, phase)
+    : report.assignments.filter(assignment => assignment.responsibilities.includes(phase) && assignmentCoversUnit(assignment, current, scene, target));
+  if (!research || research.researchOutcome !== "researched"
     || !visualScopeSceneIds(current, research.objectIds).includes(scene.id)
-    || source.kind === "creative" && research.id !== creativeDecisionId
-    || !unitHandoffOwners(report, current, scene, input, phase).some(owner => owner.assignmentId === research.assignmentId)) {
-    invalid("所选原段缺少本单元可追溯的实际研究和原片范围");
+    || !owners.some(owner => owner.assignmentId === research.assignmentId)) {
+    return `参考 ${source.id} 缺少覆盖本片 ${target.startFrame}–${target.endFrame} 帧的实际研究决定`;
   }
   const ranges = (research.researchReferences ?? []).flatMap(item => item.kind === source.kind && item.id === source.id
     && item.sourceSha256 === source.sourceSha256 && item.observedRelation?.trim() && item.startMs !== undefined && item.endMs !== undefined
     ? [{ startFrame: item.startMs, endFrame: item.endMs }] : []);
   const missing = missingReviewRanges(ranges, source.startMs, source.endMs);
   if (missing.length) {
-    invalid(`采用原段缺少实际观察：${missing.map(range => `${range.startFrame}–${range.endFrame} ms`).join("、")}`);
+    return `参考 ${source.id} 缺少实际原片观察：${missing.map(range => `${range.startFrame}–${range.endFrame} ms`).join("、")}`;
   }
 }
 
@@ -123,13 +130,21 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
   if (!assignment || input.inputRevision < (assignment.inputRevision ?? report.baseRevision)) invalid("本次交件与当前作者分派或输入版本不符");
 
   if (input.action === "submit_draft") {
+    if (!unitModeAllowed(report, current, input.mode)) invalid("完整解说新片的主要单元须使用完整参考迁移，局部机制单元用于独立局部任务");
     const creative = report.creativeDecisions.find(item => item.id === input.creativeDecisionId && item.phase === "creative_research");
-    if (!creative || creative.assignmentId !== assignment.assignmentId || creative.researchOutcome === "not_applicable"
+    const keepsDesign = input.mode === "local_mechanism" && creative?.researchOutcome === "not_applicable"
+      && creative.evidence.some(entry => entry.trim());
+    if (!creative || creative.assignmentId !== assignment.assignmentId || creative.researchOutcome !== "researched" && !keepsDesign
       || !visualScopeSceneIds(current, creative.objectIds).includes(scene.id)) {
       invalid("本片创意原稿缺少本单元原作者的研究记录");
     }
     if (!input.body.trim()) invalid("请提交原创意作者实际写出的本片正文");
-    validateDraftReference(report, current, scene, input, creative.id);
+    const source = input.reference;
+    if (source.endMs <= source.startMs || input.mode === "local_mechanism" && source.kind !== "motion"
+      || source.kind === "creative" && source.researchDecisionId !== creative.id) invalid("采用模式、研究决定与原片区间不符");
+    const gap = observedReferenceGap(report, current, scene, input, source, true);
+    if (gap) invalid(gap);
+    if (input.mode === "full_reference" && !input.assets.length) invalid("完整迁移须绑定本单元使用的真实素材");
 
     const assets: ProductionUnitDraft["assets"] = [];
     for (const { assetId, sourceRange } of input.assets) {
@@ -153,7 +168,7 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
     await writeFile(path, body, { encoding: "utf8", flag: "wx" });
     return { action: input.action, draft: { id, sceneId: scene.id, unitId: input.unitId, startFrame: input.startFrame, endFrame: input.endFrame,
       assignmentId: assignment.assignmentId, inputRevision: input.inputRevision, creativeDecisionId: creative.id,
-      mode: input.mode, ...(input.reference ? { reference: input.reference } : {}), assets, path, sha256: createHash("sha256").update(body).digest("hex") } };
+      mode: input.mode, reference: source, assets, path, sha256: createHash("sha256").update(body).digest("hex") } };
   }
 
   if (!submitted) invalid("视觉接件须引用已登记的本片原稿");
@@ -162,12 +177,14 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
     || assignment.agentId === report.assignments.find(item => item.assignmentId === submitted.assignmentId)?.agentId
     || input.inputRevision < submitted.inputRevision) invalid("本片原稿已退回、已被替换或与当前独立作者分派不符");
   const source = submitted.reference;
-  if (source && (input.sourceMs === undefined || input.sourceMs < source.startMs || input.sourceMs >= source.endMs)
-    || !source && input.sourceMs !== undefined) invalid("原片对照时刻须落在本单元采用区间内");
+  if (input.sourceMs < source.startMs || input.sourceMs >= source.endMs) invalid("原片对照时刻须落在本单元采用区间内");
   if (input.projectFrame < submitted.startFrame || input.projectFrame >= submitted.endFrame) invalid("本片核对帧位超出单元区间");
   if (input.action === "return_draft") return input;
   const comparisonPath = resolve(input.comparisonPath);
-  if (!/^\.(?:jpeg|jpg|png|webp|mp4|m4v|mov|webm|ogv)$/iu.test(extname(comparisonPath))) invalid("视觉接件需要图片或视频对照");
+  const extension = extname(comparisonPath);
+  if (!videoComparison.test(extension) && (submitted.mode === "full_reference" || !imageComparison.test(extension))) {
+    invalid(submitted.mode === "full_reference" ? "完整迁移接件须提供同状态与连续过程的视频对照" : "局部机制接件需要图片或视频对照");
+  }
   if (await hashFile(submitted.path).catch(() => "") !== submitted.sha256) invalid("固定的本片原稿不可读取或内容已变");
   const comparisonSha256 = await hashFile(comparisonPath).catch(() => invalid("无法打开视觉试摆对照"));
   return { ...input, id: `unit_receipt_${randomUUID()}`, comparisonPath, comparisonSha256 };
@@ -175,9 +192,11 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
 
 /** 同一单元正文和复摆证据随交付冻结，后续采用及启动沿同一回执检查。 */
 export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot: ProjectSnapshot,
-  manifest: ReferenceManifest, scene: Scene, delivered: ReferenceScene, designAssignmentIds?: readonly string[]): ProductionCoordinationIssue[] {
+  manifest: ReferenceManifest, scene: Scene, delivered: ReferenceScene, designAssignmentIds?: readonly string[],
+  inputDecisionIds?: readonly string[]): ProductionCoordinationIssue[] {
   const plan = delivered.visualPlan;
   const units = plan?.units ?? [];
+  const fullCreation = requiresVisualReferenceUnits(report, snapshot);
   const pending = (message: string): ProductionCoordinationIssue => ({
     code: "VISUAL_UNIT_HANDOFF_REQUIRED", scope: { kind: "objects", objectIds: [scene.id] }, state: "missing",
     assignmentId: unitHandoffOwners(report, snapshot, scene, scene, "visual_design")[0]?.assignmentId,
@@ -185,9 +204,14 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
     nextAction: "交回本场所有主要单元的当前本片正文和视觉接件"
   });
   if (!units.length || new Set(units.map(unit => unit.id)).size !== units.length
-    || units.some((unit, index) => unit.startFrame !== (units[index - 1]?.endFrame ?? scene.startFrame)
+    || units.some((unit, index) => unit.startFrame < (units[index - 1]?.endFrame ?? scene.startFrame)
       || unit.endFrame <= unit.startFrame || unit.endFrame > scene.endFrame)
-    || units.at(-1)?.endFrame !== scene.endFrame) return [pending("缺少连续覆盖本场的主要单元")];
+    || fullCreation && (units.some((unit, index) => unit.startFrame !== (units[index - 1]?.endFrame ?? scene.startFrame))
+      || units.at(-1)?.endFrame !== scene.endFrame)) return [pending(fullCreation ? "缺少连续覆盖本场的主要单元" : "缺少不重叠的有效局部单元")];
+  const referenceMappings = plan?.referenceMappings ?? [];
+  if (referenceMappings.some(mapping => !units.some(unit => unit.id === mapping.unitId))) {
+    return [pending("采用参考映射未关联本场主要单元")];
+  }
 
   return units.flatMap(unit => {
     const state = readUnitHandoff(report, snapshot, scene, unit.id);
@@ -204,32 +228,35 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
       "视觉作者尚未试摆接收本版正文", "交视觉作者按本版正文试摆并登记接件结果");
     const { draft, receipt } = state;
     if (!draft) return [pending("缺少回执对应的本片原稿")];
-    const mappings = plan?.referenceMappings?.filter(item => item.unitId === unit.id) ?? [];
+    const mappings = referenceMappings.filter(item => item.unitId === unit.id);
     const primaries = mappings.filter(item => item.use === "primary");
     const source = draft.reference;
-    const reference = source && delivered.references?.find(item => item.id === source.id && item.kind === source.kind
+    const reference = delivered.references?.find(item => item.id === source.id && item.kind === source.kind
       && item.sourceSha256 === source.sourceSha256 && item.startMs === source.startMs && item.endMs === source.endMs);
     const mapping = reference && mappings.find(item => item.referenceId === reference.id && item.referenceKind === reference.kind
       && item.startMs === reference.startMs && item.endMs === reference.endMs
-      && item.researchDecisionId === source?.researchDecisionId && item.preserveRelation?.trim() && item.treatment?.trim()
+      && item.researchDecisionId === source.researchDecisionId && item.preserveRelation?.trim() && item.treatment?.trim()
       && item.targetRange && item.targetRange.startFrame >= unit.startFrame && item.targetRange.endFrame <= unit.endFrame
       && item.targetRange.startFrame <= receipt.projectFrame && receipt.projectFrame < item.targetRange.endFrame
       && (draft.mode === "full_reference"
         ? item.use === "primary" && item.targetRange.startFrame === unit.startFrame && item.targetRange.endFrame === unit.endFrame
         : item.use === "support"));
-    const referenceMatches = draft.mode === "original" ? primaries.length === 0
-      : !!mapping && primaries.length === (draft.mode === "full_reference" ? 1 : 0);
+    const referenceMatches = !!mapping && primaries.length === (draft.mode === "full_reference" ? 1 : 0);
     const hasFile = (id: string | undefined, hash: string, comparison = false) => id && delivered.resourceIds?.includes(id)
       && manifest.files.some(file => file.uses.some(use => use.kind === "reference" && use.id === id)
         && file.localReadable && file.requiredForRun !== false && file.sha256 === hash
-        && (!comparison || file.localDecode === "verified" && /^(image|video)\//u.test(file.mimeType ?? "")));
+        && (!comparison || file.localDecode === "verified" && (draft.mode === "full_reference"
+          ? /^video\//u.test(file.mimeType ?? "") : /^(image|video)\//u.test(file.mimeType ?? ""))));
     const sequence = plan?.sequence?.filter(step => step.unitId === unit.id) ?? [];
     const roleNames = new Set(sequence.flatMap(step => step.subjects ?? []));
-    const sources = delivered.visualRoles?.filter(role => roleNames.has(role.role)).flatMap(role => role.assets) ?? [];
-    const assetsMatch = draft.assets.every(asset => sources.some(source => source.assetId === asset.assetId
-      && source.sourceHash === asset.sourceHash
-      && (!asset.sourceRange || source.sourceRanges.some(range =>
-        range.startMs <= asset.sourceRange!.startMs && range.endMs >= asset.sourceRange!.endMs))));
+    const usedRoles = delivered.visualRoles?.filter(role => roleNames.has(role.role)) ?? [];
+    const sources = usedRoles.flatMap(role => role.assets);
+    const assetsMatch = (draft.mode !== "full_reference"
+      || usedRoles.some(role => plan?.primaryRoles?.includes(role.role) && role.assets.length > 0))
+      && draft.assets.every(asset => sources.some(source => source.assetId === asset.assetId
+        && source.sourceHash === asset.sourceHash
+        && (!asset.sourceRange || source.sourceRanges.some(range =>
+          range.startMs <= asset.sourceRange!.startMs && range.endMs >= asset.sourceRange!.endMs))));
     const requiredSources = new Set(draft.assets.map(asset => asset.assetId));
     if (unit.mode !== draft.mode || unit.handoffReceiptId !== receipt.id || unit.creativeDecisionId !== draft.creativeDecisionId
       || unit.startFrame !== draft.startFrame || unit.endFrame !== draft.endFrame
@@ -241,12 +268,35 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
     }
     if (!referenceMatches) {
       return issue(draft.mode === "full_reference" ? "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING" : "VISUAL_UNIT_REFERENCE_MAPPING_MISMATCH",
-        "采用参考与本单元已接收的来源、用途或实际范围不一致", "核对接件采用方式和原片、本片区间");
+        `参考 ${source.id} 的来源、用途或本片 ${unit.startFrame}–${unit.endFrame} 帧覆盖与接件不一致`, "核对接件采用方式和原片、本片区间");
+    }
+    if (inputDecisionIds && !inputDecisionIds.includes(draft.creativeDecisionId)) {
+      return issue("REFERENCE_RESEARCH_UNLINKED", "本单元原稿的创意研究未关联到同版视觉设计", "在视觉设计中关联实际采用的研究决定");
+    }
+    for (const adopted of mappings) {
+      const range = adopted.targetRange;
+      const ref = delivered.references?.find(item => item.id === adopted.referenceId && item.kind === adopted.referenceKind
+        && item.startMs === adopted.startMs && item.endMs === adopted.endMs);
+      if (!range || range.startFrame < unit.startFrame || range.endFrame > unit.endFrame || range.startFrame >= range.endFrame
+        || !ref || !adopted.researchDecisionId || !adopted.preserveRelation?.trim() || !adopted.treatment?.trim()
+        || adopted.use !== "primary" && adopted.use !== "support"
+        || !manifest.files.some(file => file.deliveredPath === ref.video && file.localReadable && file.requiredForRun !== false
+          && file.localDecode === "verified" && file.uses.some(use => use.kind === ref.kind && use.id === ref.id
+            && use.usage === "adopted" && use.librarySourceSha256 === ref.sourceSha256))) {
+        return issue("VISUAL_UNIT_REFERENCE_MAPPING_MISMATCH", `参考 ${adopted.referenceId} 缺少本单元内的有效映射或已交付原片`,
+          "核对原片、目标帧范围和本片实现说明");
+      }
+      const gap = observedReferenceGap(report, snapshot, scene, range, { ...ref, researchDecisionId: adopted.researchDecisionId });
+      if (gap) return issue("REFERENCE_RESEARCH_UNLINKED", gap, "补看缺失原段或更正引用的研究决定");
+      if (inputDecisionIds && !inputDecisionIds.includes(adopted.researchDecisionId)) {
+        return issue("REFERENCE_RESEARCH_UNLINKED", `参考 ${ref.id} 的研究决定未关联到同版视觉设计`,
+          "在视觉设计中关联实际采用的研究决定");
+      }
     }
     if (!unit.restage || unit.restage.sourceMs !== receipt.sourceMs || unit.restage.projectFrame !== receipt.projectFrame
       || !hasFile(unit.restage.resourceId, receipt.comparisonSha256, true)) {
       return issue("VISUAL_UNIT_RESTAGE_MISSING", "缺少与接收回执一致的可解码实料试摆",
-        "交回同版图片或视频对照及试摆帧位");
+        draft.mode === "full_reference" ? "交回同版同状态及连续过程视频对照和试摆帧位" : "交回同版图片或视频对照及试摆帧位");
     }
     return [];
   });

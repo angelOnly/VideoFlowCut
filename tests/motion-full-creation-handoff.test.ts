@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
+import { runProcess } from "@videocut/speech";
 import { createApplication } from "@videocut/application";
 import { processClaimedJob } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
@@ -11,21 +12,20 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
-import { prepareReferencePackage } from "../packages/edit-application/src/opendesign-reference-package.mjs";
 import { motionBundleHash } from "../packages/edit-application/src/motion-input.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { loadCreativeIndex, readCreativeCase } from "../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../references/motion-cases/skillry/tools/library-store.mjs";
 import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
-import { completeResearchCoverage, directorBrief, visualPlan, researchPlan } from "./fixtures/visual-plan.mjs";
-import type { ProductionUnitHandoffInput } from "../packages/contracts/src/production-unit-handoff.js";
+import { completeResearchCoverage, directorBrief, researchPlan } from "./fixtures/visual-plan.mjs";
+import { productionUnitHandoffSchema, type ProductionUnitHandoffInput } from "../packages/contracts/src/production-unit-handoff.js";
 import type { ProductionUnitDraft, ProductionUnitHandoffEvent } from "@videocut/contracts";
 
 for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test({
   general: "完整新制从零作品准备参考、自动送件并接回同一冻结作品",
   whole_film: "整片首版一次送出两场并将跨场阶段回件接入同一作品",
-  zero_adoption: "全片研究完成但零采用，候选可准备且旧版采用无法新开工"
+  zero_adoption: "全片研究完成但无有效主参考映射时拒绝正式组包"
 }[scenario], { timeout: 60_000 }, async () => {
   const zeroAdoption = scenario === "zero_adoption", wholeFilm = scenario !== "general";
   const root = await mkdtemp(join(tmpdir(), "vfc-full-handoff-")), app = createApplication(root);
@@ -55,18 +55,17 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
       operationId: "full-run", loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign-authors", action: "add_assignment",
-      assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "visual_design", "motion_research",
-        ...(wholeFilm ? [] : ["creative_research" as const])],
+      assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "visual_design", "motion_research"],
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"],
         scope: { kind: "project" }, inputRevision: rev() } });
-    if (wholeFilm) await app.updateProductionRun({ projectId, runId: run.id, operationId: "assign-creative", action: "add_assignment",
+    await app.updateProductionRun({ projectId, runId: run.id, operationId: "assign-creative", action: "add_assignment",
       expectedAuditVersion: (await app.readSkillExecutionReport({ projectId, runId: run.id })).auditVersion,
       assignment: { assignmentId: "creative", agentId: "/fixture/creative", responsibilities: ["creative_research"],
         skillIds: ["creative-sequence-design", "creative-reference-to-sequence"], scope: { kind: "project" }, inputRevision: rev() } });
     const fingerprint = loadCreativeIndex(resolve("references/motion-cases/skillry")).source_sha256;
-    const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", extra: Record<string, unknown>) =>
-      (await app.recordCreativeDecision({ projectId, runId: run.id, operationId: randomUUID(), category: "visual", phase,
-        assignmentId: wholeFilm && phase === "creative_research" ? "creative" : "authors",
+    const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", extra: Record<string, unknown>, runId = run.id) =>
+      (await app.recordCreativeDecision({ projectId, runId, operationId: randomUUID(), category: "visual", phase,
+        assignmentId: phase === "creative_research" ? "creative" : "authors",
         inputRevision: rev(), objectIds: sceneIds, decision: "隔离场面", rationale: "依据测试参考和真实素材", ...extra })).creativeDecisions.at(-1)!;
     const actualVideo = (readCreativeCase(resolve("references/motion-cases/skillry"), { id: "002-c01", include_storyboard: false }).result.resources as { video: { absolute_path: string } }).video.absolute_path;
     const fileHash = createHash("sha256").update(await readFile(actualVideo)).digest("hex");
@@ -80,77 +79,45 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
       /001-m03.*source_sha256.*顶层/u);
     const firstBeat = "满幅放射底上，先让【主体】缩进右下小窗，再从左侧滑入第一行白色粗体【白字】并留在原位。";
     const secondBeat = "【主体】继续在小窗里，白字【白字】仍在原位，橙黄大粗字【主读数值】随火形从下方弹入。";
-    const research = await record("creative_research", { researchOutcome: "pending", evidence: ["其余候选仍待确认"], researchReferences: [
+    const research = await record("creative_research", { researchOutcome: "researched", researchCoverage: { ...completeResearchCoverage,
+      motionMechanisms: "not_applicable", notApplicableReasons: { motionMechanisms: "完整主参考已经给出连续运动过程" } }, researchReferences: [
       { kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 500, observedRelation: firstBeat },
       { kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 400, endMs: 900, observedRelation: secondBeat }
     ] });
     const motionSource = { kind: "motion" as const, id: "001-m03", sourceSha256: motionFingerprint, startMs: 3900, endMs: 4700 };
-    const motion = await record("motion_research", wholeFilm ? { researchOutcome: "researched",
-      researchReferences: [{ ...motionSource, observedRelation: "旁层进入时，继续保持可辨的素材主体和原布局" }] }
-      : { researchOutcome: "not_applicable", evidence: ["当前场面没有采用机制"] });
-    const brief = join(root, "brief.md"), timing = join(root, "timing.md"), snapshotPath = join(root, "snapshot.json"), output = join(root, "handoff");
-    const authorRequest = "让真实主体先占满画面，再退到小窗。\n\n保留主体与文字，接手比原片晚两拍，停稳后接续下一幅。";
-    const sceneRequest = [`### 场面 ${scene.id}\n${authorRequest}`,
-      ...(secondScene ? [`### 场面 ${secondScene.id}\n第二场沿真实素材入口接手，保持花字层次直到落点。`] : [])].join("\n\n");
-    const plan = { ...visualPlan("主体"), referenceMappings: [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
-      startMs: 100, endMs: 900, targetRole: "主体", treatment: "主体进入小窗", preserveRelation: "主体接管", targetRange: { startFrame: 100, endFrame: 125 } }] };
-    let latestBrief = `最新版导演稿：\n${directorBrief(plan)}`;
-    await writeFile(brief, latestBrief);
-    await writeFile(timing, `成片 100–${endFrame} 帧，作品 0–${workLength} 帧。`);
-    await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
-    let manifestPath: string, manifestSha256: string;
-    if (!wholeFilm) {
-    const manifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
-      deliveryPrefix: "handoffs/isolated", selectedSceneIds: [scene.id], assets: [{ id: asset.id, path: assetPath, purpose: "真实主体" }],
-      creative: [{ id: "002-c01", sourceSha256: fingerprint, usage: "adopted", purpose: "主体接管" }],
-      scenes: [{ sceneId: scene.id, status: "ready", references: [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint,
-        startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
-        visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
-        visualPlan: plan,
-        process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }] }, output);
-    assert.equal(manifest.scenes?.[0].status, "ready", JSON.stringify(manifest.scenes?.[0]));
-    manifestPath = join(output, "delivery-manifest.json");
-    manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
-    const pendingDesign = await record("visual_design", { inputDecisionIds: [research.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
-    await assert.rejects(record("adoption", { inputDecisionIds: [pendingDesign.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } }),
-      { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
-    const blockedResearch = await record("creative_research", { researchOutcome: "researched", evidence: ["整体设计仍待确定"],
-      researchCoverage: { ...completeResearchCoverage, blockingQuestions: ["主体空间关系尚未确定"] } });
-    const blockedDesign = await record("visual_design", { inputDecisionIds: [research.id, blockedResearch.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } });
-    await assert.rejects(record("adoption", { inputDecisionIds: [blockedDesign.id], deliveryRef: { manifestPath, manifestSha256, sceneIds: [scene.id] } }),
-      { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
-    await assert.rejects(record("creative_research", { researchOutcome: "researched", evidence: ["整体设计"],
-      researchCoverage: { ...completeResearchCoverage, motionMechanisms: "not_applicable" } }), { code: "PRODUCTION_RESEARCH_COVERAGE_INVALID" });
-    }
-    const complete = await record("creative_research", { researchOutcome: "researched", evidence: ["整体视觉系统由视觉作者原创，真实主体与文字共同构图，其他候选继续研究"],
-      researchCoverage: { ...completeResearchCoverage, motionMechanisms: "not_applicable", notApplicableReasons: { motionMechanisms: "当前场面无需局部机制" } } });
-    const finalPlan = { ...researchPlan("主体", complete.id, ["overallVisual", "sceneComposition"]), referenceMappings: plan.referenceMappings };
+    const motion = await record("motion_research", { researchOutcome: "researched",
+      researchReferences: [{ ...motionSource, observedRelation: "旁层进入时，继续保持可辨的素材主体和原布局" }] });
+    const brief = join(root, "brief.md"), timing = join(root, "timing.md");
+    const authorRequest = "让真实主体先占满画面，再退到小窗。\n\n保持主体与构图。保留主体与文字，接手比原片晚两拍，停稳后接续下一幅。";
+    const sceneRequest = ["### 场面 " + scene.id + "\n" + authorRequest,
+      ...(secondScene ? ["### 场面 " + secondScene.id + "\n保持主体与构图。第二场沿真实素材入口接手，保持花字层次直到落点。"] : [])].join("\n\n");
     const allScenes = [scene, ...(secondScene ? [secondScene] : [])];
-    const forgedDraftPath = join(root, "creative.md"), restagePath = join(root, "restage.png");
-    await writeFile(forgedDraftPath, `### 单元 ${scene.id}\n\n把素材和所有文字同时放上来。`);
-    await writeFile(restagePath, imageBytes);
+    const forgedDraftPath = join(root, "creative.md"), imagePath = join(root, "restage.png"), restagePath = join(root, "restage.mp4");
+    await writeFile(forgedDraftPath, "把素材和所有文字同时放上来。");
+    await writeFile(imagePath, imageBytes);
+    await runProcess("ffmpeg", ["-v", "error", "-f", "lavfi", "-i", "testsrc2=s=64x64:r=25:d=1", "-c:v", "libx264", restagePath]);
+    await writeFile(timing, "成片 100–" + endFrame + " 帧，作品 0–" + workLength + " 帧。");
+
     const mcpServer = new McpServer({ name: "range-test", version: "1.0.0" });
     registerMotionTools(mcpServer, app, () => projectId);
     mcpClient = new Client({ name: "range-test-client", version: "1.0.0" });
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     await mcpServer.connect(serverTransport); await mcpClient.connect(clientTransport);
     const drafts = new Map<string, { draft: ProductionUnitDraft; receipt: string }>();
-    const handoff = async (input: ProductionUnitHandoffInput) => {
-      const current = await app.readSkillExecutionReport({ projectId, runId: run.id });
-      const updated = await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: current.auditVersion,
+    const handoff = async (input: ProductionUnitHandoffInput, runId = run.id) => {
+      const current = await app.readSkillExecutionReport({ projectId, runId });
+      const updated = await app.updateProductionRun({ projectId, runId, expectedAuditVersion: current.auditVersion,
         operationId: randomUUID(), action: "record_unit_handoff", handoff: input });
       return updated.unitHandoffs!.at(-1)!;
     };
     type Submission = Extract<ProductionUnitHandoffInput, { action: "submit_draft" }>;
-    const modeFor = (item: typeof scene) => zeroAdoption || item.id === secondScene?.id ? "original" as const : "full_reference" as const;
     const draftSubmission = (item: typeof scene, caption = "继续运行"): Submission => ({
       action: "submit_draft", assignmentId: "creative", inputRevision: rev(),
       sceneId: item.id, unitId: item.id, startFrame: item.startFrame, endFrame: item.endFrame, creativeDecisionId: research.id,
-      mode: modeFor(item),
+      mode: "full_reference",
       body: "从本片读数出现时开始观察，再让画面中的" + caption + "接力。\n先保留整幅实拍至局部可认，接手比原片晚两拍。\n",
       assets: [{ assetId: asset.id }],
-      ...(modeFor(item) === "full_reference" ? { reference: { researchDecisionId: research.id, kind: "creative" as const,
-        id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900 } } : {})
+      reference: { researchDecisionId: research.id, kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900 }
     });
     const submit = async (item: typeof scene, caption = "继续运行") => {
       const input = draftSubmission(item, caption);
@@ -161,141 +128,124 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
       assert.deepEqual(result.draft.assets.map(binding => binding.assetId), [asset.id]);
       return result.draft;
     };
-    const accept = async (draft: ProductionUnitDraft) => {
+    const accept = async (draft: ProductionUnitDraft, comparisonPath = restagePath) => {
       const result = await handoff({ action: "accept_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(),
-        ...(draft.reference ? { sourceMs: 500 } : {}), projectFrame: draft.startFrame, comparisonPath: restagePath, observation: "同一主体留在缩入后的小窗并交给下一层" });
+        sourceMs: draft.reference.startMs, projectFrame: draft.startFrame, comparisonPath, observation: "00:00–00:00.4 同状态，00:00.4–00:01 连续过程" });
       assert.equal(result.action, "accept_draft");
       drafts.set(draft.unitId, { draft, receipt: result.id });
     };
     const returnDraft = (draft: ProductionUnitDraft): Promise<ProductionUnitHandoffEvent> =>
-      handoff({ action: "return_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(), ...(draft.reference ? { sourceMs: 500 } : {}),
+      handoff({ action: "return_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(), sourceMs: draft.reference.startMs,
         projectFrame: draft.startFrame, gap: "小窗缺少持续主体", impact: "后续文字接手时无法回认" });
-    if (wholeFilm && !zeroAdoption) {
-      const input = draftSubmission(scene);
-      await assert.rejects(handoff({ ...input, body: "  " }), /实际写出的本片正文/u);
-      await assert.rejects(handoff({ ...input, reference: undefined }), /有效原片区间/u);
-      await assert.rejects(handoff({ ...input, reference: { ...input.reference!, startMs: 50 } }), /50–100 ms/u);
-      await assert.rejects(handoff({ ...input, assets: [{ assetId: "missing-asset" }] }), /素材 missing-asset 未取得/u);
-      await assert.rejects(handoff({ ...input, draftPath: forgedDraftPath } as Submission), /draftPath/u);
-      assert.deepEqual((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.map(item => item.status),
-        ["waiting_for_draft", "waiting_for_draft"]);
-      const motionSource = { kind: "motion" as const, id: "001-m03", sourceSha256: motionFingerprint, startMs: 3850, endMs: 4050 };
-      const motionResearch = await record("motion_research", { researchOutcome: "researched",
-        researchReferences: [{ ...motionSource, observedRelation: "同一实拍保持，旁层在交接之前进入" }] });
-      const localBody = "沿已定构图，保持实拍，本片旁层进入后接回原布局。";
-      const local = await handoff({ ...input, mode: "local_mechanism", body: localBody,
-        reference: { ...motionSource, researchDecisionId: motionResearch.id } });
-      assert.equal(local.action, "submit_draft");
-      assert.equal(await readFile(local.draft.path, "utf8"), localBody);
-      await handoff({ action: "accept_draft", draftId: local.draft.id, assignmentId: "authors", inputRevision: rev(),
-        projectFrame: input.startFrame, sourceMs: 3900, comparisonPath: restagePath, observation: "旁层实际进入，原布局能接回" });
-      await accept(await submit(scene));
-      assert.deepEqual((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.map(item => item.status),
-        ["accepted", "waiting_for_draft"]);
-    }
-    if (zeroAdoption) for (const item of allScenes) await accept(await submit(item));
-    const scenePlans = allScenes.map(item => wholeFilm ? { ...finalPlan,
-      units: [{ id: item.id, title: item.title, startFrame: item.startFrame, endFrame: item.endFrame,
-        mode: modeFor(item), creativeDecisionId: research.id, creativeDraftId: `draft-${item.id}`, handoffReceiptId: drafts.get(item.id)?.receipt,
-        restage: { resourceId: "restage", ...(modeFor(item) === "full_reference" ? { sourceMs: 500 } : {}), projectFrame: item.startFrame } }],
-      referenceMappings: modeFor(item) === "original" ? [{ referenceId: motionSource.id, referenceKind: "motion",
-        researchDecisionId: motion.id, unitId: item.id, use: "support", startMs: motionSource.startMs, endMs: motionSource.endMs,
-        targetRole: "主体", treatment: "花字从素材旁进入", preserveRelation: "持续保留实料主体",
-        targetRange: { startFrame: item.startFrame, endFrame: item.endFrame } }]
-        : finalPlan.referenceMappings.map(mapping => ({
-        ...mapping, unitId: item.id, use: "primary" as const, targetRange: { startFrame: item.startFrame, endFrame: item.endFrame } })),
-      sequence: finalPlan.sequence.map(step => ({ ...step, unitId: item.id }))
-    } : finalPlan);
-    latestBrief = `最新版导演稿：\n${directorBrief(...scenePlans)}\n\n## 发给 OD 的完整请求\n\n${sceneRequest}\n\n## 交接附注\n这段附注不发送为请求正文。`;
-    await writeFile(brief, latestBrief);
-    const finalOutput = join(root, "final-handoff");
-    const payload = (adoptMotion = wholeFilm) => ({
-      assets: [{ id: asset.id, path: assetPath, purpose: "真实主体" }],
-      creative: [{ id: "002-c01", sourceSha256: fingerprint, usage: zeroAdoption ? "study" : "adopted", purpose: "主体接管" }],
-      ...(adoptMotion ? { motion: [{ id: motionSource.id, sourceSha256: motionFingerprint, usage: "adopted", purpose: "保留素材主体" }] } : {}),
-      ...(wholeFilm ? { references: [...allScenes.map(item => ({ id: `draft-${item.id}`, usage: "adopted", purpose: "创意原稿",
-        files: [{ path: drafts.get(item.id)?.draft.path ?? forgedDraftPath, deliveredPath: `references/${item.id}.md` }] })),
-        { id: "restage", usage: "adopted", purpose: "视觉复摆", files: [{ path: restagePath, deliveredPath: "references/restage.png" }] }] } : {}),
-      scenes: allScenes.map((item, index) => ({ sceneId: item.id, status: "ready",
-        references: modeFor(item) === "original" ? adoptMotion ? [{ ...motionSource, purpose: "花字进入时保持素材主体" }] : [] : [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint,
-          startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
-        ...(wholeFilm ? { resourceIds: [`draft-${item.id}`, "restage"] } : {}),
-        visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
-        visualPlan: modeFor(item) === "original" && !adoptMotion ? { ...scenePlans[index], referenceMappings: [] } : scenePlans[index],
-        process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }))
-    });
-    if (wholeFilm) {
-      const prepare = async (selected = sceneIds, body = payload()) => {
-        const response = await mcpClient!.callTool({ name: "prepare_motion_handoff",
-          arguments: { project_id: projectId, production_run_id: run.id, base_revision_id: rev(), brief_path: brief,
-            timing_plan_path: timing, selected_scene_ids: selected, ...body } });
-        return JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
-      };
-      if (zeroAdoption) {
-        const prepared = await prepare(sceneIds, payload(false));
-        assert.deepEqual(prepared.authorRequest?.sceneIds, sceneIds, JSON.stringify(prepared));
-        const deliveryRef = { manifestPath: prepared.manifestPath, manifestSha256: prepared.manifestSha256, sceneIds };
-        const design = await record("visual_design", { inputDecisionIds: [research.id, complete.id, motion.id], deliveryRef });
-        const isZeroAdoption = (error: unknown) => {
-          const codes = (error as { issues?: Array<{ code: string }> }).issues?.map(issue => issue.code);
-          return codes?.join() === "WHOLE_FILM_CREATIVE_ADOPTION_MISSING,WHOLE_FILM_MOTION_ADOPTION_MISSING";
-        };
-        await assert.rejects(record("adoption", { inputDecisionIds: [design.id], deliveryRef }), isZeroAdoption);
-
-        // 模拟旧版已正式采用的全自主稿，验证新版开工仍会再次核对。
-        const report = await app.readSkillExecutionReport({ projectId, runId: run.id });
-        const legacyAdoption = { ...design, id: "legacy-adoption", phase: "adoption" as const, inputDecisionIds: [design.id] };
-        report.creativeDecisions.push(legacyAdoption);
-        await writeFile(join(projectRoot, "reports", `production-run-${run.id}.json`), JSON.stringify(report));
-        const treatments = allScenes.map(item => app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert",
-          sceneId: item.id, mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明",
-          adoptedMaterialAssetIds: [asset.id], adoptedDecisionRef: { productionRunId: run.id, decisionId: legacyAdoption.id }
-        }).snapshot.visualTreatments.at(-1)!.id);
-        await assert.rejects(app.startMotionAuthoring({ projectId, baseRevision: rev(), productionRunId: run.id, visualTreatmentIds: treatments,
-          idempotencyKey: "legacy-zero-adoption", target: { action: "whole_film" }, openDesignRequest: { project: "isolated-od" } }), isZeroAdoption);
-        assert.equal(app.repository.listJobs(projectId).filter(item => item.kind === "motion_authoring").length, 0);
-        return;
+    const input = draftSubmission(scene);
+    assert.deepEqual(productionUnitHandoffSchema.parse(input), input);
+    assert.equal(productionUnitHandoffSchema.safeParse({ ...input, reference: undefined }).success, false);
+    assert.equal(productionUnitHandoffSchema.safeParse({ ...input, mode: "original" }).success, false);
+    await assert.rejects(handoff({ ...input, reference: { ...input.reference, startMs: 50 } }), /50–100 ms/u);
+    await assert.rejects(handoff({ ...input, assets: [] }), /真实素材/u);
+    await assert.rejects(handoff({ ...input, mode: "local_mechanism", reference: { ...motionSource, researchDecisionId: motion.id } }),
+      /主要单元须使用完整参考/u);
+    const statusOnly = await record("creative_research", { researchOutcome: "researched", researchCoverage: completeResearchCoverage, evidence: ["写了研究正文"] });
+    await assert.rejects(handoff({ ...input, creativeDecisionId: statusOnly.id, reference: { ...input.reference, researchDecisionId: statusOnly.id } }),
+      /缺少实际原片观察/u);
+    const sceneDraft = await submit(scene);
+    await assert.rejects(accept(sceneDraft, imagePath), /连续过程的视频对照/u);
+    await accept(sceneDraft);
+    if (scenario === "general") {
+      const scope = { kind: "objects" as const, objectIds: [scene.id] };
+      const local = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "local_edit", completionScope: scope,
+        operationId: "local-run", loadedSkills: ["production-coordinator"] });
+      let current = local;
+      for (const assignment of ["creative", "authors"]) {
+        const owner = (await app.readSkillExecutionReport({ projectId, runId: run.id })).assignments.find(item => item.assignmentId === assignment)!;
+        current = await app.updateProductionRun({ projectId, runId: local.id, expectedAuditVersion: current.auditVersion,
+          operationId: randomUUID(), action: "add_assignment", assignment: { ...owner, scope } });
       }
+      const localCreative = await record("creative_research", { researchOutcome: "not_applicable", evidence: ["沿用当前构图"] }, local.id);
+      const localMotion = await record("motion_research", { researchOutcome: "researched",
+        researchReferences: [{ ...motionSource, observedRelation: "辅层进入后保持主体" }] }, local.id);
+      const submitted = await handoff({ ...input, startFrame: 102, endFrame: 112,
+        mode: "local_mechanism", creativeDecisionId: localCreative.id, reference: { ...motionSource, researchDecisionId: localMotion.id } }, local.id);
+      assert.equal(submitted.action, "submit_draft");
+      await handoff({ action: "accept_draft", draftId: submitted.draft.id, assignmentId: "authors", inputRevision: rev(),
+        sourceMs: 4000, projectFrame: 105, comparisonPath: imagePath, observation: "主体仍留在原布局" }, local.id);
+      assert.equal((await app.readProductionStatus(projectId, { runId: local.id })).unitHandoffs?.[0]?.status, "accepted");
+    }
+    const plan = researchPlan("主体", research.id, ["overallVisual", "sceneComposition"]);
+    const scenePlans = allScenes.map(item => ({ ...plan,
+      units: [{ id: item.id, title: item.title, startFrame: item.startFrame, endFrame: item.endFrame,
+        mode: "full_reference", creativeDecisionId: research.id, creativeDraftId: "draft-" + item.id, handoffReceiptId: drafts.get(item.id)?.receipt,
+        restage: { resourceId: "restage", sourceMs: 100, projectFrame: item.startFrame } }],
+      referenceMappings: zeroAdoption ? [] : [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
+        startMs: 100, endMs: 900, unitId: item.id, use: "primary", targetRole: "主体", treatment: "主体进入小窗",
+        preserveRelation: "主体接管", targetRange: { startFrame: item.startFrame, endFrame: item.endFrame } }],
+      sequence: plan.sequence.map((step: { purpose: string }) => ({ ...step, unitId: item.id }))
+    }));
+    const latestBrief = "最新版导演稿：\n" + directorBrief(...scenePlans) + "\n\n## 发给 OD 的完整请求\n\n"
+      + sceneRequest + "\n\n## 交接附注\n这段附注不发送为请求正文。";
+    await writeFile(brief, latestBrief);
+    const payload = () => ({
+      assets: [{ id: asset.id, path: assetPath, purpose: "真实主体" }],
+      creative: zeroAdoption ? [] : [{ id: "002-c01", sourceSha256: fingerprint, usage: "adopted", purpose: "主体接管" }],
+      references: [...allScenes.map(item => ({ id: "draft-" + item.id, usage: "adopted", purpose: "创意原稿",
+        files: [{ path: drafts.get(item.id)?.draft.path ?? forgedDraftPath, deliveredPath: "references/" + item.id + ".md" }] })),
+        { id: "restage", usage: "adopted", purpose: "视觉复摆", files: [{ path: restagePath, deliveredPath: "references/restage.mp4" }] }],
+      scenes: allScenes.map((item, index) => ({ sceneId: item.id, status: "ready",
+        references: zeroAdoption ? [] : [{ kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900, purpose: "主体进入小窗" }],
+        resourceIds: ["draft-" + item.id, "restage"],
+        visualRoles: [{ role: "主体", referenceFunction: "进入并接管", assetIds: [asset.id], usage: "真实主体" }],
+        visualPlan: scenePlans[index], process: "主体建立、进入小窗并接续", preserve: ["主体接管"], adapt: ["文字排版"] }))
+    });
+    const prepare = async (selected = sceneIds, body = payload()) => {
+      const response = await mcpClient!.callTool({ name: "prepare_motion_handoff",
+        arguments: { project_id: projectId, production_run_id: run.id, base_revision_id: rev(), brief_path: brief,
+          timing_plan_path: timing, selected_scene_ids: selected, ...body } });
+      return JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
+    };
+    if (zeroAdoption) {
+      const prepared = await prepare([scene.id]);
+      assert.equal(prepared.issues[0].code, "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING");
+      assert.equal(prepared.authorRequest, undefined);
+      return;
+    }
+    if (secondScene) {
       assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_DRAFT_REQUIRED");
-      assert.deepEqual((await prepare([scene.id])).authorRequest.sceneIds, [scene.id]);
-      const firstDraft = await submit(secondScene!);
+      assert.deepEqual((await prepare([scene.id])).authorRequest?.sceneIds, [scene.id]);
+      const firstDraft = await submit(secondScene);
       assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_REVIEW_REQUIRED");
       await returnDraft(firstDraft);
       assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_RETURNED");
       await assert.rejects(accept(firstDraft), { code: "PRODUCTION_UNIT_HANDOFF_INVALID" });
-      await accept(await submit(secondScene!, "第二场继续运行"));
-      assert.equal((await app.readProductionStatus(projectId, { runId: run.id })).unitHandoffs?.[0]?.status, "accepted");
-      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_HANDOFF_MISMATCH");
-      const secondPlan = scenePlans[1]!;
-      assert.ok("units" in secondPlan && secondPlan.units?.length);
-      secondPlan.units[0]!.handoffReceiptId = drafts.get(secondScene!.id)!.receipt;
+      await accept(await submit(secondScene, "第二场继续运行"));
+      scenePlans[1]!.units[0]!.handoffReceiptId = drafts.get(secondScene.id)!.receipt;
       const forged = payload();
-      forged.references![0]!.files[0]!.path = forgedDraftPath;
+      forged.references[0]!.files[0]!.path = forgedDraftPath;
       assert.equal((await prepare(sceneIds, forged)).issues[0].code, "VISUAL_UNIT_HANDOFF_MISMATCH");
-      latestBrief = `最新版导演稿：\n${directorBrief(...scenePlans)}\n\n## 发给 OD 的完整请求\n\n${sceneRequest}\n\n## 交接附注\n这段附注不发送为请求正文。`;
-      await writeFile(brief, latestBrief);
-      const singleKind = await prepare(sceneIds, payload(false));
-      assert.deepEqual(singleKind.authorRequest?.sceneIds, sceneIds, JSON.stringify(singleKind));
-      const singleDelivery = { manifestPath: singleKind.manifestPath, manifestSha256: singleKind.manifestSha256, sceneIds };
-      const incomplete = await record("visual_design", { inputDecisionIds: [research.id, complete.id, motion.id], deliveryRef: singleDelivery });
-      await assert.rejects(record("adoption", { inputDecisionIds: [incomplete.id], deliveryRef: singleDelivery }),
-        (error: unknown) => (error as { issues?: Array<{ code: string }> }).issues?.map(issue => issue.code).join() === "WHOLE_FILM_MOTION_ADOPTION_MISSING");
-      const prepared = await prepare();
-      assert.deepEqual(prepared.authorRequest?.sceneIds, sceneIds, JSON.stringify(prepared));
-      ({ manifestPath, manifestSha256 } = prepared);
     } else {
-      const finalManifest = await prepareReferencePackage({ projectId, revision: rev(), projectSnapshot: snapshotPath, brief, timingPlan: timing, freezeInputs: true,
-        deliveryPrefix: "handoffs/isolated-final", selectedSceneIds: sceneIds, ...payload() }, finalOutput);
-      assert.equal(finalManifest.scenes?.[0].status, "ready", JSON.stringify(finalManifest.scenes?.[0]));
-      manifestPath = join(finalOutput, "delivery-manifest.json");
-      manifestSha256 = createHash("sha256").update(await readFile(manifestPath)).digest("hex");
+      const mapping = scenePlans[0]!.referenceMappings[0]!;
+      mapping.targetRange.endFrame--;
+      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING");
+      mapping.targetRange.endFrame++;
+      const researchDecisionId = mapping.researchDecisionId;
+      mapping.researchDecisionId = "missing-research";
+      assert.equal((await prepare()).issues[0].code, "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING");
+      mapping.researchDecisionId = researchDecisionId;
+      await writeFile(brief, latestBrief.replace(sceneRequest, sceneRequest.replace("保持主体与构图。", "")));
+      assert.match((await prepare()).issues[0].message, /缺少锁定视觉关系/u);
+      await writeFile(brief, latestBrief);
     }
-    const design = await record("visual_design", { inputDecisionIds: [research.id, complete.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } });
+    const prepared = await prepare();
+    assert.deepEqual(prepared.authorRequest?.sceneIds, sceneIds, JSON.stringify(prepared));
+    const { manifestPath, manifestSha256 } = prepared;
+    await assert.rejects(record("visual_design", { inputDecisionIds: [motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } }),
+      (error: unknown) => (error as { issues?: Array<{ code: string }> }).issues?.[0]?.code === "REFERENCE_RESEARCH_UNLINKED");
+
+    const design = await record("visual_design", { inputDecisionIds: [research.id, motion.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } });
     const candidate = await app.readProductionStatus(projectId, { runId: run.id, referenceDecisionId: design.id });
     assert.ok("authorRequest" in candidate && candidate.authorRequest?.text === sceneRequest);
     if (wholeFilm) {
       assert.ok("referenceUnitCoverage" in candidate);
-      assert.deepEqual(candidate.referenceUnitCoverage?.map(unit => [unit.mode, unit.ready]), [["full_reference", true], ["original", true]]);
+      assert.deepEqual(candidate.referenceUnitCoverage?.map(unit => [unit.mode, unit.ready]), [["full_reference", true], ["full_reference", true]]);
       const deliveredDraft = candidate.referenceUnitCoverage?.[0]?.creativeDraftPath;
       assert.ok(deliveredDraft);
       assert.equal(await readFile(deliveredDraft, "utf8"), draftSubmission(scene).body);
@@ -467,6 +417,7 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     const uploadedScene = [...files].find(([path]) => path.endsWith("brief/scenes.json"))!;
     assert.equal(await readFile(uploadedBrief[1], "utf8"), latestBrief);
     const deliveredScene = JSON.parse(await readFile(uploadedScene[1], "utf8")).scenes[0];
+    assert.equal(deliveredScene.references[0].timeCoordinates, "original");
     assert.equal("kind" in deliveredScene.visualRoles[0], false);
     assert.equal(deliveredScene.visualRoles[0].assets[0].assetId, asset.id);
     assert.equal(deliveredScene.visualPlan.referenceMappings[0].researchDecisionId, research.id);

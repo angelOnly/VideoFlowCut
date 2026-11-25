@@ -9,7 +9,7 @@ import { productionObservationRanges } from "./editorial-evidence.js";
 import type { ReferenceManifest, ReferenceScene } from "./opendesign-reference-package.mjs";
 import { sameReferenceReview } from "./reference-review.js";
 import { editorialResolutionRange } from "./editorial-range.js";
-import { unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
+import { requiresVisualReferenceUnits, unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
 
@@ -295,60 +295,9 @@ function usableReference(reference: NonNullable<CreativeDecision["researchRefere
     && reference.startMs! >= 0 && reference.endMs! > reference.startMs! && !!reference.observedRelation?.trim();
 }
 
-export function requiresVisualReferenceUnits(report: SkillExecutionReport, snapshot: ProjectSnapshot): boolean {
-  return report.intent === "full_creation" && snapshot.project.profile === "visual_explainer";
-}
-
 export function requiresWholeFilmReferenceAdoption(report: SkillExecutionReport, snapshot: ProjectSnapshot): boolean {
-  return report.completionScope.kind === "project" && requiresVisualReferenceUnits(report, snapshot);
-}
-
-type AdoptedReference = NonNullable<ReferenceScene["references"]>[number];
-type AdoptedReferenceMapping = NonNullable<NonNullable<ReferenceScene["visualPlan"]>["referenceMappings"]>[number];
-
-/** 只汇总经原段、研究决定及本片素材验证的采用，两类可以分属不同场面。 */
-export function wholeFilmReferenceAdoptionIssues(
-  report: SkillExecutionReport, sceneIds: string[], adoptedKinds: ReadonlySet<AdoptedReference["kind"]>
-): ProductionCoordinationIssue[] {
-  return (["creative", "motion"] as const).filter(kind => !adoptedKinds.has(kind)).map(kind => {
-    const phase = kind === "creative" ? "creative_research" : "motion_research";
-    const owners = report.assignments.filter(assignment => assignment.responsibilities.includes(phase)
-      && !report.assignments.some(other => other.supersedesAssignmentId === assignment.assignmentId
-        && other.responsibilities.includes(phase)));
-    return {
-      code: kind === "creative" ? "WHOLE_FILM_CREATIVE_ADOPTION_MISSING" : "WHOLE_FILM_MOTION_ADOPTION_MISSING",
-      scope: { kind: "project" },
-      state: "missing",
-      assignmentId: owners.length === 1 ? owners[0]!.assignmentId : undefined,
-      relatedDecisionIds: [],
-      relatedObjectIds: sceneIds,
-      message: kind === "creative" ? "同一份整片冻结稿缺少实际采用的创意参考" : "同一份整片冻结稿缺少实际采用的动效机制",
-      nextAction: kind === "creative"
-        ? "续接原创意作者确认实际借入的原段及素材排法，由视觉作者补入同版导演稿"
-        : "续接原视觉作者，将实看的机制落实到本片素材、花字或镜头动作并写入同版导演稿"
-    };
-  });
-}
-
-export function referenceUsesFrozenMaterials(
-  manifest: ReferenceManifest, scene: Scene, delivered: ReferenceScene, reference: AdoptedReference, mapping: AdoptedReferenceMapping
-): boolean {
-  const unit = delivered.visualPlan?.units?.find(item => item.id === mapping.unitId);
-  const range = mapping.targetRange;
-  if (!unit || !range || mapping.referenceKind !== reference.kind || range.startFrame >= range.endFrame
-    || range.startFrame < Math.max(scene.startFrame, unit.startFrame)
-    || range.endFrame > Math.min(scene.endFrame, unit.endFrame)) return false;
-  const video = manifest.files.find(file => file.deliveredPath === reference.video
-    && file.localReadable && file.requiredForRun !== false && file.sha256
-    && file.uses.some(use => use.kind === reference.kind && use.id === reference.id
-      && use.usage === "adopted" && use.librarySourceSha256 === reference.sourceSha256));
-  if (!video) return false;
-  const roles = new Set([mapping.targetRole]);
-  for (const step of delivered.visualPlan?.sequence ?? []) {
-    if (step.unitId !== unit.id) continue;
-    for (const subject of step.subjects ?? []) roles.add(subject);
-  }
-  return delivered.visualRoles?.some(role => roles.has(role.role) && role.assets.length > 0) ?? false;
+  return report.completionScope.kind === "project" && snapshot.project.profile === "visual_explainer"
+    && requiresVisualReferenceUnits(report, snapshot);
 }
 
 /** 一个 Scene 可以承载多个单元；缺口按真正的本片帧段交回。 */
@@ -441,7 +390,6 @@ export function referenceResearchIssues(input: {
   treatment?: VisualTreatment;
   targetRange?: { startFrame: number; endFrame: number };
   accepted: (research: CreativeDecision, phase: "creative_research" | "motion_research") => boolean;
-  onVerifiedMapping?: (reference: AdoptedReference, mapping: AdoptedReferenceMapping) => void;
 }) {
   const { report, snapshot, scene, delivered, designs, treatment } = input;
   const issues: Array<{ code: "REFERENCE_MAPPING_MISSING" | "REFERENCE_RESEARCH_UNLINKED"; referenceId: string;
@@ -480,8 +428,6 @@ export function referenceResearchIssues(input: {
         issues.push({ code: "REFERENCE_RESEARCH_UNLINKED", referenceId: reference.id, researchDecisionId: mapping.researchDecisionId, phase,
           message: `采用参考 ${reference.id} 的 ${reference.startMs}–${reference.endMs} 毫秒未关联对应研究结果：${reason}；未覆盖 ${gap} 毫秒`,
           nextAction: "续接原研究负责人核对或补看缺失范围，并由视觉作者关联实际研究决定" });
-      } else if (linked && ranges.length > 0) {
-        input.onVerifiedMapping?.(reference, mapping);
       }
     }
   }

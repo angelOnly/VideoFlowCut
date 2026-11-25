@@ -11,7 +11,7 @@ import { motionHtml } from "./fixtures/hyperframes.js";
 import { localProductionRun } from "./fixtures/production-run.js";
 import { completeResearchCoverage, directorBrief, visualPlan, researchPlan } from "./fixtures/visual-plan.mjs";
 
-test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
+test("主要视觉重做跨场面沿用首个冻结作品", async () => {
   const root = await mkdtemp(join(tmpdir(), "vfc-continuous-scenes-")), app = createApplication(root);
   try {
     const projectId = app.createProject({ name: "跨场面连续作品隔离验证" }).snapshot.project.id;
@@ -27,7 +27,7 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     await writeFile(snapshotPath, JSON.stringify(app.readProject(projectId)));
     const manifestPath = join(output, "delivery-manifest.json");
     let manifestSha256 = "";
-    const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
+    const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "visual_rework", completionScope: { kind: "project" },
       operationId: "start", loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign", action: "add_assignment",
       assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research"],
@@ -35,7 +35,7 @@ test("无预排的完整新制跨场面沿用首个冻结作品", async () => {
     const record = async (phase: "creative_research" | "motion_research" | "visual_design" | "adoption", inputDecisionIds: string[] = []) =>
       (await app.recordCreativeDecision({ projectId, runId: run.id, operationId: randomUUID(), category: "visual", phase, assignmentId: "authors", inputRevision: rev(),
         objectIds: [first.id, second.id], decision: phase, rationale: "按两个场面的真实范围判断", inputDecisionIds,
-        ...(phase === "creative_research" ? { researchOutcome: "researched" as const, researchCoverage: completeResearchCoverage, evidence: ["已研究候选并原创整体视觉系统"] } : {}),
+        ...(phase === "creative_research" ? { researchOutcome: "researched" as const, researchCoverage: completeResearchCoverage, evidence: ["已研究候选并确认沿用当前整体视觉"] } : {}),
         ...(phase === "motion_research" ? { researchOutcome: "not_applicable" as const, evidence: ["已研究候选，当前画面无需采用机制"] } : {}),
         ...(["visual_design", "adoption"].includes(phase) ? { deliveryRef: { manifestPath, manifestSha256, sceneIds: [first.id, second.id] } } : {}) })).creativeDecisions.at(-1)!;
     const creative = await record("creative_research"), motion = await record("motion_research");

@@ -91,7 +91,7 @@ process.stdin.on('end',()=>process.exit(0));
     const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "连续场面", purpose: "验证", startFrame: 0, endFrame: 18 }).snapshot.scenes[0];
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
     const sourceSha256 = loadLibraryIndex(resolve("references/motion-cases/skillry")).source_sha256;
-    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
+    const run = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), baseRevision: rev(), intent: "visual_rework", completionScope: { kind: "project" }, projectId, loadedSkills: ["production-coordinator"] });
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "director-assignment", action: "add_assignment",
       assignment: { agentId: "/fixture/director", assignmentId: "director", responsibilities: ["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research"],
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"], inputRevision: rev(), scope: { kind: "project" } } });

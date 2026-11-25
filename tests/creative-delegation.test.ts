@@ -22,7 +22,7 @@ const libraryRoot = resolve("references/motion-cases/skillry");
 const creativeFingerprint = loadCreativeIndex(libraryRoot).source_sha256;
 const motionFingerprint = loadLibraryIndex(libraryRoot).source_sha256;
 
-async function fixture() {
+async function fixture(intent: "full_creation" | "visual_rework" = "full_creation") {
   const root = await mkdtemp(join(tmpdir(), "videocut-coordination-"));
   const app = createApplication(root);
   const projectId = app.createProject({ name: "协作链隔离测试" }).snapshot.project.id;
@@ -39,7 +39,7 @@ async function fixture() {
       assetId: imported.asset.id, startFrame: 0, endFrame: 24, sourceStartFrame: 0, sourceEndFrame: 24, disabled: false });
   });
   const revision = () => app.readProject(projectId).revision.number;
-  const start = { projectId, baseRevision: revision(), intent: "full_creation" as const, completionScope: { kind: "project" as const }, operationId: "start", loadedSkills: ["production-coordinator"] };
+  const start = { projectId, baseRevision: revision(), intent, completionScope: { kind: "project" as const }, operationId: "start", loadedSkills: ["production-coordinator"] };
   const run = await app.startProductionRun(start);
   return { root, app, projectId, scene, assetId: imported.asset.id, revision, run, start, close: async () => { app.close(); await rm(root, { recursive: true, force: true }); } };
 }
@@ -251,7 +251,8 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
       adoptedDecisionRef: { productionRunId: report.id, decisionId: adoption.id }
     } as typeof snapshot.visualTreatments[number]);
 
-    const references = [creative.researchReferences[0]!, motion.researchReferences[0]!];
+    const references = [creative.researchReferences[0]!, motion.researchReferences[0]!].map(ref => ({ ...ref, video: ref.id }));
+    const material = snapshot.assets.find(asset => asset.id === f.assetId)!;
     const units = ["开场", "承接", "比较", "结尾"].map((title, i) => ({
       id: `unit-${i}`, title, startFrame: i * 6, endFrame: (i + 1) * 6,
       mode: "full_reference" as const, creativeDecisionId: creative.id, creativeDraftId: "draft", handoffReceiptId: "receipt-" + i,
@@ -266,19 +267,22 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     });
     const ids = ["draft", ...units.map(unit => unit.restage.resourceId)];
     const delivered: ReferenceScene = { sceneId: scene.id, status: "ready", resourceIds: ids, references,
-      visualRoles: [{ role: "主体", referenceFunction: "持续活动", usage: "承担主画面", assets: [] }],
-      visualPlan: { units, referenceMappings: mappings, sequence: units.map(unit =>
-        ({ unitId: unit.id, action: "主体沿原路径进入并持续", transition: "保留主体直到下一幅接手" })) } };
+      visualRoles: [{ role: "主体", referenceFunction: "持续活动", usage: "承担主画面",
+        assets: [{ assetId: material.id, deliveredPath: material.managedPath, sourceHash: material.sourceHash!, sourceRanges: [] }] }],
+      visualPlan: { primaryRoles: ["主体"], units, referenceMappings: mappings, sequence: units.map(unit =>
+        ({ unitId: unit.id, subjects: ["主体"], action: "主体沿原路径进入并持续", transition: "保留主体直到下一幅接手" })) } };
     const manifest: ReferenceManifest = { projectId: f.projectId, revision: f.revision(), selectedSceneIds: [scene.id], scenes: [delivered], diagnostics: [],
-      files: ids.map(id => ({ sourcePath: id, deliveredPath: id, sha256: "a".repeat(64), localReadable: true,
-        ...(id === "draft" ? { mimeType: "text/markdown" } : { mimeType: "image/png", localDecode: "verified" as const }), uses: [{ kind: "reference", id }] })) };
+      files: [...ids.map(id => ({ sourcePath: id, deliveredPath: id, sha256: "a".repeat(64), localReadable: true,
+        ...(id === "draft" ? { mimeType: "text/markdown" } : { mimeType: "video/mp4", localDecode: "verified" as const }), uses: [{ kind: "reference" as const, id }] })),
+      ...references.map(ref => ({ sourcePath: ref.video, deliveredPath: ref.video, sha256: "a".repeat(64), localReadable: true, localDecode: "verified" as const,
+        uses: [{ kind: ref.kind, id: ref.id, usage: "adopted" as const, librarySourceSha256: ref.sourceSha256 }] }))] };
     report.unitHandoffs = units.flatMap((unit, i) => {
       const { researchDecisionId, referenceId, referenceKind, startMs, endMs } = mappings[i]!;
       const draft = { id: unit.id, sceneId: scene.id, unitId: unit.id, startFrame: unit.startFrame, endFrame: unit.endFrame,
         mode: unit.mode, assignmentId: "creative", inputRevision: f.revision(), creativeDecisionId: creative.id,
         reference: { researchDecisionId, kind: referenceKind, id: referenceId, startMs, endMs,
           sourceSha256: references[i === 3 ? 1 : 0]!.sourceSha256 },
-        assets: [], path: "draft", sha256: "a".repeat(64) };
+        assets: [{ assetId: material.id, sourceHash: material.sourceHash! }], path: "draft", sha256: "a".repeat(64) };
       return [
         { action: "submit_draft" as const, draft },
         { action: "accept_draft" as const, id: unit.handoffReceiptId, draftId: unit.id, assignmentId: "visual",
@@ -291,7 +295,7 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     const restageImage = manifest.files[1]!;
     restageImage.mimeType = "text/markdown";
     assert.ok(inspect()[0]?.issues.some(issue => issue.code === "VISUAL_UNIT_RESTAGE_MISSING"));
-    restageImage.mimeType = "image/png";
+    restageImage.mimeType = "video/mp4";
     assert.equal(inspect().at(-1)?.primary?.kind, "motion", "完整机制可承担主参考");
     report.assignments[0]!.agentId = report.assignments[1]!.agentId;
     assert.ok(inspect().every(unit => unit.issues.some(issue => issue.code === "VISUAL_UNIT_CREATIVE_DRAFT_MISSING")));
@@ -319,6 +323,8 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     }
     delivered.visualPlan!.referenceMappings = mappings.map(mapping => mapping.unitId === local.id
       ? { ...mapping, use: "support", targetRange: { startFrame: 19, endFrame: 22 } } : mapping);
+    assert.equal(inspect().at(-1)?.issues[0]?.code, "VISUAL_UNIT_HANDOFF_DRAFT_REQUIRED", "局部机制不能成为完整新片的主模式");
+    report.intent = "local_edit";
     assert.deepEqual(inspect().at(-1)?.issues, [], "独立局部机制在实际范围使用辅助映射");
     delivered.visualPlan!.referenceMappings.at(-1)!.targetRange = { startFrame: 21, endFrame: 22 };
     assert.equal(inspect().at(-1)?.issues[0]?.code, "VISUAL_UNIT_REFERENCE_MAPPING_MISMATCH", "对照帧须落在机制动作的范围内");
@@ -346,8 +352,8 @@ test("完整 Vlog 可按三职责判断启动所需的局部画面制作", async
   } finally { await f.close(); }
 });
 
-test("完整新制无需预排即可通过真实 MCP 提交导演采用", { timeout: 60_000 }, async () => {
-  const f = await fixture();
+test("主要视觉重做通过真实 MCP 提交导演采用", { timeout: 60_000 }, async () => {
+  const f = await fixture("visual_rework");
   const transport = new StdioClientTransport({ command: process.execPath, args: ["--import", "tsx", "apps/server/src/mcp.ts"],
     cwd: process.cwd(), env: { ...getDefaultEnvironment(), VIDEOCUT_WORKSPACE: f.root }, stderr: "pipe" });
   const client = new Client({ name: "authoring-admission-test", version: "1.0.0" });
@@ -380,8 +386,7 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
     const basePlan = visualPlan("主体");
     const layerPlan = { ...basePlan, researchLayers: [{ level: "overallVisual",
       researchDecisionId: "研究结果待关联", designExcerpt: "主体建立初始画面" }],
-      units: [{ id: "opening", title: "待完善开场", startFrame: 0, endFrame: 24, mode: "original" as const }],
-      sequence: basePlan.sequence.map(step => ({ ...step, unitId: "opening" })) };
+      sequence: basePlan.sequence };
     const layerHandoff = parse<{ scenes: Array<{ status: string; visualPlan: typeof layerPlan }> }>(
       await client.callTool({ name: "prepare_motion_handoff", arguments: { project_id: f.projectId, production_run_id: f.run.id,
         base_revision_id: f.revision(), brief_path: brief, timing_plan_path: timing, selected_scene_ids: [f.scene.id],
@@ -390,7 +395,6 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
           process: "主体建立、变化并接续", preserve: ["主体关系"], adapt: ["排版"], visualPlan: layerPlan }] } }) as never);
     assert.equal(layerHandoff.scenes[0].status, "ready");
     assert.deepEqual(layerHandoff.scenes[0].visualPlan.researchLayers, layerPlan.researchLayers);
-    assert.deepEqual(layerHandoff.scenes[0].visualPlan.units, layerPlan.units);
     assert.deepEqual(layerHandoff.scenes[0].visualPlan.sequence, layerPlan.sequence);
     let activeHandoff = handoff;
     let deliveryRef = { manifestPath: handoff.manifestPath, manifestSha256: handoff.manifestSha256, sceneIds: [f.scene.id] };
@@ -464,20 +468,6 @@ test("完整新制无需预排即可通过真实 MCP 提交导演采用", { time
     const start = (key: string, requestedTarget = target) => client.callTool({ name: "start_motion_authoring", arguments: { project_id: f.projectId, base_revision_id: f.revision(),
       production_run_id: f.run.id, visual_treatment_ids: [treatment.id], target: requestedTarget, idempotency_key: key,
       opendesign_request: { project: "isolated-od" } } });
-    const pending = await start("pending");
-    assert.equal(pending.isError, true);
-    const pendingError = JSON.parse((pending.content as Array<{ text: string }>)[0].text);
-    assert.ok(pendingError.issues.some((issue: { code: string }) => issue.code === "NARRATION_ASSIGNMENT_MISSING"));
-    assert.ok(pendingError.issues.some((issue: { code: string }) => issue.code === "ASSET_ASSIGNMENT_MISSING"));
-    assert.equal(pendingError.sideEffects, "none");
-    assert.equal(f.app.repository.listJobs(f.projectId).filter(job => job.kind === "motion_authoring").length, 0);
-
-    const latestReport = await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: f.run.id });
-    parse(await client.callTool({ name: "update_production_run", arguments: { project_id: f.projectId, run_id: f.run.id,
-      expected_audit_version: latestReport.auditVersion, operation_id: "assign-narration-and-assets", action: "add_assignment",
-      assignment: { assignment_id: "narration-and-assets", agent_id: "/fixture/narration", responsibilities: ["narration", "asset_sourcing"],
-        skill_ids: ["narration-writing", "visual-asset-sourcing"], scope: { kind: "project" }, input_revision: f.revision() } } }) as never);
-
     f.app.repository.commit(f.projectId, f.revision(), "修改当前内容", snapshot => { snapshot.story.beats.find(beat => beat.id === beats[0]!.id)!.title = "当前内容已变"; });
     const changedTarget = await start("changed-target");
     assert.equal(changedTarget.isError, true);
@@ -526,7 +516,7 @@ test("分派、结果和真实输入版本可回读，同一请求安全重试",
 });
 
 test("视觉采用必须追溯已接回研究，研究后未采用参考可以成立", async () => {
-  const f = await fixture();
+  const f = await fixture("visual_rework");
   try {
     const update = await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id, expectedAuditVersion: f.run.auditVersion,
       operationId: "assign", action: "add_assignment", assignment: { assignmentId: "author", agentId: "/fixture/author",
@@ -727,7 +717,7 @@ test("视觉采用必须追溯已接回研究，研究后未采用参考可以�
 });
 
 test("兼任分派只接替指定职责和范围，迟到研究需要当前负责人确认", async () => {
-  const f = await fixture();
+  const f = await fixture("visual_rework");
   try {
     const assigned = await f.app.updateProductionRun({ projectId: f.projectId, runId: f.run.id, expectedAuditVersion: f.run.auditVersion,
       operationId: "assign-all", action: "add_assignment", assignment: { assignmentId: "original", agentId: "/fixture/original",
