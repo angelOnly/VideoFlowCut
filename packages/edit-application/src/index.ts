@@ -2,7 +2,7 @@ import { readProductionStatus, type ProductionStatusContext } from "./production
 import { referenceComparisonsForRevision } from "./reference-comparison.js";
 import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
-import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresVisualReferenceUnits, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
+import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, referenceUsesFrozenMaterials, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresVisualReferenceUnits, requiresWholeFilmReferenceAdoption, responsibilityDecisionRanges, visualReferenceUnitCoverage, wholeFilmReferenceAdoptionIssues } from "./production-coordination.js";
 import { responsibilityReviewFindings, validateResponsibilityReviews } from "./responsibility-review.js";
 import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "./motion-coordination-error.js";
 import { assertVisualDesign, readFrozenAuthorRequest, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
@@ -481,19 +481,30 @@ function visualTreatmentById(snapshot: ProjectSnapshot, visualTreatmentId: Id): 
 }
 
 function assertReferenceResearch(report: SkillExecutionReport, snapshot: ProjectSnapshot, manifest: ReferenceManifest,
-  designs: CreativeDecision[], sceneIds: string[], adoptionOperationId?: string, treatment?: VisualTreatment): void {
+  designs: CreativeDecision[], sceneIds: string[], adoptionOperationId?: string, treatment?: VisualTreatment,
+  adoptedDesignsByScene?: ReadonlyMap<string, CreativeDecision[]>): void {
   const issues: import("@videocut/contracts").ProductionCoordinationIssue[] = [];
+  const wholeFilm = !treatment && requiresWholeFilmReferenceAdoption(report, snapshot)
+    && snapshot.scenes.length === sceneIds.length && snapshot.scenes.every(scene => sceneIds.includes(scene.id));
+  if (wholeFilm && (manifest.projectId !== snapshot.project.id || manifest.selectedSceneIds?.length !== sceneIds.length
+    || sceneIds.some(id => !manifest.selectedSceneIds?.includes(id)))) {
+    throw new DomainError("整片采用须引用同一份覆盖全部场面的冻结交付清单", "PRODUCTION_ADOPTION_DELIVERY_INVALID");
+  }
+  const adoptedKinds = new Set<"creative" | "motion">();
   for (const sceneId of sceneIds) {
     const scene = snapshot.scenes.find(item => item.id === sceneId);
     const delivered = manifest.scenes?.find(item => item.sceneId === sceneId && item.status === "ready");
     if (!scene || !delivered) throw new DomainError(`场面 ${sceneId} 的交付不可用`, "PRODUCTION_ADOPTION_DELIVERY_INVALID");
-    const applicable = designs.filter(design => treatment ? visualDesignCovers(snapshot, design, scene, treatment)
+    const applicable = (adoptedDesignsByScene?.get(sceneId) ?? designs).filter(design => treatment ? visualDesignCovers(snapshot, design, scene, treatment)
       : visualScopeSceneIds(snapshot, design.objectIds).includes(sceneId));
     if (requiresVisualReferenceUnits(report, snapshot)) {
       issues.push(...visualReferenceUnitCoverage({ report, snapshot, manifest, scene, delivered, designs: applicable, adoptionOperationId })
         .flatMap(unit => unit.issues));
     }
     for (const issue of referenceResearchIssues({ report, snapshot, scene, delivered, designs: applicable, treatment,
+      onVerifiedMapping: wholeFilm ? (reference, mapping) => {
+        if (referenceUsesFrozenMaterials(manifest, scene, delivered, reference, mapping)) adoptedKinds.add(reference.kind);
+      } : undefined,
       accepted: (research, phase) => {
         const targets = treatment ? [treatment] : snapshot.visualTreatments.filter(item =>
           (item.sceneId === scene.id || !!item.narrativeBeatId && scene.narrativeBeatIds.includes(item.narrativeBeatId))
@@ -512,6 +523,7 @@ function assertReferenceResearch(report: SkillExecutionReport, snapshot: Project
         message: issue.message, nextAction: issue.nextAction });
     }
   }
+  if (wholeFilm && !issues.length) issues.push(...wholeFilmReferenceAdoptionIssues(report, sceneIds, adoptedKinds));
   if (issues.length) throw new ProductionReferenceResearchError(issues);
 }
 
@@ -3506,6 +3518,7 @@ export class EditingApplication {
     if (state.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, state.revision.number);
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionRunId });
     const wholeFilm = input.target.action === "whole_film";
+    const initialWorkId = "motion_work_" + createHash("sha256").update(input.projectId + ":" + report.id).digest("hex");
     const scenes = wholeFilm ? [...state.snapshot.scenes].sort((a, b) => a.startFrame - b.startFrame) : [];
     if (wholeFilm && (report.intent !== "full_creation" || report.completionScope.kind !== "project"
       || state.snapshot.project.profile !== "visual_explainer" || input.openDesignRequest.continue_from_run_id
@@ -3522,6 +3535,15 @@ export class EditingApplication {
     for (const target of wholeFilm ? sceneTargets : [requestedTarget]) validateMotionContinuation(state.snapshot, target);
     const requestedCue = requestedTarget.action === "create_cue" ? undefined : state.snapshot.effectCues.find(cue => cue.id === requestedTarget.cueId)!;
     const targetSceneId = requestedTarget.action === "create_cue" ? requestedTarget.sceneId : requestedCue!.sceneId;
+    if (!wholeFilm && requiresWholeFilmReferenceAdoption(report, state.snapshot)) {
+      const authoredWork = requestedCue ? motionWorkForCue(state.snapshot, requestedCue)
+        : motionWorkVersion(state.snapshot.motionWorks, initialWorkId);
+      if (!authoredWork?.author) {
+        throw new MotionAuthoringCoordinationError([{ code: "MOTION_AUTHORING_WHOLE_FILM_REQUIRED", scope: { kind: "project" },
+          relatedDecisionIds: [], relatedObjectIds: [targetSceneId], state: "missing",
+          message: "完整解说新片的首次正式委托需要同一份整片冻结稿", nextAction: "采用整片导演稿后使用 whole_film 发起委托" }]);
+      }
+    }
     const scope = wholeFilm ? { kind: "project" as const } : { kind: "objects" as const, objectIds: [targetSceneId, ...(input.visualTreatmentIds ?? [])] };
     const relatedObjectIds = [...(wholeFilm ? scenes.map(scene => scene.id) : [targetSceneId]), ...(input.visualTreatmentIds ?? [])];
     const auditState = this.repository.productionAuditState(input.projectId);
@@ -3568,10 +3590,21 @@ export class EditingApplication {
           || manifest?.selectedSceneIds?.length !== sceneTargets.length) {
           throw new DomainError("整片首版须引用同一份覆盖全部场面的冻结交付清单", "MOTION_AUTHORING_DELIVERY_INCOMPLETE");
         }
+        const decisions = new Map(report.creativeDecisions.map(decision => [decision.id, decision]));
+        const adoptedDesignsByScene = new Map(frozenSceneTargets.map(entry => [entry.target.sceneId,
+          entry.authoringInputs.flatMap(authoring => {
+            const adoption = decisions.get(authoring.adoptedDecisionRef.decisionId);
+            return (adoption?.inputDecisionIds ?? []).flatMap(id => {
+              const design = decisions.get(id);
+              return design?.phase === "visual_design" && sameVisualDelivery(design.deliveryRef, authoring.deliveryRef) ? [design] : [];
+            });
+          })]));
+        assertReferenceResearch(report, state.snapshot, manifest, [], scenes.map(scene => scene.id), undefined, undefined, adoptedDesignsByScene);
       } else {
         authoringInputs = await this.resolveMotionAuthoringInputs({ ...input, target: requestedTarget }, state, manifests);
       }
     } catch (error) {
+      if (error instanceof ProductionReferenceResearchError) throw new MotionAuthoringCoordinationError(error.issues);
       if (requiresFullVisual && error instanceof DomainError
         && error.code.startsWith("MOTION_AUTHORING_")) {
         const decisionIds = state.snapshot.visualTreatments.filter(item => input.visualTreatmentIds?.includes(item.id) && item.adoptedDecisionRef?.productionRunId === report.id)
@@ -3584,7 +3617,7 @@ export class EditingApplication {
     }
     // 完整委托预留稳定身份，首个冻结作品登记后和后续阶段使用同一 ID。
     const logicalWorkId = requiresFullVisual
-      ? requestedCue?.workId ?? ("motion_work_" + createHash("sha256").update(input.projectId + ":" + report.id).digest("hex"))
+      ? requestedCue?.workId ?? initialWorkId
       : requestedCue?.workId;
     const continuationWork = requestedCue && logicalWorkId && requestedCue.workId === logicalWorkId
       ? motionWorkForCue(state.snapshot, requestedCue) : logicalWorkId ? motionWorkVersion(state.snapshot.motionWorks, logicalWorkId) : undefined;

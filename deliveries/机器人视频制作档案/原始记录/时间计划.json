@@ -1,0 +1,275 @@
+{
+  "fps": 30,
+  "durationInFrames": 3372,
+  "speechSegmentFrameBoundaries": [
+    0,
+    76,
+    191,
+    322,
+    417,
+    664,
+    921,
+    1051,
+    1244,
+    1362,
+    1615,
+    1815,
+    1889,
+    2192,
+    2515,
+    2732,
+    2993,
+    3113,
+    3372
+  ],
+  "scenes": [
+    {
+      "sceneId": "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+      "startFrame": 0,
+      "endFrame": 191,
+      "videoCuts": [
+        {
+          "startFrame": 0,
+          "endFrame": 76,
+          "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+          "sourceStartMs": 1000,
+          "sourceEndMs": 3533,
+          "action": "整身、起跳、翻滚和脚回到底线。右上水印约 x>1400 y<125，仅该非主体空墙区域做构图或局部去除。"
+        },
+        {
+          "startFrame": 76,
+          "endFrame": 191,
+          "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+          "sourceStartMs": 3450,
+          "sourceEndMs": 7283,
+          "action": "以源内较慢动作回看第一次已经看清的翻转、触地和收腿。保住脚下地线，未到仿真。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+      "startFrame": 191,
+      "endFrame": 921,
+      "videoCuts": [
+        {
+          "startFrame": 191,
+          "endFrame": 322,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 4100,
+          "sourceEndMs": 8467,
+          "action": "切另一设备，以两侧运输架、全身和中间通道建立地点。"
+        },
+        {
+          "startFrame": 322,
+          "endFrame": 417,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 17600,
+          "sourceEndMs": 20767,
+          "action": "实拍伸手、持黑色件和工装外架；接上旁白提出的任务，不声称是 H1。"
+        },
+        {
+          "startFrame": 417,
+          "endFrame": 506,
+          "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+          "sourceStartMs": 9500,
+          "sourceEndMs": 12467,
+          "action": "另一个地点取管件落在箱里角度各异的近景，在下方英文进入前只显示无字主体区。用于解释临时位置变化，不能剪为持黑件的同一次实录。"
+        },
+        {
+          "startFrame": 506,
+          "endFrame": 664,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 37100,
+          "sourceEndMs": 42367,
+          "action": "切回 Atlas 原内侧视角，短字分时依着真实手—件—工位位置进入。仅解释观察和调整关系，不断言本镜头发现故障。"
+        },
+        {
+          "startFrame": 664,
+          "endFrame": 921,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 62000,
+          "sourceEndMs": 70567,
+          "action": "选择另一次真实低位取件、转身和继续操作。已有左边窗时不重复添加第二窗。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+      "startFrame": 921,
+      "endFrame": 1362,
+      "videoCuts": [
+        {
+          "startFrame": 921,
+          "endFrame": 1051,
+          "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+          "sourceStartMs": 8300,
+          "sourceEndMs": 12633,
+          "action": "管件箱、夹具赴接触出画，英文促销字从源幅边缘裁去或只看中心与右边。"
+        },
+        {
+          "startFrame": 1051,
+          "endFrame": 1362,
+          "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+          "sourceStartMs": 35100,
+          "sourceEndMs": 45467,
+          "action": "实拍持续占左侧，源纵向优先裁到 y≤790，保住两个箱口、夹具和动线，底部英文裁掉。F1051建立设例，F1115后填格，F1244约37%取得主读。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+      "startFrame": 1362,
+      "endFrame": 1815,
+      "videoCuts": [
+        {
+          "startFrame": 1362,
+          "endFrame": 1671,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 82600,
+          "sourceEndMs": 92900,
+          "action": "同源不停切，完整保靠槽、卡住、撤回并改变对位、再次插入。源内左窗保持，右下 Fully Autonomous 遮掉。"
+        },
+        {
+          "startFrame": 1671,
+          "endFrame": 1815,
+          "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+          "sourceStartMs": 4250,
+          "sourceEndMs": 9050,
+          "action": "切不同源真实输送设施和通道。条件字可以辅助理解人工介入如何影响后工序，实料不作为有人干预或停机的证据。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+      "startFrame": 1815,
+      "endFrame": 2192,
+      "videoCuts": [
+        {
+          "startFrame": 1815,
+          "endFrame": 1889,
+          "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+          "sourceStartMs": 38600,
+          "sourceEndMs": 41067,
+          "action": "物料入口、两个箱和夹具建立。纵向裁取 y≤790 的上区，底部英文不能进入成片。"
+        },
+        {
+          "startFrame": 1889,
+          "endFrame": 1933,
+          "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+          "sourceStartMs": 19000,
+          "sourceEndMs": 20467,
+          "action": "干净工位全景看机械臂、铝架和正在放件的工装。"
+        },
+        {
+          "startFrame": 1933,
+          "endFrame": 2009,
+          "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+          "sourceStartMs": 20540,
+          "sourceEndMs": 23073,
+          "action": "转近传感器和固定架，只取源画左与中部，原右上英文不入构图。"
+        },
+        {
+          "startFrame": 2009,
+          "endFrame": 2104,
+          "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+          "sourceStartMs": 30000,
+          "sourceEndMs": 33167,
+          "action": "吸盘竖杆细节取原片 x约160–820，呈独立窄区，不带右侧广告。"
+        },
+        {
+          "startFrame": 2104,
+          "endFrame": 2192,
+          "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+          "sourceStartMs": 36000,
+          "sourceEndMs": 38933,
+          "action": "右半工装接住放件源动作，在裁清左面宣传字后，让定位板三个工件槽足以辨认。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_de386812-267b-4765-ac2b-d665dab10b84",
+      "startFrame": 2192,
+      "endFrame": 2515,
+      "videoCuts": [
+        {
+          "startFrame": 2192,
+          "endFrame": 2515,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 108000,
+          "sourceEndMs": 118767,
+          "action": "同一真实环境从左架定位、取件、转身穿过通道直到接近右架。保双足和地面。人物与人用设备未来可复用的判断来自旁白条件。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_4f312de6-37c8-4741-86bc-262448e969be",
+      "startFrame": 2515,
+      "endFrame": 2993,
+      "videoCuts": [
+        {
+          "startFrame": 2515,
+          "endFrame": 2665,
+          "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+          "sourceStartMs": 12500,
+          "sourceEndMs": 17500,
+          "action": "红胸15号进入可辨姿势、夹蓝箱、举起并稳住；右上局部同步遵循主镜，F2542已建立、F2640前自然撤回。"
+        },
+        {
+          "startFrame": 2665,
+          "endFrame": 2875,
+          "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+          "sourceStartMs": 23500,
+          "sourceEndMs": 30500,
+          "action": "明确剪辑换到同一实拍后段，认回红胸15号、蓝箱和交接位。约 F2690 起左上出现「累计搬运超过」，接「10 万个料箱」至 F2765，不挡右侧交接。"
+        },
+        {
+          "startFrame": 2875,
+          "endFrame": 2993,
+          "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+          "sourceStartMs": 7500,
+          "sourceEndMs": 11433,
+          "action": "独立仓库大全景显示通道、另一具绿胸机器及输送机。画面不作为作业速度测量。"
+        }
+      ]
+    },
+    {
+      "sceneId": "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f",
+      "startFrame": 2993,
+      "endFrame": 3372,
+      "videoCuts": [
+        {
+          "startFrame": 2993,
+          "endFrame": 3113,
+          "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+          "sourceStartMs": 3250,
+          "sourceEndMs": 7250,
+          "action": "回到同一测试地点，同源慢位看从蓄力到真正落地和缓冲，旁白讲到一瞬间时保地面和双脚共同清楚。"
+        },
+        {
+          "startFrame": 3113,
+          "endFrame": 3229,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 84500,
+          "sourceEndMs": 88367,
+          "action": "明确切另一工位，困难实际可见；以退开和工件角度变化承接摆歪/掉落疑问，不伪造掉落。"
+        },
+        {
+          "startFrame": 3229,
+          "endFrame": 3285,
+          "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+          "sourceStartMs": 89700,
+          "sourceEndMs": 91567,
+          "action": "仍从同一实际重插动作看工件朝正确位置推进，保原侧窗。"
+        },
+        {
+          "startFrame": 3285,
+          "endFrame": 3372,
+          "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+          "sourceStartMs": 12800,
+          "sourceEndMs": 15700,
+          "action": "独立切回已建立的真实仓库，目前选同片中夹爪双侧抓稳蓝箱并抬起的源段，末句完时箱与手仍同在。"
+        }
+      ]
+    }
+  ]
+}

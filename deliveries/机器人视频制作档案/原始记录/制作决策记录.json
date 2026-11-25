@@ -1,0 +1,199 @@
+[
+  {
+    "id": "creative_decision_b976a936-3067-4835-aa2b-ec1499191bdf",
+    "category": "visual",
+    "decision": "全片采用真实设备和连续动作，Digit 段借同一主体从全局空间向可辨动作近景接手。",
+    "rationale": "真实落地、工位夹爪与蓝箱是主视觉；仓库段通过保持同一 15 号机器、同一蓝箱和方向，避免空间跳接造成误认。",
+    "objectIds": [
+      "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+      "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+      "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+      "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+      "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+      "scene_de386812-267b-4765-ac2b-d665dab10b84",
+      "scene_4f312de6-37c8-4741-86bc-262448e969be",
+      "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+    ],
+    "evidence": [
+      "原片 18–47 秒每0.5秒密集抽样；未原速连看或听审。",
+      "creative-research/creative-122-source.jpg",
+      "creative-research/digit-restage.jpg"
+    ],
+    "phase": "creative_research",
+    "assignmentId": "robot-creative",
+    "inputRevision": 44,
+    "inputDecisionIds": [],
+    "researchOutcome": "researched",
+    "researchCoverage": {
+      "overallVisual": "covered",
+      "sceneComposition": "covered",
+      "motionMechanisms": "covered",
+      "layerNotes": {
+        "overallVisual": "由八场本片真实素材试摆验证，先留作业环境，随后用具体物体推进。",
+        "sceneComposition": "库 122-c02 先建立运动空间、再对原地关系作局部点明、后让同一对象接入近景；本片先辨别 15 号 Digit、仓库围栏与蓝箱，再观察箱沿与抓手。",
+        "motionMechanisms": "局部跟随和构图接力保持蓝箱的源运动，右向转运与末端交付维持清楚空间关系。"
+      },
+      "blockingQuestions": []
+    },
+    "researchReferences": [
+      {
+        "kind": "creative",
+        "id": "122-c02",
+        "sourceSha256": "e8898c61ac13175de828a3c95fd5f24a46c4f99f0d9abc4a90c96a7101480e2a",
+        "startMs": 22500,
+        "endMs": 35400,
+        "observedRelation": "22.5–24.5 秒球场广角建立人物和空间，25.5–30 秒叠定位与方向，33 秒以后镜头贴近球员脚边，同一运动对象继续可追。"
+      }
+    ],
+    "operationId": "robot-creative_research",
+    "createdAt": "2026-11-24T16:55:13.480Z"
+  },
+  {
+    "id": "creative_decision_c640f5ad-fc15-4739-b424-b2dfbf2449e2",
+    "category": "visual",
+    "decision": "同源双取景先保留环境，再用局部开窗指出一次真实抓取。",
+    "rationale": "原案的主体不中断，第二视区与主画共享源时钟；本片 Digit 窗口追随提箱，结果主画面接手。",
+    "objectIds": [
+      "scene_4f312de6-37c8-4741-86bc-262448e969be"
+    ],
+    "evidence": [
+      "原片机制切片 8fps 顺序观察，未声称原速听审。",
+      "visual-research/001-m07-continuous.jpg",
+      "visual-research/digit-restage-15.5.jpg"
+    ],
+    "phase": "motion_research",
+    "assignmentId": "robot-visual",
+    "inputRevision": 44,
+    "inputDecisionIds": [],
+    "researchOutcome": "researched",
+    "researchReferences": [
+      {
+        "kind": "motion",
+        "id": "001-m07",
+        "sourceSha256": "74ebf4167cb3116c7920fbe2abd9c002f21ffa6c1963cd0a1ce24f1ee730459d",
+        "startMs": 17968,
+        "endMs": 20070,
+        "observedRelation": "全局主位仍在，右上区域建立更近的独立观察区，主画与局部保持连续关系，阅读结束后局部退场。"
+      }
+    ],
+    "operationId": "robot-motion_research",
+    "createdAt": "2026-11-24T16:55:13.879Z"
+  },
+  {
+    "id": "creative_decision_20018125-5a7a-48f8-adf1-964a5bb5987e",
+    "category": "visual",
+    "decision": "其余七场使用实拍本身的连续动作、真实切换或本片计算图形，未采用外部动效机制。",
+    "rationale": "首场实拍给出起跳至落地，不替换。第二场已有厂商原生同源窗，再叠窗压住实物。概率场测试002-m17全屏覆盖会挡实际作业，改为右侧独立静面及原创计数。恢复场原生左窗及原速同源连续已呈现撤回和再插。固定工位跨设备裁切，011-m08会误认同一夹具。人形通道由连续双脚、场地和工装自身呈现。片尾007-m19的同框擦换会混淆三地点，改用动作关联硬切。",
+    "objectIds": [
+      "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+      "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+      "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+      "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+      "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+      "scene_de386812-267b-4765-ac2b-d665dab10b84",
+      "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+    ],
+    "evidence": [
+      "visual-research/001-m07-continuous.jpg",
+      "visual-research/002-m17-continuous.jpg",
+      "visual-research/007-m19-continuous.jpg",
+      "visual-research/011-m08-continuous.jpg",
+      "visual-research/首版视觉导演稿.md"
+    ],
+    "phase": "motion_research",
+    "assignmentId": "robot-visual",
+    "inputRevision": 44,
+    "inputDecisionIds": [],
+    "researchOutcome": "not_applicable",
+    "operationId": "robot-motion-remaining-scenes",
+    "createdAt": "2026-11-24T17:03:54.521Z"
+  },
+  {
+    "id": "creative_decision_4ef0ada3-96fb-4c61-b17c-88d88ce45380",
+    "category": "visual",
+    "decision": "同版 8 场 24 剪段，以完整真实素材为主画面，按实测配音根帧安排动效和场间。",
+    "rationale": "实料复摆已验证后翻、工位空间、恢复、固定设备、Digit 接触和最后真实取箱，Digit 的素材组织与同源开窗已落到对应角色和源段。",
+    "objectIds": [
+      "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+      "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+      "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+      "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+      "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+      "scene_de386812-267b-4765-ac2b-d665dab10b84",
+      "scene_4f312de6-37c8-4741-86bc-262448e969be",
+      "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+    ],
+    "evidence": [
+      "visual-research/首版视觉导演稿.md",
+      "visual-research/时间计划.json",
+      "visual-research/视觉接收观察.json"
+    ],
+    "phase": "visual_design",
+    "assignmentId": "robot-visual",
+    "inputRevision": 86,
+    "inputDecisionIds": [
+      "creative_decision_b976a936-3067-4835-aa2b-ec1499191bdf",
+      "creative_decision_c640f5ad-fc15-4739-b424-b2dfbf2449e2",
+      "creative_decision_20018125-5a7a-48f8-adf1-964a5bb5987e"
+    ],
+    "operationId": "robot-frozen-visual-design",
+    "deliveryRef": {
+      "manifestPath": "../原始记录/",
+      "manifestSha256": "0b6678993fdf28a5470649b36763b790d96650d3fa230691aa46504e468cfc01",
+      "sceneIds": [
+        "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+        "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+        "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+        "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+        "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+        "scene_de386812-267b-4765-ac2b-d665dab10b84",
+        "scene_4f312de6-37c8-4741-86bc-262448e969be",
+        "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+      ]
+    },
+    "createdAt": "2026-11-24T17:15:30.132Z"
+  },
+  {
+    "id": "creative_decision_c6077cee-6504-4e46-a09d-242be3827df8",
+    "category": "visual",
+    "decision": "整片 8 场正式采用同版导演稿和固定交付清单。",
+    "rationale": "1920×1080、30fps、3372帧，全文保留，中文合成旁白，原厂素材静音，统一字幕。各设备是独立实例，概率假设和真实累计各归其来源。Digit [2515,2875) 先建真实空间再推进同一主体，[2527,2640) 同源放大夹具扣箱并退回宽景。",
+    "objectIds": [
+      "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+      "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+      "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+      "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+      "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+      "scene_de386812-267b-4765-ac2b-d665dab10b84",
+      "scene_4f312de6-37c8-4741-86bc-262448e969be",
+      "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+    ],
+    "evidence": [
+      "visual-research/首版视觉导演稿.md",
+      "visual-research/场面交接.json",
+      "visual-research/时间计划.json"
+    ],
+    "phase": "adoption",
+    "assignmentId": "robot-director",
+    "inputRevision": 86,
+    "inputDecisionIds": [
+      "creative_decision_4ef0ada3-96fb-4c61-b17c-88d88ce45380"
+    ],
+    "operationId": "robot-frozen-director-adoption",
+    "deliveryRef": {
+      "manifestPath": "../原始记录/",
+      "manifestSha256": "0b6678993fdf28a5470649b36763b790d96650d3fa230691aa46504e468cfc01",
+      "sceneIds": [
+        "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+        "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+        "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+        "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+        "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+        "scene_de386812-267b-4765-ac2b-d665dab10b84",
+        "scene_4f312de6-37c8-4741-86bc-262448e969be",
+        "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+      ]
+    },
+    "createdAt": "2026-11-24T17:15:30.580Z"
+  }
+]

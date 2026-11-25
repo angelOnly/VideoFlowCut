@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><title>机器人翻完跟头，能进厂吗？</title>
+<style>
+:root{--ink:#101A21;--paper:#F3F1E5;--target:#CBE75F;--difficulty:#F4A263;--rule:rgba(243,241,229,.33);--scrim:rgba(16,26,33,.92)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--ink)}
+#robot-factory{position:relative;width:1920px;height:1080px;overflow:hidden;isolation:isolate;background:var(--ink);color:var(--paper);font-family:var(--vfc-font-title),sans-serif;font-weight:700}
+.shot,.overlay{position:absolute;visibility:hidden}
+.shot,.view{position:absolute;overflow:hidden}.shot,.wide{inset:0}
+.source{position:absolute;display:block;max-width:none;max-height:none}.wide .source{width:100%;height:100%}
+.detail{left:1210px;top:80px;width:650px;height:380px;overflow:hidden;outline:2px solid var(--rule);background:var(--ink)}
+.digit-source{width:1600px;height:900px;left:-420px;top:-362px}
+.result{left:72px;top:72px;padding:28px 40px 32px;background:var(--scrim);border:1px solid var(--rule);line-height:1.14;white-space:nowrap}
+.result span{display:block;font-size:46px}.result strong{display:block;color:var(--target);font-size:80px;margin-top:8px}
+
+.crop .source{width:var(--sw);height:var(--sh);left:var(--sx);top:var(--sy)}
+.floor-cover{position:absolute;left:1248px;top:904px;width:496px;height:76px;background:linear-gradient(90deg,transparent,rgba(16,26,33,.97) 8%,rgba(16,26,33,.97) 92%,transparent);mask-image:linear-gradient(0deg,transparent,#000 24%,#000 76%,transparent)}
+.note{left:82px;top:96px;display:grid;gap:12px;min-width:220px;padding:16px 24px;background:var(--scrim);border-top:2px solid var(--rule);font-size:40px;line-height:1.2}
+.note.work-note{left:1412px;top:160px}.note small{font-size:24px;color:var(--paper)}
+.note[data-tone="difficulty"]{border-color:var(--difficulty)}
+.inset-work{left:1312px;top:80px;width:520px;height:328px;overflow:hidden;outline:2px solid var(--rule);background:var(--ink)}
+.inset-work .source{width:1250px;height:703.125px;left:-384px;top:-170px}
+#shot-1051{transform-origin:0 50%}
+#probability{right:0;top:0;width:658px;height:1080px;padding:120px 64px 100px 56px;background:var(--ink);border-left:2px solid var(--rule);overflow:hidden}
+.prob-header{font-size:24px;letter-spacing:.15em;margin:0 0 20px}
+.prob-assumption{font-size:36px;margin:0;padding-bottom:28px;border-bottom:1px solid var(--rule);white-space:nowrap}
+#all-success{font-size:42px;margin:36px 0 20px;visibility:hidden;white-space:nowrap}
+#attempts{display:grid;gap:6px;width:max-content;margin-top:18px}
+.attempt-row{display:grid;grid-template-columns:repeat(10,30px);gap:6px}
+.attempt-row i{display:block;height:18px;border:1px solid var(--rule);background:var(--paper);background-clip:padding-box;opacity:.10}
+#attempt-count{font-size:23px;margin-top:16px;visibility:hidden}
+#prob-result{margin-top:34px;visibility:hidden}.eq{font-size:38px;line-height:1.2}.eq sup{font-size:.57em}
+#prob-number{font-size:98px;color:var(--target);line-height:1.2;white-space:nowrap}
+</style></head>
+<body><main id="robot-factory" data-composition-id="robot-factory" data-width="1920" data-height="1080" data-start="0" data-duration="112.4">
+  <div class="shot" id="shot-0"><div class="view crop" style="left:0.0000px;top:0.0000px;width:1920.0000px;height:1080.0000px;--sw:2113.7615px;--sh:1188.9908px;--sx:-70.4587px;--sy:-105.6881px"><img class="source" id="video-0" data-vfc-video-slot="cut0" alt=""></div></div>
+  <div class="shot" id="shot-76"><div class="view crop" style="left:0.0000px;top:0.0000px;width:1920.0000px;height:1080.0000px;--sw:2113.7615px;--sh:1188.9908px;--sx:-70.4587px;--sy:-105.6881px"><img class="source" id="video-76" data-vfc-video-slot="cut76" alt=""></div></div>
+  <div class="shot" id="shot-191"><div class="view wide"><img class="source" id="video-191" data-vfc-video-slot="cut191" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-322"><div class="view wide"><img class="source" id="video-322" data-vfc-video-slot="cut322" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-417"><div class="view crop" style="left:0.0000px;top:0.0000px;width:1920.0000px;height:1080.0000px;--sw:2633.1429px;--sh:1481.1429px;--sx:-384.0000px;--sy:0.0000px"><img class="source" id="video-417" data-vfc-video-slot="cut417" alt=""></div></div>
+  <div class="shot" id="shot-506"><div class="view wide"><img class="source" id="video-506" data-vfc-video-slot="cut506" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-664"><div class="view wide"><img class="source" id="video-664" data-vfc-video-slot="cut664" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-921"><div class="view crop" style="left:0.0000px;top:0.0000px;width:1920.0000px;height:1080.0000px;--sw:2633.1429px;--sh:1481.1429px;--sx:-384.0000px;--sy:0.0000px"><img class="source" id="video-921" data-vfc-video-slot="cut921" alt=""></div></div>
+  <div class="shot" id="shot-1051"><div class="view crop" style="left:0.0000px;top:145.0000px;width:1920.0000px;height:790.0000px;--sw:1920.0000px;--sh:1080.0000px;--sx:0.0000px;--sy:0.0000px"><img class="source" id="video-1051" data-vfc-video-slot="cut1051" alt=""></div></div>
+  <div class="shot" id="shot-1362"><div class="view wide"><img class="source" id="video-1362" data-vfc-video-slot="cut1362" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-1671"><div class="view wide"><img class="source" id="video-1671" data-vfc-video-slot="cut1671" alt=""></div></div>
+  <div class="shot" id="shot-1815"><div class="view crop" style="left:0.0000px;top:145.0000px;width:1920.0000px;height:790.0000px;--sw:1920.0000px;--sh:1080.0000px;--sx:0.0000px;--sy:0.0000px"><img class="source" id="video-1815" data-vfc-video-slot="cut1815" alt=""></div></div>
+  <div class="shot" id="shot-1889"><div class="view wide"><img class="source" id="video-1889" data-vfc-video-slot="cut1889" alt=""></div></div>
+  <div class="shot" id="shot-1933"><div class="view crop" style="left:481.1321px;top:0.0000px;width:957.7358px;height:1080.0000px;--sw:1956.2264px;--sh:1100.3774px;--sx:0.0000px;--sy:0.0000px"><img class="source" id="video-1933" data-vfc-video-slot="cut1933" alt=""></div></div>
+  <div class="shot" id="shot-2009"><div class="view crop" style="left:630.0000px;top:0.0000px;width:660.0000px;height:1080.0000px;--sw:1920.0000px;--sh:1080.0000px;--sx:-160.0000px;--sy:0.0000px"><img class="source" id="video-2009" data-vfc-video-slot="cut2009" alt=""></div></div>
+  <div class="shot" id="shot-2104"><div class="view crop" style="left:460.0000px;top:0.0000px;width:1000.0000px;height:1080.0000px;--sw:1920.0000px;--sh:1080.0000px;--sx:-920.0000px;--sy:0.0000px"><img class="source" id="video-2104" data-vfc-video-slot="cut2104" alt=""></div></div>
+  <div class="shot" id="shot-2192"><div class="view wide"><img class="source" id="video-2192" data-vfc-video-slot="cut2192" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-2993"><div class="view crop" style="left:0.0000px;top:0.0000px;width:1920.0000px;height:1080.0000px;--sw:2113.7615px;--sh:1188.9908px;--sx:-70.4587px;--sy:-105.6881px"><img class="source" id="video-2993" data-vfc-video-slot="cut2993" alt=""></div></div>
+  <div class="shot" id="shot-3113"><div class="view wide"><img class="source" id="video-3113" data-vfc-video-slot="cut3113" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-3229"><div class="view wide"><img class="source" id="video-3229" data-vfc-video-slot="cut3229" alt=""><div class="floor-cover" aria-hidden="true"></div></div></div>
+  <div class="shot" id="shot-3285"><div class="view wide"><img class="source" id="video-3285" data-vfc-video-slot="cut3285" alt=""></div></div>
+  <div class="shot" id="shot-2515"><div class="view wide"><img class="source" id="video-2515" data-vfc-video-slot="cut2515" alt=""></div></div>
+  <div class="shot" id="shot-2665"><div class="view wide"><img class="source" id="video-2665" data-vfc-video-slot="cut2665" alt=""></div></div>
+  <div class="shot" id="shot-2875"><div class="view wide"><img class="source" id="video-2875" data-vfc-video-slot="cut2875" alt=""></div></div>
+  <div class="overlay detail" id="digit-detail"><img class="source digit-source" id="digit-detail-video" data-vfc-video-slot="digitDetail" alt=""></div>
+  <div class="overlay result" id="digit-total"><span>累计搬运超过</span><strong id="digit-total-number">10 万个料箱</strong></div>
+  <div class="overlay inset-work" id="work-detail"><img class="source" id="work-detail-video" data-vfc-video-slot="workDetail" alt=""></div>
+  <div class="overlay note work-note" id="notice-change">发现变化</div>
+  <div class="overlay note work-note" id="notice-position">重新定位</div>
+  <div class="overlay note work-note" id="notice-grasp">调整再抓</div>
+  <div class="overlay note" id="recover" data-tone="difficulty">自动恢复</div>
+  <div class="overlay note" id="intervene">人工介入<small>如果需要人工介入</small></div>
+  <div class="overlay note" id="fixed">固定工位</div>
+  <section class="overlay" id="probability">
+    <p class="prob-header">概率设例</p>
+    <p class="prob-assumption">每次 99% · 各次独立</p>
+    <p id="all-success">连续 100 次全部成功</p>
+    <div id="attempts" aria-hidden="true">
+      <div class="attempt-row" id="attempt-row-0"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-1"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-2"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-3"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-4"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-5"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-6"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-7"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-8"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="attempt-row" id="attempt-row-9"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div id="attempt-count">10 行 × 10 列 · 仅计尝试次数</div>
+    <div id="prob-result"><div class="eq">0.99<sup>100</sup> ≈ 36.6%</div><div id="prob-number">约 37%</div></div>
+  </section>
+</main><script>
+(() => {
+  const root = document.getElementById('robot-factory');
+  const timeline = gsap.timeline({paused:true});
+  const seconds = frame => frame / 30;
+  const set = (selector, values, frame) => timeline.set(selector, values, seconds(frame));
+  const to = (selector, values, frame, length) => timeline.to(selector,{...values,duration:seconds(length)},seconds(frame));
+  const show = (selector,start,end) => {
+    set(selector,{visibility:'visible'},start);
+    set(selector,{visibility:'hidden'},end);
+  };
+  [[0,76],[76,191],[191,322],[322,417],[417,506],[506,664],[664,921],[921,1051],[1051,1362],[1362,1671],[1671,1815],[1815,1889],[1889,1933],[1933,2009],[2009,2104],[2104,2192],[2192,2515],[2515,2665],[2665,2875],[2875,2993],[2993,3113],[3113,3229],[3229,3285],[3285,3372]].forEach(([start,end]) => show('#shot-'+start,start,end));
+
+  const badge=(selector,start,end)=>{
+    show(selector,start,end);
+    set(selector,{opacity:0,x:-12},start);
+    to(selector,{opacity:1,x:0,ease:'power2.out'},start,10);
+    to(selector,{opacity:0,x:6,ease:'power2.in'},end-7,7);
+  };
+  show('#work-detail',354,411);
+  set('#work-detail',{clipPath:'inset(0 0 0 100%)'},354);
+  to('#work-detail',{clipPath:'inset(0 0 0 0%)',ease:'power2.out'},354,11);
+  to('#work-detail',{clipPath:'inset(0 0 0 100%)',ease:'power2.in'},403,8);
+  badge('#notice-change',533,587);
+  badge('#notice-position',593,660);
+  badge('#notice-grasp',778,849);
+  show('#probability',1051,1362);
+  set('#probability',{x:658},1051);
+  to('#probability',{x:0,ease:'power2.out'},1051,26);
+  to('#shot-1051',{scale:.665,ease:'power2.out'},1051,26);
+  show('#all-success',1103,1362);
+  show('#attempt-count',1115,1353);
+  for(let row=0;row<10;row++){
+    to(`#attempt-row-${row} i`,{opacity:.85,ease:'power2.out'},1115+8*row,9);
+  }
+  show('#prob-result',1228,1362);
+  set('#prob-result',{opacity:0,y:8},1228);
+  to('#prob-result',{opacity:1,y:0,ease:'power2.out'},1228,12);
+  set('#prob-number',{opacity:0,y:10},1228);
+  to('#prob-number',{opacity:1,y:0,ease:'power2.out'},1244,12);
+  to('#attempts',{opacity:.31,ease:'power2.out'},1228,16);
+  to('#probability',{x:658,ease:'power2.in'},1342,20);
+  to('#shot-1051',{scale:1,ease:'power2.in'},1342,20);
+  badge('#recover',1537,1628);
+  badge('#intervene',1688,1750);
+  badge('#fixed',1841,1924);
+  show('#digit-detail',2527,2640);
+  set('#digit-detail',{opacity:0,clipPath:'inset(0 0 0 100%)',x:12},2527);
+  to('#digit-detail',{opacity:1,clipPath:'inset(0 0 0 0%)',x:0,ease:'power2.out'},2527,15);
+  set('#digit-detail-video',{y:16},2527);
+  to('#digit-detail-video',{y:-22,ease:'sine.inOut'},2527,29);
+  to('#digit-detail',{opacity:0,clipPath:'inset(0 0 0 100%)',x:8,ease:'power2.in'},2630,10);
+  show('#digit-total',2690,2779);
+  set('#digit-total',{opacity:0,y:12},2690);
+  to('#digit-total',{opacity:1,y:0,ease:'power2.out'},2690,12);
+  set('#digit-total-number',{opacity:0,y:8},2690);
+  to('#digit-total-number',{opacity:1,y:0,ease:'power2.out'},2704,15);
+  to('#digit-total',{opacity:0,y:-6,ease:'power2.in'},2765,14);
+  const clock={progress:0};
+  to(clock,{progress:1,ease:'none'},0,3372);
+  (window.__timelines ||= {})[root.dataset.compositionId]=timeline;
+})();
+</script></body></html>

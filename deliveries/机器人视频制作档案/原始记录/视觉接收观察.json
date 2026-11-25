@@ -1,0 +1,58 @@
+[
+  {
+    "unitId": "u01-backflip",
+    "sceneId": "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+    "projectFrame": 127,
+    "comparisonPath": "../本片资料/u01-backflip-restage.jpg",
+    "observation": "原速和源内回看均可在横画幅保住主体、脚、影子和地线。首镜直接起跳，第二镜解决倒转细节，右上只处理背景水印区域。"
+  },
+  {
+    "unitId": "u02-grasp",
+    "sceneId": "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+    "projectFrame": 374,
+    "comparisonPath": "../本片资料/u02-grasp-restage.jpg",
+    "observation": "Atlas 实拍在同幅可辨手、黑色工件与格状槽；不同厂商管件箱边及相异朝向清晰。取两者作工位概念对照，分镜重新建立装置身份。"
+  },
+  {
+    "unitId": "u03-reliability",
+    "sceneId": "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+    "projectFrame": 1253,
+    "comparisonPath": "../本片资料/u03-reliability-restage.jpg",
+    "observation": "固定箱沿、拾取头及取放方向可辨。把 x/y 比例不同的实拍固定在左边，右侧独立计算，底部源宣传需按 y≤790 裁走。右侧数据不会被当作这套设备的实测。"
+  },
+  {
+    "unitId": "u04-recovery",
+    "sceneId": "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+    "projectFrame": 1455,
+    "comparisonPath": "../本片资料/u04-recovery-restage.jpg",
+    "observation": "原厂镜头左侧实际跟随视角和机械人全身同在，黑件先接近、退开、重新对位、再推进的次序可辨，保护原窗边界并只处理右下宣传字。"
+  },
+  {
+    "unitId": "u05-fixed-arm",
+    "sceneId": "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+    "projectFrame": 1948,
+    "comparisonPath": "../本片资料/u05-fixed-arm-restage.jpg",
+    "observation": "固定底座与倾斜定位板以及拾取头真实空间关系可辨。浅色工位和灰背景双箱用明确切镜组织，取工装右半可避免带回源宣传。"
+  },
+  {
+    "unitId": "u06-humanoid-fit",
+    "sceneId": "scene_de386812-267b-4765-ac2b-d665dab10b84",
+    "projectFrame": 2257,
+    "comparisonPath": "../本片资料/u06-humanoid-fit-restage.jpg",
+    "observation": "人形机器人脚、地板和两侧架台同时在景深里，通过的方向和通道空间能读清。保全双腿和设备的相对运动，不将旁白未来机会说成已落地全部任务。"
+  },
+  {
+    "unitId": "u07-digit",
+    "sceneId": "scene_4f312de6-37c8-4741-86bc-262448e969be",
+    "projectFrame": 2605,
+    "comparisonPath": "../本片资料/digit-restage-15.5.jpg",
+    "observation": "以正式 GXO 源15.5秒试摆，主画面同见红胸15号、蓝箱和工位，右上同源窗口看清夹具扣蓝箱并跟随举起，主景不移。23.5–30.5秒从同一红胸15号与蓝箱认回实际交接，左上累计结果和右侧设备共存。"
+  },
+  {
+    "unitId": "u08-close",
+    "sceneId": "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f",
+    "projectFrame": 3320,
+    "comparisonPath": "../本片资料/u08-close-restage.jpg",
+    "observation": "落地之后切到另一工位真实错位调整，随后再切仓库已有红胸15号的实拍举箱。三个实拍场地各自独立，动作结尾是夹具扣住并提起蓝箱。"
+  }
+]

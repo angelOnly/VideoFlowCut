@@ -2782,7 +2782,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。",
+  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。创意与动效两类采用均须由本片具体场段映射到对应作者的研究原段。前期研究、局部接件和候选设计可按其实际范围登记。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),

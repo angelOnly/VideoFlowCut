@@ -60,7 +60,7 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 
 使用 `record_creative_decision` 登记真实 `assignment_id`、`input_revision`、`object_ids`、`operation_id`。创意与机制分别用 `creative_research` 和 `motion_research`。`research_references` 的每个采用依据写参考类型、编号、`source_sha256`、原片 `start_ms`、`end_ms` 和 `observed_relation`。`evidence` 写明实际观察方式、范围与出处。观察不足可保留 `pending`，其中已确证的具体关系仍可被本场使用。关键关系缺乏依据时退给研究负责人。`researched` 说明该研究范围已完成，`not_applicable` 需要实际考察和放弃理由。仅供学习的候选不算作本片采用。
 
-整场创意研究完成时传 `research_coverage` 的 `overall_visual`、`scene_composition`、`motion_mechanisms` 和 `blocking_questions`；各不适用层次在 `not_applicable_reasons` 中给出对应理由。原创整体设计的依据写入 `evidence`。局部研究可以继续单独引用，正式采用必须关联完成覆盖的创意研究和已完成或有理由不适用的机制研究。
+整场创意研究完成时传 `research_coverage` 的 `overall_visual`、`scene_composition`、`motion_mechanisms` 和 `blocking_questions`；各不适用层次在 `not_applicable_reasons` 中给出对应理由。原创整体设计的依据写入 `evidence`，实际借入的原段另写同一研究决定的 `research_references`。局部研究可以单独引用。正式采用沿用既有创意研究覆盖与机制研究接件要求。某场确有理由 `not_applicable` 可照实登记。完整解说新片首次交 OD 前，整片仍须有已落入同一冻结导演稿的创意原段与动效机制，两类各能追到相应作者的研究决定及本片对象。
 
 采用范围、覆盖结论和未完成项使用原作者实际交付内容。登记只补齐真实身份、版本及明确参数。遇到缺少专业判断或正文不一致时，按协调入口交回原作者处理后提交。
 
@@ -76,9 +76,15 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 
 - 实料试摆成立后，用 accept_draft 提交当前 draftId、本片 projectFrame、可打开的 comparisonPath、具体 observation、作者及输入版本。full_reference 和 local_mechanism 另填有效的 sourceMs。若视觉接件发现主要关系缺失，通过 return_draft 填同一稿、projectFrame、gap 和 impact，适用时同时写 sourceMs。补稿后接新 draftId。
 
+接收观察写出实际看了什么与该证据能证明什么。完整迁移以同一次变化的原片时刻和本片帧位为准。依赖持续、遮挡或交叠的判断附可连续复看的区间。
+
 按 read_production_status 的 unitHandoffs 读同版 draft.id、draft.path、采用方式及接收回执。将正文和实际对照文件通过 prepare_motion_handoff 的 references 下的 files 以及场面 resourceIds 随包交付。在 visualPlan.units 填 mode、creativeDecisionId、creativeDraftId、handoffReceiptId 和 restage。restage 关联同一证据资源和接收帧，完整迁移与局部机制加上原片毫秒。full_reference 使用覆盖单元的 primary 映射，局部机制用 support 标具体动作帧段，自主创作可关联多个实际借用的 support。sequence 的 unitId 及 subjects 对应制作步骤和所用素材。
 
-按[早期叙事记录与正式画面采用](../../production-director/SKILL.md#早期叙事记录与正式画面采用)登记各阶段决定。视觉 `input_decision_ids` 引用实际消费的研究。用 `prepare_motion_handoff` 固定就绪场面后，以 `visual_design` 登记 `delivery_ref` 和对应 `input_revision`。视觉作者确认制作稿、主导演确认文案、制作范围和规格后，记录 `adoption`，再用 `manage_visual_treatment` 的 `action=adopt` 将同次计划、素材和采用写入同一版本。项目或审计记录冲突时读回当前状态，只重新提交受影响的本场。涉及主要演出或必要素材的变化时，续接对应作者并取得当前版本的接件确认。
+冻结前逐个核对画面角色、正式资源文件、视频源范围与对应的本片制作帧。自主稿按当前方式把实际采用的来源记到对应 support 映射。只看过的候选留在研究中。图形角色可以没有视频绑定，实际要出镜的素材角色要对应自己的可用源段。
+
+在 `prepare_motion_handoff` 顶层用 `creative[]` 和 `motion[]` 分别列入本片选中的库项目，每项填 `id`、`sourceSha256`、`usage`、`purpose`。实际采用填 `adopted`。通用 `references[].files[]` 随包冻结创意稿和复摆等资料。每个真正使用原段的场面在 `scenes[].references` 写同类身份、指纹和原段毫秒，在 `scenes[].visualPlan.referenceMappings` 写对应研究决定、单元、角色、本片帧段、处理和保留关系。素材角色及其可用源段进入 `scenes[].visualRoles`，对应演出进入本场 `visualPlan.sequence`。仅作研究的来源照实保留为 `study`。
+
+按[早期叙事记录与正式画面采用](../../production-director/SKILL.md#早期叙事记录与正式画面采用)登记各阶段决定。视觉 `input_decision_ids` 引用实际消费的研究。用 `prepare_motion_handoff` 固定就绪场面后，以 `visual_design` 登记 `delivery_ref` 和对应 `input_revision`。视觉作者确认制作稿、主导演确认素材主体、实际采用与范围规格后，引用同版 `visual_design` 及同一 `delivery_ref` 记录 `adoption`。完整解说新片在整片正式采用与首次开工前，均按该冻结稿核对创意与动效两类实际映射。再用 `manage_visual_treatment` 的 `action=adopt` 将同次计划、素材和采用写入同一版本。项目或审计记录冲突时读回当前状态，只重新提交受影响的本场。涉及主要演出或必要素材的变化时，续接对应作者并取得当前版本的接件确认。
 
 对应 `visualPlan.referenceMappings[]` 用 `researchDecisionId` 指向研究决定，`startMs` 和 `endMs` 选中该决定里实际采用的原片区间；每条就绪映射的 `targetRange` 单独写明本片场面内的非空项目半开帧范围。按类型、编号、来源指纹、原片区间核对场面参考、研究条目与保留关系。一份研究可以支撑多个场面和区间，同一卡分段使用可复用同一决定。切片时间先折算为原片时间。导演的 `adoption` 引用该 `visual_design` 与同一份冻结清单的 `manifest_path`、`manifest_sha256`、`scene_ids`。
 

@@ -95,7 +95,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片的 visualPlan.units 填同版 mode、作者原稿、接收回执、可解码的实料试摆及帧段。仅 full_reference 填覆盖单元的 primary；其他参考使用 support 并标实际帧段。sequence.unitId 关联本片演出。原稿与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面提供完整构图、连续发展、观看中心和制作权限。完整新制与视觉重做用 researchLayers 关联研究。返回清单、缺口和就绪场面的冻结 authorRequest。",
+    description: "按当前快照固定导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场。完整解说新片的 visualPlan.units 填同版 mode、作者原稿、接收回执、可解码的实料试摆及帧段。仅 full_reference 填覆盖单元的 primary；其他参考使用 support 并标实际帧段。sequence.unitId 关联本片演出。原稿与对照文件通过 references 和场面 resourceIds 随包交付。ready 场面提供完整构图、连续发展、观看中心和制作权限。完整新制与视觉重做用 researchLayers 关联研究。返回清单、缺口和就绪场面的冻结 authorRequest。完整解说新片按实际采用在 creative、motion 及对应场面的 referenceMappings 记录两类来源。原稿、复摆等通用附件按各自用途交付。准备交付会返回候选包和缺口，正式整片委托以同版导演稿中的创意与动效实际采用为准。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(),
       production_run_id: z.string().min(1).optional().describe("完整解说新片正式组包须提供当前 Run，逐单元核对视觉接件回执"),
       brief_path: z.string().min(1),
@@ -151,7 +151,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("start_motion_authoring", {
     title: "启动阶段画面制作",
-    description: "完整横屏或竖屏纯解说新片使用 target.action=whole_film，一次发送已采用的整片冻结稿及资料，阶段回件按场接回。新增画面从冻结稿取正文，省略 prompt。局部返修使用范围正文、新幂等键和 continue_from_run_id。",
+    description: "完整横屏或竖屏纯解说新片使用 target.action=whole_film，一次发送已采用的整片冻结稿及资料，阶段回件按场接回。新增画面从冻结稿取正文，省略 prompt。局部返修使用范围正文、新幂等键和 continue_from_run_id。完整解说新片的首次正式委托使用 whole_film。开工前复核同一份全片冻结稿中可追溯的创意采用和动效采用。两类可以在不同场。沿这次委托的同一时钟接回阶段成果。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), production_run_id: z.string().min(1),
       visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), target: motionAuthoringTargetSchema, opendesign_request: motionAuthoringRequestSchema, idempotency_key: z.string().min(1).max(120) }
   }, async ({ project_id, base_revision_id, production_run_id, visual_treatment_ids, target, opendesign_request, idempotency_key }) => { try {

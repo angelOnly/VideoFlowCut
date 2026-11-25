@@ -1,0 +1,1243 @@
+{
+  "scenes": [
+    {
+      "sceneId": "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+      "status": "ready",
+      "process": "从动作预备的真实源段切入。连续让起跳、空中转一圈、双脚落地和直身收势获得足够观看时间。保持源动作完成且地线恒定。 落地收势后保足一段可读时间，用该测试环境另一条确有观看信息的源动作或细节承接后半句。不要用同一次后翻循环填时。",
+      "preserve": [
+        "后空翻动作不由动画替代",
+        "本次新取的不同设备各保身份"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u01-backflip"
+      ],
+      "visualRoles": [
+        {
+          "role": "空翻实拍",
+          "referenceFunction": "观众直接看到飞行和地面接触",
+          "usage": "开场近满幅；保头部、转动空间与落地点。",
+          "assetIds": [
+            "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+              "startMs": 1000,
+              "endMs": 3533
+            },
+            {
+              "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+              "startMs": 3450,
+              "endMs": 7283
+            }
+          ]
+        },
+        {
+          "role": "落地参照",
+          "referenceFunction": "让机器人落地的受力有稳定空间参照",
+          "usage": "保留地面边线和固定环境。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "空翻实拍"
+        ],
+        "units": [
+          {
+            "id": "u01-backflip",
+            "title": "后空翻与落地",
+            "startFrame": 0,
+            "endFrame": 191,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u01-backflip",
+              "projectFrame": 127
+            }
+          }
+        ],
+        "composition": {
+          "opening": "开场即在横屏观察距离内看见机器人与地面，头顶预留翻转空间，双脚所在区域避开字幕带。",
+          "primarySubject": "空翻实拍",
+          "supportingSubjects": [
+            "落地参照"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "空翻实拍",
+                "落地参照"
+              ],
+              "relation": "机器人活动占正中大部分画面，地线是稳定水平参照，画幅边缘给动作留空间。"
+            }
+          ],
+          "textAndGraphics": "开场只保留正常字幕；主体跳起时不上额外大字，地面接触先于下场叙事。",
+          "ending": "落地与收势成立，切到另一地点的工位开阔画面，借地线与箱沿的方向接手观看。"
+        },
+        "sequence": [
+          {
+            "unitId": "u01-backflip",
+            "purpose": "让开场动作完整改变画面",
+            "subjects": [
+              "空翻实拍",
+              "落地参照"
+            ],
+            "action": "从动作预备的真实源段切入。连续让起跳、空中转一圈、双脚落地和直身收势获得足够观看时间。保持源动作完成且地线恒定。",
+            "retainedElements": [
+              "整个身体可辨",
+              "地面接触点"
+            ],
+            "transition": "落地后自然直身或站稳，交给下一段平直工位边线。"
+          },
+          {
+            "unitId": "u01-backflip",
+            "purpose": "用环境变化建立下一段观看任务",
+            "subjects": [
+              "空翻实拍",
+              "落地参照"
+            ],
+            "action": "落地收势后保足一段可读时间，用该测试环境另一条确有观看信息的源动作或细节承接后半句。不要用同一次后翻循环填时。",
+            "retainedElements": [
+              "测试场的真实环境",
+              "空翻已完成的状态"
+            ],
+            "transition": "等旁白提出工作，硬切另一设备和工位。"
+          }
+        ],
+        "attentionPath": [
+          "空翻实拍",
+          "落地参照"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "后空翻动作不由动画替代",
+            "本次新取的不同设备各保身份"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+      "status": "ready",
+      "process": "先保住物料、夹爪和受放的位置，再切入取箱／移件／放件的真实近景；不把不同拍摄拼为同一设备连续实录。 在主要工位持续播放时，右上窗从空位迅速展开，放大原源画面中夹具和零件交会处，两个窗按同一源毫秒同步；小字见到对象改变才进入。只有确实取得重抓片段，才用原镜的失误—再调整—成功过程；没有可见位移时按本段旁白安排可区分的原创线形解释。 让旁白列出的感知、判断、处理在真实工件周边以极简定位框依序落下。关键观看是设备能不能针对变化动作，停靠结果后退回整体继续看实际操作。",
+      "preserve": [
+        "真实工位主体持续，局部和全景不改变源时间轴",
+        "不同现场与设备不被伪装为一个连续事件"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u02-grasp"
+      ],
+      "visualRoles": [
+        {
+          "role": "工位实拍",
+          "referenceFunction": "让箱内零件、末端夹具和放置处可观察",
+          "usage": "优先取建立空间关系的大全景；之后用实际接触镜头。",
+          "assetIds": [
+            "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+            "asset_85d20053-466f-4751-a404-a41b97d59589"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 4100,
+              "endMs": 8467
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 17600,
+              "endMs": 20767
+            },
+            {
+              "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+              "startMs": 9500,
+              "endMs": 12467
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 37100,
+              "endMs": 42367
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 62000,
+              "endMs": 70567
+            }
+          ]
+        },
+        {
+          "role": "同源抓取局部",
+          "referenceFunction": "帮助观众看到夹具末端与工件关系",
+          "usage": "由实际源按同一时钟产生横向裁面。",
+          "assetIds": [
+            "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 4100,
+              "endMs": 8467
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 17600,
+              "endMs": 20767
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 37100,
+              "endMs": 42367
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 62000,
+              "endMs": 70567
+            }
+          ]
+        },
+        {
+          "role": "观察标记与短字",
+          "referenceFunction": "依序帮助读清发现变化、确认位置和调整",
+          "usage": "靠盒沿空位安排，保持整组小于实拍主体。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "工位实拍"
+        ],
+        "units": [
+          {
+            "id": "u02-grasp",
+            "title": "工位里的变化",
+            "startFrame": 191,
+            "endFrame": 921,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u02-grasp",
+              "projectFrame": 374
+            }
+          }
+        ],
+        "composition": {
+          "opening": "另一个工位已经完整入画，先给箱、机械末端及目标工装的相互位置。",
+          "primarySubject": "工位实拍",
+          "supportingSubjects": [
+            "同源抓取局部",
+            "观察标记与短字"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "工位实拍",
+                "同源抓取局部",
+                "观察标记与短字"
+              ],
+              "relation": "工位主画面保持大面积，局部只在右上非主体空区建立，二者使用同一源时间，细标记跟着实际注意点。"
+            }
+          ],
+          "textAndGraphics": "确认对象变化后，顺序使用「发现变化」「重新定位」「调整再抓」。源素材未证明实际算法时，不画内部传感或假的测量数值。",
+          "ending": "实际取放或调整收束，固定箱沿与工件的接触状态仍可辨，下一场从工位再工作的一次动作打开重复概念。"
+        },
+        "sequence": [
+          {
+            "unitId": "u02-grasp",
+            "purpose": "让一个工位任务先说清楚",
+            "subjects": [
+              "工位实拍"
+            ],
+            "action": "先保住物料、夹爪和受放的位置，再切入取箱／移件／放件的真实近景；不把不同拍摄拼为同一设备连续实录。",
+            "retainedElements": [
+              "工作台固定边缘",
+              "真实主体身份"
+            ],
+            "transition": "动作接近工件时转入局部观察。"
+          },
+          {
+            "unitId": "u02-grasp",
+            "purpose": "同时看整体与手边",
+            "subjects": [
+              "工位实拍",
+              "同源抓取局部",
+              "观察标记与短字"
+            ],
+            "action": "在主要工位持续播放时，右上窗从空位迅速展开，放大原源画面中夹具和零件交会处，两个窗按同一源毫秒同步；小字见到对象改变才进入。只有确实取得重抓片段，才用原镜的失误—再调整—成功过程；没有可见位移时按本段旁白安排可区分的原创线形解释。",
+            "retainedElements": [
+              "工位真实持续活动",
+              "窗口以外的固定参照"
+            ],
+            "transition": "字和窗先退，留下原画中的动作结果。"
+          },
+          {
+            "unitId": "u02-grasp",
+            "purpose": "把一次处理交回工序",
+            "subjects": [
+              "工位实拍",
+              "观察标记与短字"
+            ],
+            "action": "让旁白列出的感知、判断、处理在真实工件周边以极简定位框依序落下。关键观看是设备能不能针对变化动作，停靠结果后退回整体继续看实际操作。",
+            "retainedElements": [
+              "真实定位不被图形改写",
+              "夹爪末端可辨"
+            ],
+            "transition": "以开始下一次操作接入概率场。"
+          }
+        ],
+        "attentionPath": [
+          "工位实拍",
+          "同源抓取局部",
+          "观察标记与短字"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "真实工位主体持续，局部和全景不改变源时间轴",
+            "不同现场与设备不被伪装为一个连续事件"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+      "status": "ready",
+      "process": "先让抓、移、放真实完成。实拍仍续的情况下，从右侧边界推出计算区域，先建立「每次 99% · 各次独立」。 右侧先画出10×10轻细格线，再自上而下依次补亮各行计数，已填行保留。显示「连续 100 次全部成功」后，格阵对比降低，依次形成算式和主读大字「约 37%」。字和网格减速落稳后留真实工位同时活动。",
+      "preserve": [
+        "各次独立且每次99%是设例条件",
+        "37%是100次全部成功概率，不是成功件数或工厂实测"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u03-reliability"
+      ],
+      "visualRoles": [
+        {
+          "role": "重复作业实拍",
+          "referenceFunction": "用真实抓移放动作建立何为一次重复",
+          "usage": "保持左侧可见真实接触与移动过程。",
+          "assetIds": [
+            "asset_85d20053-466f-4751-a404-a41b97d59589"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+              "startMs": 8300,
+              "endMs": 12633
+            },
+            {
+              "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+              "startMs": 35100,
+              "endMs": 45467
+            }
+          ]
+        },
+        {
+          "role": "独立概率演算",
+          "referenceFunction": "解释百次全部成功的假设性概率",
+          "usage": "右侧开非实测的计算区，包含条件、百次网格与结果。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "重复作业实拍"
+        ],
+        "units": [
+          {
+            "id": "u03-reliability",
+            "title": "从一次到一百次",
+            "startFrame": 921,
+            "endFrame": 1362,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u03-reliability",
+              "projectFrame": 1253
+            }
+          }
+        ],
+        "composition": {
+          "opening": "真实工位完成一次作业已经可辨，另一轮动作继续；右边还没有概率信息。",
+          "primarySubject": "重复作业实拍",
+          "supportingSubjects": [
+            "独立概率演算"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "重复作业实拍",
+                "独立概率演算"
+              ],
+              "relation": "真实实拍至少占横幅四分之三才开始收至左侧主位置；右侧墨蓝计算板由动作稳定后取得辅助区域，保持两区边界分明。"
+            }
+          ],
+          "textAndGraphics": "「每次 99% · 各次独立」「连续 100 次全部成功」「0.99¹⁰⁰ ≈ 36.6%」「约 37%」。网格的100格均是尝试计数，不能把37格涂成成功样本。",
+          "ending": "实拍拍到工作动作或工件落定；右边约37%供读后整体退出，仍在活动的产线接下一场。"
+        },
+        "sequence": [
+          {
+            "unitId": "u03-reliability",
+            "purpose": "从可辨的一次动作建立独立条件",
+            "subjects": [
+              "重复作业实拍",
+              "独立概率演算"
+            ],
+            "action": "先让抓、移、放真实完成。实拍仍续的情况下，从右侧边界推出计算区域，先建立「每次 99% · 各次独立」。",
+            "retainedElements": [
+              "左侧真实实拍主体持续工作",
+              "计算独立于真实工厂"
+            ],
+            "transition": "下一句建立一百次的计数序列。"
+          },
+          {
+            "unitId": "u03-reliability",
+            "purpose": "逐行建立计数后结算全部成功概率",
+            "subjects": [
+              "重复作业实拍",
+              "独立概率演算"
+            ],
+            "action": "右侧先画出10×10轻细格线，再自上而下依次补亮各行计数，已填行保留。显示「连续 100 次全部成功」后，格阵对比降低，依次形成算式和主读大字「约 37%」。字和网格减速落稳后留真实工位同时活动。",
+            "retainedElements": [
+              "素材与右侧条件持续",
+              "不将计数格转成实测统计"
+            ],
+            "transition": "数字退出后只保留真实作业，接工序的恢复与等待。"
+          }
+        ],
+        "attentionPath": [
+          "重复作业实拍",
+          "独立概率演算"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "各次独立且每次99%是设例条件",
+            "37%是100次全部成功概率，不是成功件数或工厂实测"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+      "status": "ready",
+      "process": "从真正看得见工件位置与夹具的源画面开始，保留困难和再次接触的先后；在可辨位置安排「自动恢复」，不将短剪接冒充内部控制。 硬切至可辨的人员手部或外观独立的另一工序，短字「人工介入」落在观察空区。随后以输送设施或上下游同框来承接需要等待的条件句。",
+      "preserve": [
+        "未证实素材禁止模拟真实故障",
+        "不将不同工位拼成一条实测等待事件"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u04-recovery"
+      ],
+      "visualRoles": [
+        {
+          "role": "真实恢复动作",
+          "referenceFunction": "看出机器人或夹具发生调整并完成结果",
+          "usage": "仅选确实观察成立的原源范围。",
+          "assetIds": [
+            "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 82600,
+              "endMs": 92900
+            }
+          ]
+        },
+        {
+          "role": "真实产线与操作",
+          "referenceFunction": "承接人工介入和流程上下游的观看",
+          "usage": "用不同拍摄的实际操作或真实工序，不冒充同一事件。",
+          "assetIds": [
+            "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+              "startMs": 4250,
+              "endMs": 9050
+            }
+          ]
+        },
+        {
+          "role": "条件短语",
+          "referenceFunction": "为两类处理方式提供短读",
+          "usage": "仅画「自动恢复」「人工介入」，实际界面留足主体面积。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "真实恢复动作"
+        ],
+        "units": [
+          {
+            "id": "u04-recovery",
+            "title": "自动处理与人工介入",
+            "startFrame": 1362,
+            "endFrame": 1815,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u04-recovery",
+              "projectFrame": 1455
+            }
+          }
+        ],
+        "composition": {
+          "opening": "沿工位工作落点切到可观察的原始调整，等观众先看到操作空间和目标。",
+          "primarySubject": "真实恢复动作",
+          "supportingSubjects": [
+            "真实产线与操作",
+            "条件短语"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "真实恢复动作",
+                "真实产线与操作",
+                "条件短语"
+              ],
+              "relation": "处理过程在接近满幅取得细节；人物工序若出现以手部或远景辅助事实，并与前场有清楚切点。"
+            }
+          ],
+          "textAndGraphics": "只在旁白条件成立的范围使用「自动恢复」「人工介入」。没有画面证据时不放告警码、停机时间、产量损失或操作状态。",
+          "ending": "落在输送、工装或作业出口，工序关系仍可辨，随后由固定机械臂的真实工作区域接力。"
+        },
+        "sequence": [
+          {
+            "unitId": "u04-recovery",
+            "purpose": "让一次真实调整能从原因读到结果",
+            "subjects": [
+              "真实恢复动作",
+              "条件短语"
+            ],
+            "action": "从真正看得见工件位置与夹具的源画面开始，保留困难和再次接触的先后；在可辨位置安排「自动恢复」，不将短剪接冒充内部控制。",
+            "retainedElements": [
+              "实际通过的动作",
+              "原片所见及其条件"
+            ],
+            "transition": "处理结束，再切不同场景。"
+          },
+          {
+            "unitId": "u04-recovery",
+            "purpose": "把可能等待留给上下游空间",
+            "subjects": [
+              "真实产线与操作",
+              "条件短语"
+            ],
+            "action": "硬切至可辨的人员手部或外观独立的另一工序，短字「人工介入」落在观察空区。随后以输送设施或上下游同框来承接需要等待的条件句。",
+            "retainedElements": [
+              "可辨的工序去向",
+              "明显不同的原始拍摄身份"
+            ],
+            "transition": "用独立产线或工装位置接到固定机械臂。"
+          }
+        ],
+        "attentionPath": [
+          "真实恢复动作",
+          "真实产线与操作",
+          "条件短语"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "未证实素材禁止模拟真实故障",
+            "不将不同工位拼成一条实测等待事件"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+      "status": "ready",
+      "process": "先交代物料如何进入，工装固定在哪儿，机械臂如何在同一范围内移动。随后切至端部与工件接触。 用实际第二轮或同一资料里的平行动作展示重复，利用盒边或输送输出方向，避免编辑性循环当成新增实证。",
+      "preserve": [
+        "固定机械臂的实际设备工作保持完整",
+        "不同真实素材关系为对照"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u05-fixed-arm"
+      ],
+      "visualRoles": [
+        {
+          "role": "固定机械臂实拍",
+          "referenceFunction": "看清环节已经围绕工作对象被限定",
+          "usage": "至少选一条场地大全景和一条可信可追接触的近景。",
+          "assetIds": [
+            "asset_85d20053-466f-4751-a404-a41b97d59589",
+            "asset_85a895b9-1181-48fe-80c9-a7817ae66896"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+              "startMs": 38600,
+              "endMs": 41067
+            },
+            {
+              "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+              "startMs": 19000,
+              "endMs": 20467
+            },
+            {
+              "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+              "startMs": 20540,
+              "endMs": 23073
+            },
+            {
+              "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+              "startMs": 30000,
+              "endMs": 33167
+            },
+            {
+              "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+              "startMs": 36000,
+              "endMs": 38933
+            }
+          ]
+        },
+        {
+          "role": "工装参照",
+          "referenceFunction": "帮助阅读物料的始末和程序范围",
+          "usage": "原片夹具、围栏或传送带，允许用一条细线标注阅读方向。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "固定机械臂实拍"
+        ],
+        "units": [
+          {
+            "id": "u05-fixed-arm",
+            "title": "固定工位为何稳定",
+            "startFrame": 1815,
+            "endFrame": 2192,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u05-fixed-arm",
+              "projectFrame": 1948
+            }
+          }
+        ],
+        "composition": {
+          "opening": "从前场的出口切到固定机械臂的真实工作空间，至少容许物料入口、机械臂和摆放处被辨认。",
+          "primarySubject": "固定机械臂实拍",
+          "supportingSubjects": [
+            "工装参照"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "固定机械臂实拍",
+                "工装参照"
+              ],
+              "relation": "先看广角路径，再近观夹具或端部，回到能继续辨认同类作业的距离，保持固定位置是画面事实。"
+            }
+          ],
+          "textAndGraphics": "强调只保留「固定工位」或「重复动作」中最能补原画阅读的一项；空间可以自行说清时不再加字。",
+          "ending": "机械臂完成一次动作回到入口或中位，保留其受限作业范围。下段切到另一地点开放通道及双足。"
+        },
+        "sequence": [
+          {
+            "unitId": "u05-fixed-arm",
+            "purpose": "让被预先安排的工位整体可见",
+            "subjects": [
+              "固定机械臂实拍",
+              "工装参照"
+            ],
+            "action": "先交代物料如何进入，工装固定在哪儿，机械臂如何在同一范围内移动。随后切至端部与工件接触。",
+            "retainedElements": [
+              "明确的物料入口和固定参照",
+              "主画面是持续工作的设备"
+            ],
+            "transition": "选取另一次动作直接回到同类工位。"
+          },
+          {
+            "unitId": "u05-fixed-arm",
+            "purpose": "对照一次动作返回重复位置",
+            "subjects": [
+              "固定机械臂实拍",
+              "工装参照"
+            ],
+            "action": "用实际第二轮或同一资料里的平行动作展示重复，利用盒边或输送输出方向，避免编辑性循环当成新增实证。",
+            "retainedElements": [
+              "完整推进与交接",
+              "工装不移动的参照"
+            ],
+            "transition": "下一场切向不同工厂空间的人形通道。"
+          }
+        ],
+        "attentionPath": [
+          "固定机械臂实拍",
+          "工装参照"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "固定机械臂的实际设备工作保持完整",
+            "不同真实素材关系为对照"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_de386812-267b-4765-ac2b-d665dab10b84",
+      "status": "ready",
+      "process": "取机器人真正进入、转身或接近设备的实拍，更新视角带来它如何进入原有空间的新信息。保持全身和地面作为身体用途参照。 用实拍交代边上的现有设备、箱车或摆放位置，未来语境只保留用户原话中的可能条件；镜头退出前留实拍箱体或输送区域。",
+      "preserve": [
+        "设备及案例保留事实身份",
+        "未来情境不表演为已实现的通用能力"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u06-humanoid-fit"
+      ],
+      "visualRoles": [
+        {
+          "role": "人形机器人作业实拍",
+          "referenceFunction": "用双足、通道与设备关系说明复用既有环境",
+          "usage": "先观察宽景时的前后路径，再选取与人用设备并置清晰的素材。",
+          "assetIds": [
+            "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 108000,
+              "endMs": 118767
+            }
+          ]
+        },
+        {
+          "role": "场地线索",
+          "referenceFunction": "让既有通道和工具有明确空间位置",
+          "usage": "使用实际环境边线、真实工位边缘；图形只辅助阅读。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "人形机器人作业实拍"
+        ],
+        "units": [
+          {
+            "id": "u06-humanoid-fit",
+            "title": "让人形进入现有空间",
+            "startFrame": 2192,
+            "endFrame": 2515,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u06-humanoid-fit",
+              "projectFrame": 2257
+            }
+          }
+        ],
+        "composition": {
+          "opening": "切到新的真实空间，保留人形设备的双足和相邻设施，让观众立即辨认这里与固定机械臂工位是不同观察。",
+          "primarySubject": "人形机器人作业实拍",
+          "supportingSubjects": [
+            "场地线索"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "人形机器人作业实拍",
+                "场地线索"
+              ],
+              "relation": "从能看到人形全身和通道的视角开场，再沿它的真实行动方向接到工位边缘或设备局部。"
+            }
+          ],
+          "textAndGraphics": "短语「通道」「工位」只在实际主体不能被辨认时辅助，不增加当前部署对未来能力的断言。",
+          "ending": "实际设备与工作对象能同时辨认，直到“开始交作业”的旁白，由真实 GXO 仓库箱子的横边接入。"
+        },
+        "sequence": [
+          {
+            "unitId": "u06-humanoid-fit",
+            "purpose": "显出形体与环境的关系",
+            "subjects": [
+              "人形机器人作业实拍",
+              "场地线索"
+            ],
+            "action": "取机器人真正进入、转身或接近设备的实拍，更新视角带来它如何进入原有空间的新信息。保持全身和地面作为身体用途参照。",
+            "retainedElements": [
+              "通道轮廓",
+              "机器人的真实动作"
+            ],
+            "transition": "由通道方向接相邻设备或真实作业画面。"
+          },
+          {
+            "unitId": "u06-humanoid-fit",
+            "purpose": "把机会限制在实际可见的场景",
+            "subjects": [
+              "人形机器人作业实拍",
+              "场地线索"
+            ],
+            "action": "用实拍交代边上的现有设备、箱车或摆放位置，未来语境只保留用户原话中的可能条件；镜头退出前留实拍箱体或输送区域。",
+            "retainedElements": [
+              "真实设备和材料",
+              "不同厂商身份"
+            ],
+            "transition": "通过真实箱体方向接入 Digit 明确的仓库场景。"
+          }
+        ],
+        "attentionPath": [
+          "人形机器人作业实拍",
+          "场地线索"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "设备及案例保留事实身份",
+            "未来情境不表演为已实现的通用能力"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    },
+    {
+      "sceneId": "scene_4f312de6-37c8-4741-86bc-262448e969be",
+      "status": "ready",
+      "references": [
+        {
+          "kind": "creative",
+          "id": "122-c02",
+          "sourceSha256": "e8898c61ac13175de828a3c95fd5f24a46c4f99f0d9abc4a90c96a7101480e2a",
+          "startMs": 22500,
+          "endMs": 35400,
+          "purpose": "真实环境先建立，切换观看距离时仍辨认同一对象与去向。"
+        },
+        {
+          "kind": "motion",
+          "id": "001-m07",
+          "sourceSha256": "74ebf4167cb3116c7920fbe2abd9c002f21ffa6c1963cd0a1ce24f1ee730459d",
+          "startMs": 17968,
+          "endMs": 20070,
+          "purpose": "保持活动原画，在侧边并存显示同源细节，随后退回原活动。"
+        }
+      ],
+      "process": "用前一镜可读的箱体轮廓定位进入真实仓库，完整保留画幅横向边线、左侧车与箱、居中的红胸 Digit 和围栏。 用同一毫秒源产生右上细节，以夹具与箱沿同升为观察动作，保留全景自然活动。局部只在举起和站稳阶段存在，随后收回；全局仍看见它向右搬运。 在相机跟摇使主体出画前连贯切接同一真实镜头后部，明确认回红胸 15 号与蓝箱，箱沿和夹具不能被数字遮住。稳定字组在右侧交接过程继续时达到阅读状态。 若声段仍在继续，另起镜头展示通道、搬运线路和输送带，使用官方延时片可辨场地的一段。只说明真实部署，不依据延时估计常速速度或完成率。",
+      "preserve": [
+        "常速跟摇约20.6–21.9秒主体出画，明确跨过该段",
+        "保住实拍主体同源连续，右上窗口与主窗同源同步",
+        "累计数量不表示单台能力，也不由本镜头计数"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u07-digit"
+      ],
+      "visualRoles": [
+        {
+          "role": "Digit 仓库主镜",
+          "referenceFunction": "让 G X O 仓库中的取箱、转身与交接成立",
+          "usage": "常速实拍，两段源约 12.5–19.5 秒与 23.5–31.5 秒。",
+          "assetIds": [
+            "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+              "startMs": 12500,
+              "endMs": 17500
+            },
+            {
+              "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+              "startMs": 23500,
+              "endMs": 30500
+            }
+          ]
+        },
+        {
+          "role": "同源料箱细节",
+          "referenceFunction": "保留实拍环境时读清夹具与箱沿的接触",
+          "usage": "常速源同步放大，持续到提起后再回到主镜。",
+          "assetIds": [
+            "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+              "startMs": 12500,
+              "endMs": 17500
+            },
+            {
+              "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+              "startMs": 23500,
+              "endMs": 30500
+            }
+          ]
+        },
+        {
+          "role": "累计数量字组",
+          "referenceFunction": "准确表示公开累计搬运超过十万个料箱",
+          "usage": "在交接阶段左上采用两行暖白和黄绿色文字。",
+          "assetIds": []
+        },
+        {
+          "role": "实际仓库延时",
+          "referenceFunction": "帮助观众观察多次周转的场地路径",
+          "usage": "只作常速动作后的独立空间观察，不用于测得作业速度。",
+          "assetIds": [
+            "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+              "startMs": 7500,
+              "endMs": 11433
+            }
+          ]
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "Digit 仓库主镜"
+        ],
+        "units": [
+          {
+            "id": "u07-digit",
+            "title": "Digit 真实搬运量",
+            "startFrame": 2515,
+            "endFrame": 2993,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u07-digit",
+              "projectFrame": 2605
+            }
+          }
+        ],
+        "composition": {
+          "opening": "常速仓库主镜从料箱车和围栏共同可见的位置打开，红胸 15 号 Digit 的夹具在蓝箱上沿前运动。",
+          "primarySubject": "Digit 仓库主镜",
+          "supportingSubjects": [
+            "同源料箱细节",
+            "累计数量字组",
+            "实际仓库延时"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "Digit 仓库主镜",
+                "同源料箱细节",
+                "累计数量字组",
+                "实际仓库延时"
+              ],
+              "relation": "放大窗右上 x≈1210，y≈80，宽约650，高约380；主窗轮廓、夹具和蓝箱继续在中部可见。交接取景以蓝箱和 Digit 在画幅右侧为基础，数量在左上。"
+            }
+          ],
+          "textAndGraphics": "交接时左上出现「累计搬运超过」／「10 万个料箱」。暖白行先出现，接黄绿结果行，保持两行一组稳定，局部墨蓝半透明承托，避免挡主体。",
+          "ending": "让实际交接和松手动作还在观看中心，蓝箱留在交接位。随后可切到独立的仓库广角延时再进入更多挑战。"
+        },
+        "sequence": [
+          {
+            "unitId": "u07-digit",
+            "purpose": "先认识真实场地和待搬运对象",
+            "subjects": [
+              "Digit 仓库主镜"
+            ],
+            "action": "用前一镜可读的箱体轮廓定位进入真实仓库，完整保留画幅横向边线、左侧车与箱、居中的红胸 Digit 和围栏。",
+            "retainedElements": [
+              "真实仓库环境",
+              "同一实际料箱与设备可追踪"
+            ],
+            "transition": "确认位置后接右上的夹具细节。"
+          },
+          {
+            "unitId": "u07-digit",
+            "purpose": "工位持续，蓝箱与两端接触近看",
+            "subjects": [
+              "Digit 仓库主镜",
+              "同源料箱细节"
+            ],
+            "action": "用同一毫秒源产生右上细节，以夹具与箱沿同升为观察动作，保留全景自然活动。局部只在举起和站稳阶段存在，随后收回；全局仍看见它向右搬运。",
+            "retainedElements": [
+              "常速实拍时钟",
+              "主要对象完整可见"
+            ],
+            "transition": "局部退后，主体朝右运动，为交接镜头的方向提供参照。"
+          },
+          {
+            "unitId": "u07-digit",
+            "purpose": "以可见交接承托公开累计量",
+            "subjects": [
+              "Digit 仓库主镜",
+              "累计数量字组"
+            ],
+            "action": "在相机跟摇使主体出画前连贯切接同一真实镜头后部，明确认回红胸 15 号与蓝箱，箱沿和夹具不能被数字遮住。稳定字组在右侧交接过程继续时达到阅读状态。",
+            "retainedElements": [
+              "同一可识别对象沿序出现",
+              "累计量跟实际地点明确归属"
+            ],
+            "transition": "数字退出；真实箱到交接位后回身。"
+          },
+          {
+            "unitId": "u07-digit",
+            "purpose": "以广角强调部署范围",
+            "subjects": [
+              "实际仓库延时"
+            ],
+            "action": "若声段仍在继续，另起镜头展示通道、搬运线路和输送带，使用官方延时片可辨场地的一段。只说明真实部署，不依据延时估计常速速度或完成率。",
+            "retainedElements": [
+              "事实范围仍限具体仓储任务",
+              "不同颜色设备不合并成同一台"
+            ],
+            "transition": "从仓库叉口真实直线切去测试场地面，回扣落地。"
+          }
+        ],
+        "attentionPath": [
+          "Digit 仓库主镜",
+          "同源料箱细节",
+          "累计数量字组",
+          "实际仓库延时"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "常速跟摇约20.6–21.9秒主体出画，明确跨过该段",
+            "保住实拍主体同源连续，右上窗口与主窗同源同步",
+            "累计数量不表示单台能力，也不由本镜头计数"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        },
+        "referenceMappings": [
+          {
+            "use": "support",
+            "referenceKind": "creative",
+            "referenceId": "122-c02",
+            "unitId": "u07-digit",
+            "startMs": 22500,
+            "endMs": 35400,
+            "targetRole": "Digit 仓库主镜",
+            "targetRange": {
+              "startFrame": 2515,
+              "endFrame": 2875
+            },
+            "treatment": "先建立实际场地，切换观察距离时继续辨认同一红胸 15 号 Digit、同一蓝箱和去向，沿提箱、行进与交接展开。",
+            "preserveRelation": "宽景先帮助观众认住对象，近区显示细节，随后新视距仍保留对象和去向。"
+          },
+          {
+            "use": "support",
+            "referenceKind": "motion",
+            "referenceId": "001-m07",
+            "unitId": "u07-digit",
+            "startMs": 17968,
+            "endMs": 20070,
+            "targetRole": "同源料箱细节",
+            "targetRange": {
+              "startFrame": 2527,
+              "endFrame": 2640
+            },
+            "treatment": "主镜保留全景和完整时钟，右上独立新增局部窗口，同毫秒放大夹具扣住蓝箱，在提起站稳后局部退出，回到主镜。",
+            "preserveRelation": "原活动层不撤走，小窗给出同一个活动的不同观察距离，两层同时变化，字和局部互不遮挡。"
+          }
+        ]
+      }
+    },
+    {
+      "sceneId": "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f",
+      "status": "ready",
+      "process": "接入同一个新取得的原片落地及收势区间。给真实地面和双脚接触一个可辨动势，结果后立即换到工位。 在工位局部先看呈现位置的物件，再看实际或清楚的调整/恢复案例；找不到对应真实掉落时不刻意伪造，改用当前场地的操作空档接回一次确实发生的抓取。",
+      "preserve": [
+        "落地回扣用本次新取原片",
+        "最后的抓取必须保留真实动作和接触结果"
+      ],
+      "adapt": [
+        "按真实材质和动作微调遮罩边缘",
+        "保持语义落点微调字距及动作曲线"
+      ],
+      "resourceIds": [
+        "u08-close"
+      ],
+      "visualRoles": [
+        {
+          "role": "空翻落地回扣",
+          "referenceFunction": "与开头形成明确的真实动作回环",
+          "usage": "仅用本片新取得的空翻同源落地段。",
+          "assetIds": [
+            "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+              "startMs": 3250,
+              "endMs": 7250
+            }
+          ]
+        },
+        {
+          "role": "工位后续动作",
+          "referenceFunction": "让读者看到一个动作之后还有下一个接触",
+          "usage": "使用已确认的真实工位、失败恢复或读得清的抓取。",
+          "assetIds": [
+            "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+            "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 84500,
+              "endMs": 88367
+            },
+            {
+              "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+              "startMs": 89700,
+              "endMs": 91567
+            },
+            {
+              "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+              "startMs": 12800,
+              "endMs": 15700
+            }
+          ]
+        },
+        {
+          "role": "微量观察强调",
+          "referenceFunction": "把注意力交到摆偏、掉落与下一次拿取的问题",
+          "usage": "不添加问题字幕；只在真实工件上用少量局部线框引导。",
+          "assetIds": []
+        }
+      ],
+      "visualPlan": {
+        "primaryRoles": [
+          "空翻落地回扣"
+        ],
+        "units": [
+          {
+            "id": "u08-close",
+            "title": "落地以后继续拿下一件",
+            "startFrame": 2993,
+            "endFrame": 3372,
+            "mode": "original",
+            "restage": {
+              "resourceId": "u08-close",
+              "projectFrame": 3320
+            }
+          }
+        ],
+        "composition": {
+          "opening": "仓库空间之后硬切回开篇实际测试环境，辨认地线、脚和原设备姿态，短回扣真实落地。",
+          "primarySubject": "空翻落地回扣",
+          "supportingSubjects": [
+            "工位后续动作",
+            "微量观察强调"
+          ],
+          "spatialRelations": [
+            {
+              "roles": [
+                "空翻落地回扣",
+                "工位后续动作",
+                "微量观察强调"
+              ],
+              "relation": "从地面接触换到末端与零件接触；新环境的工装保持稳定，焦点集中在最后要抬起的零件。"
+            }
+          ],
+          "textAndGraphics": "问句由普通字幕呈现，避免再在画内重复。需要引导时只对动作方向与可见对象局部作轻提示。",
+          "ending": "在旁白最后一问中真实夹具夹住并举起下一件，画面留出识别接触和结果的短暂停留。"
+        },
+        "sequence": [
+          {
+            "unitId": "u08-close",
+            "purpose": "短回扣真实落地瞬间",
+            "subjects": [
+              "空翻落地回扣"
+            ],
+            "action": "接入同一个新取得的原片落地及收势区间。给真实地面和双脚接触一个可辨动势，结果后立即换到工位。",
+            "retainedElements": [
+              "测试场身份与前文一致",
+              "实际落地明确"
+            ],
+            "transition": "用接触动作在不同地点之间作意义上的呼应。"
+          },
+          {
+            "unitId": "u08-close",
+            "purpose": "让三个问题走到眼前实际动作",
+            "subjects": [
+              "工位后续动作",
+              "微量观察强调"
+            ],
+            "action": "在工位局部先看呈现位置的物件，再看实际或清楚的调整/恢复案例；找不到对应真实掉落时不刻意伪造，改用当前场地的操作空档接回一次确实发生的抓取。",
+            "retainedElements": [
+              "设备与物件不被字幕盖住",
+              "条件问题和真实案例不混淆"
+            ],
+            "transition": "最后一问以夹具夹住下一件并开始提起收束。"
+          }
+        ],
+        "attentionPath": [
+          "空翻落地回扣",
+          "工位后续动作",
+          "微量观察强调"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "落地回扣用本次新取原片",
+            "最后的抓取必须保留真实动作和接触结果"
+          ],
+          "adjustable": [
+            "在确认的构图和语义区间内调整坐标及曲线",
+            "微调文字边缘、层间交叠和非主体裁面"
+          ],
+          "escalation": "如需更换主体、删减实际研究关系或挪动信息到另一语义段，回提视觉作者。"
+        }
+      }
+    }
+  ],
+  "selected_scene_ids": [
+    "scene_4d8c07f4-f2d0-49b7-8c9b-54014505a889",
+    "scene_9d4442dc-a840-4e02-93bd-a444a6f978fd",
+    "scene_2670eb32-17ba-4fb3-8110-bf95a9583cc5",
+    "scene_fb5e0f44-a8ae-4333-a25b-ae44e071f102",
+    "scene_cee949c8-5f9a-478e-8553-2327927dd4af",
+    "scene_de386812-267b-4765-ac2b-d665dab10b84",
+    "scene_4f312de6-37c8-4741-86bc-262448e969be",
+    "scene_da99698a-a2b6-4691-9a48-ee5ddcc4995f"
+  ]
+}

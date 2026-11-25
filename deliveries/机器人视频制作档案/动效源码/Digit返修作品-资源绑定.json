@@ -1,0 +1,492 @@
+{
+  "work": {
+    "compositing": "opaque",
+    "name": "机器人翻完跟头，能进厂吗？",
+    "props": {},
+    "imageBindings": {},
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 3372,
+    "creativeBrief": "保留同一八场完整根时钟与制作方案。本版仅修订 Digit 仓库右上同源小窗：先由常速主镜建立场地与蓝箱，F2527 开始一次渐入，先降低窗内取景再随蓝箱上提调回，F2640 完全退出，主镜全过程不停。独立视频槽与主镜使用同一源时钟。122-c02 与 001-m07 的关系保留，依据原片静音抽帧核对空间连续、侧窗并存与退出；取景调整依据 Digit 实拍抽帧，非连续声画观测。无其他设计改动；旁白和普通字幕由 VideoFlowCut 外层保留，正式工作台复查按新版登记结果执行。",
+    "videoBindings": {
+      "cut0": {
+        "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+        "sourceStartMs": 1000,
+        "sourceEndMs": 3533,
+        "startFrame": 0,
+        "endFrame": 76
+      },
+      "cut76": {
+        "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+        "sourceStartMs": 3450,
+        "sourceEndMs": 7283,
+        "startFrame": 76,
+        "endFrame": 191
+      },
+      "cut191": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 4100,
+        "sourceEndMs": 8467,
+        "startFrame": 191,
+        "endFrame": 322
+      },
+      "cut322": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 17600,
+        "sourceEndMs": 20767,
+        "startFrame": 322,
+        "endFrame": 417
+      },
+      "cut417": {
+        "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+        "sourceStartMs": 9500,
+        "sourceEndMs": 12467,
+        "startFrame": 417,
+        "endFrame": 506
+      },
+      "cut506": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 37100,
+        "sourceEndMs": 42367,
+        "startFrame": 506,
+        "endFrame": 664
+      },
+      "cut664": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 62000,
+        "sourceEndMs": 70567,
+        "startFrame": 664,
+        "endFrame": 921
+      },
+      "cut921": {
+        "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+        "sourceStartMs": 8300,
+        "sourceEndMs": 12633,
+        "startFrame": 921,
+        "endFrame": 1051
+      },
+      "cut1051": {
+        "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+        "sourceStartMs": 35100,
+        "sourceEndMs": 45467,
+        "startFrame": 1051,
+        "endFrame": 1362
+      },
+      "cut1362": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 82600,
+        "sourceEndMs": 92900,
+        "startFrame": 1362,
+        "endFrame": 1671
+      },
+      "cut1671": {
+        "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+        "sourceStartMs": 4250,
+        "sourceEndMs": 9050,
+        "startFrame": 1671,
+        "endFrame": 1815
+      },
+      "cut1815": {
+        "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+        "sourceStartMs": 38600,
+        "sourceEndMs": 41067,
+        "startFrame": 1815,
+        "endFrame": 1889
+      },
+      "cut1889": {
+        "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+        "sourceStartMs": 19000,
+        "sourceEndMs": 20467,
+        "startFrame": 1889,
+        "endFrame": 1933
+      },
+      "cut1933": {
+        "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+        "sourceStartMs": 20540,
+        "sourceEndMs": 23073,
+        "startFrame": 1933,
+        "endFrame": 2009
+      },
+      "cut2009": {
+        "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+        "sourceStartMs": 30000,
+        "sourceEndMs": 33167,
+        "startFrame": 2009,
+        "endFrame": 2104
+      },
+      "cut2104": {
+        "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+        "sourceStartMs": 36000,
+        "sourceEndMs": 38933,
+        "startFrame": 2104,
+        "endFrame": 2192
+      },
+      "cut2192": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 108000,
+        "sourceEndMs": 118767,
+        "startFrame": 2192,
+        "endFrame": 2515
+      },
+      "cut2515": {
+        "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+        "sourceStartMs": 12500,
+        "sourceEndMs": 17500,
+        "startFrame": 2515,
+        "endFrame": 2665
+      },
+      "cut2665": {
+        "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+        "sourceStartMs": 23500,
+        "sourceEndMs": 30500,
+        "startFrame": 2665,
+        "endFrame": 2875
+      },
+      "cut2875": {
+        "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+        "sourceStartMs": 7500,
+        "sourceEndMs": 11433,
+        "startFrame": 2875,
+        "endFrame": 2993
+      },
+      "cut2993": {
+        "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+        "sourceStartMs": 3250,
+        "sourceEndMs": 7250,
+        "startFrame": 2993,
+        "endFrame": 3113
+      },
+      "cut3113": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 84500,
+        "sourceEndMs": 88367,
+        "startFrame": 3113,
+        "endFrame": 3229
+      },
+      "cut3229": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 89700,
+        "sourceEndMs": 91567,
+        "startFrame": 3229,
+        "endFrame": 3285
+      },
+      "cut3285": {
+        "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+        "sourceStartMs": 12800,
+        "sourceEndMs": 15700,
+        "startFrame": 3285,
+        "endFrame": 3372
+      },
+      "digitDetail": {
+        "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+        "sourceStartMs": 12900,
+        "sourceEndMs": 16667,
+        "startFrame": 2527,
+        "endFrame": 2640
+      },
+      "workDetail": {
+        "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+        "sourceStartMs": 17600,
+        "sourceEndMs": 20767,
+        "startFrame": 322,
+        "endFrame": 417
+      }
+    },
+    "fontBindings": {
+      "title": "noto-sans-sc-bold"
+    }
+  },
+  "boundImages": [],
+  "boundVideos": [
+    {
+      "slot": "cut0",
+      "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+      "managedPath": "../本片资料/unitree-backflip-bili-2.mp4",
+      "hash": "b6c6347d4c15c443c0940fe1e2b20c99a7f7ea24c205f3e705f8850b45c0f4d4",
+      "sourceStartMs": 1000,
+      "sourceEndMs": 3533,
+      "startFrame": 0,
+      "endFrame": 76
+    },
+    {
+      "slot": "cut76",
+      "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+      "managedPath": "../本片资料/unitree-backflip-bili-2.mp4",
+      "hash": "b6c6347d4c15c443c0940fe1e2b20c99a7f7ea24c205f3e705f8850b45c0f4d4",
+      "sourceStartMs": 3450,
+      "sourceEndMs": 7283,
+      "startFrame": 76,
+      "endFrame": 191
+    },
+    {
+      "slot": "cut191",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 4100,
+      "sourceEndMs": 8467,
+      "startFrame": 191,
+      "endFrame": 322
+    },
+    {
+      "slot": "cut322",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 17600,
+      "sourceEndMs": 20767,
+      "startFrame": 322,
+      "endFrame": 417
+    },
+    {
+      "slot": "cut417",
+      "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+      "managedPath": "../本片资料/ur-scape.mp4",
+      "hash": "69d4ef1bd7a3e89f030f84a67b28ad3a7adf715247a71768609acd7fc7af3a8a",
+      "sourceStartMs": 9500,
+      "sourceEndMs": 12467,
+      "startFrame": 417,
+      "endFrame": 506
+    },
+    {
+      "slot": "cut506",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 37100,
+      "sourceEndMs": 42367,
+      "startFrame": 506,
+      "endFrame": 664
+    },
+    {
+      "slot": "cut664",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 62000,
+      "sourceEndMs": 70567,
+      "startFrame": 664,
+      "endFrame": 921
+    },
+    {
+      "slot": "cut921",
+      "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+      "managedPath": "../本片资料/ur-scape.mp4",
+      "hash": "69d4ef1bd7a3e89f030f84a67b28ad3a7adf715247a71768609acd7fc7af3a8a",
+      "sourceStartMs": 8300,
+      "sourceEndMs": 12633,
+      "startFrame": 921,
+      "endFrame": 1051
+    },
+    {
+      "slot": "cut1051",
+      "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+      "managedPath": "../本片资料/ur-scape.mp4",
+      "hash": "69d4ef1bd7a3e89f030f84a67b28ad3a7adf715247a71768609acd7fc7af3a8a",
+      "sourceStartMs": 35100,
+      "sourceEndMs": 45467,
+      "startFrame": 1051,
+      "endFrame": 1362
+    },
+    {
+      "slot": "cut1362",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 82600,
+      "sourceEndMs": 92900,
+      "startFrame": 1362,
+      "endFrame": 1671
+    },
+    {
+      "slot": "cut1671",
+      "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+      "managedPath": "../本片资料/digit-timelapse-official.mp4",
+      "hash": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+      "sourceStartMs": 4250,
+      "sourceEndMs": 9050,
+      "startFrame": 1671,
+      "endFrame": 1815
+    },
+    {
+      "slot": "cut1815",
+      "assetId": "asset_85d20053-466f-4751-a404-a41b97d59589",
+      "managedPath": "../本片资料/ur-scape.mp4",
+      "hash": "69d4ef1bd7a3e89f030f84a67b28ad3a7adf715247a71768609acd7fc7af3a8a",
+      "sourceStartMs": 38600,
+      "sourceEndMs": 41067,
+      "startFrame": 1815,
+      "endFrame": 1889
+    },
+    {
+      "slot": "cut1889",
+      "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+      "managedPath": "../本片资料/ur-kit.mp4",
+      "hash": "e89392046e53532ed5c161b3ce12458e74c396a9b19f38abab1c0d789b0e6420",
+      "sourceStartMs": 19000,
+      "sourceEndMs": 20467,
+      "startFrame": 1889,
+      "endFrame": 1933
+    },
+    {
+      "slot": "cut1933",
+      "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+      "managedPath": "../本片资料/ur-kit.mp4",
+      "hash": "e89392046e53532ed5c161b3ce12458e74c396a9b19f38abab1c0d789b0e6420",
+      "sourceStartMs": 20540,
+      "sourceEndMs": 23073,
+      "startFrame": 1933,
+      "endFrame": 2009
+    },
+    {
+      "slot": "cut2009",
+      "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+      "managedPath": "../本片资料/ur-kit.mp4",
+      "hash": "e89392046e53532ed5c161b3ce12458e74c396a9b19f38abab1c0d789b0e6420",
+      "sourceStartMs": 30000,
+      "sourceEndMs": 33167,
+      "startFrame": 2009,
+      "endFrame": 2104
+    },
+    {
+      "slot": "cut2104",
+      "assetId": "asset_85a895b9-1181-48fe-80c9-a7817ae66896",
+      "managedPath": "../本片资料/ur-kit.mp4",
+      "hash": "e89392046e53532ed5c161b3ce12458e74c396a9b19f38abab1c0d789b0e6420",
+      "sourceStartMs": 36000,
+      "sourceEndMs": 38933,
+      "startFrame": 2104,
+      "endFrame": 2192
+    },
+    {
+      "slot": "cut2192",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 108000,
+      "sourceEndMs": 118767,
+      "startFrame": 2192,
+      "endFrame": 2515
+    },
+    {
+      "slot": "cut2515",
+      "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+      "managedPath": "../本片资料/agility-gxo-official.mp4",
+      "hash": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "sourceStartMs": 12500,
+      "sourceEndMs": 17500,
+      "startFrame": 2515,
+      "endFrame": 2665
+    },
+    {
+      "slot": "cut2665",
+      "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+      "managedPath": "../本片资料/agility-gxo-official.mp4",
+      "hash": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "sourceStartMs": 23500,
+      "sourceEndMs": 30500,
+      "startFrame": 2665,
+      "endFrame": 2875
+    },
+    {
+      "slot": "cut2875",
+      "assetId": "asset_f1267ea1-a616-4930-b1f5-3d7a87aafd8c",
+      "managedPath": "../本片资料/digit-timelapse-official.mp4",
+      "hash": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+      "sourceStartMs": 7500,
+      "sourceEndMs": 11433,
+      "startFrame": 2875,
+      "endFrame": 2993
+    },
+    {
+      "slot": "cut2993",
+      "assetId": "asset_83590dd1-5eec-4103-9a94-28fdd8f3ea38",
+      "managedPath": "../本片资料/unitree-backflip-bili-2.mp4",
+      "hash": "b6c6347d4c15c443c0940fe1e2b20c99a7f7ea24c205f3e705f8850b45c0f4d4",
+      "sourceStartMs": 3250,
+      "sourceEndMs": 7250,
+      "startFrame": 2993,
+      "endFrame": 3113
+    },
+    {
+      "slot": "cut3113",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 84500,
+      "sourceEndMs": 88367,
+      "startFrame": 3113,
+      "endFrame": 3229
+    },
+    {
+      "slot": "cut3229",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 89700,
+      "sourceEndMs": 91567,
+      "startFrame": 3229,
+      "endFrame": 3285
+    },
+    {
+      "slot": "cut3285",
+      "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+      "managedPath": "../本片资料/agility-gxo-official.mp4",
+      "hash": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "sourceStartMs": 12800,
+      "sourceEndMs": 15700,
+      "startFrame": 3285,
+      "endFrame": 3372
+    },
+    {
+      "slot": "digitDetail",
+      "assetId": "asset_9fc259bf-2268-40c6-8a3e-0bfe8d45a427",
+      "managedPath": "../本片资料/agility-gxo-official.mp4",
+      "hash": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+      "sourceStartMs": 12900,
+      "sourceEndMs": 16667,
+      "startFrame": 2527,
+      "endFrame": 2640
+    },
+    {
+      "slot": "workDetail",
+      "assetId": "asset_d3062e9b-4324-4933-a92f-cbd89f9c0cf3",
+      "managedPath": "../本片资料/atlas-hands-on-official.mp4",
+      "hash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+      "sourceStartMs": 17600,
+      "sourceEndMs": 20767,
+      "startFrame": 322,
+      "endFrame": 417
+    }
+  ],
+  "boundFonts": [
+    {
+      "slot": "title",
+      "fontId": "noto-sans-sc-bold",
+      "hash": "c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "family": "VFC_c6cb5a93abaa9edc8ee7463b7ebb7f42d618d40e6ed2f7a5371c97b0b64767c0",
+      "weight": 700,
+      "style": "normal"
+    }
+  ],
+  "sourceDisplay": {
+    "policy": {
+      "mode": "internal_only"
+    },
+    "scopeId": "project_f01a5cc6-45b7-4572-92ca-551dea36f765"
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 3372
+    }
+  ],
+  "author": {
+    "project": "robot-factory-new-f01a5cc6",
+    "run_id": "d63213dd-9a43-44c2-aba7-4cdb68147db2",
+    "frozen_version": "d63213dd-9a43-44c2-aba7-4cdb68147db2_6a06c120404a03134e1673bf59a1fb6ded3cc80ab6df30b81d00b36b3a86197b"
+  },
+  "version": "b896ebb87017dd99c63fc62636a03671d0ee44cb2552bc450685a1788a0701d3",
+  "engineVersion": "managed-hyperframes-4"
+}
