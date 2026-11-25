@@ -30,7 +30,7 @@
     "plugin:build-runtime": "node plugins/videoflowcut/scripts/build-runtime.mjs",
     "plugin:verify": "node plugins/videoflowcut/scripts/verify-plugin.mjs",
     "plugin:verify-installed": "node scripts/verify-codex-mcp-registration.mjs",
-    "plugin:deploy": "node scripts/verify-plugin-deployment.mjs",
+    "plugin:deploy": "node scripts/deploy-plugin.mjs",
     "plugin:e2e": "node plugins/videoflowcut/scripts/plugin-e2e.mjs",
     "plugin:reload-e2e": "node plugins/videoflowcut/scripts/mcp-reload-e2e.mjs",
     "test": "tsx --test tests/**/*.test.ts tests/*.test.mjs",

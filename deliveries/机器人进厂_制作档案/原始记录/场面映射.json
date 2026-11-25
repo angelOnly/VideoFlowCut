@@ -1,0 +1,1188 @@
+[
+  {
+    "sceneId": "scene_1f1a4410-a04f-4229-8f0a-298a5b9a5ef2",
+    "visualPlan": {
+      "primaryRoles": [
+        "后空翻实拍"
+      ],
+      "units": [
+        {
+          "id": "robot-unit-1",
+          "title": "一次后空翻",
+          "startFrame": 0,
+          "endFrame": 202,
+          "mode": "full_reference",
+          "creativeDecisionId": "creative_decision_7961c067-d651-4258-af5b-d1321e65e1e1",
+          "creativeDraftId": "unit_draft_533240d1-8e22-4684-88e5-41fec2b704da",
+          "handoffReceiptId": "unit_receipt_2c9f4c89-2ec5-4855-8727-f3c05f8e3d9a",
+          "restage": {
+            "resourceId": "compare-scene-1",
+            "sourceMs": 2200,
+            "projectFrame": 106
+          }
+        }
+      ],
+      "researchLayers": [
+        {
+          "level": "overallVisual",
+          "researchDecisionId": "creative_decision_7961c067-d651-4258-af5b-d1321e65e1e1",
+          "designExcerpt": "横屏1920×1080，30fps，根帧 F0–3458。深钢蓝 #101820、暖灰白 #ECE8DC、车间橙 #FF9950。"
+        },
+        {
+          "level": "sceneComposition",
+          "researchDecisionId": "creative_decision_7961c067-d651-4258-af5b-d1321e65e1e1",
+          "designExcerpt": "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。"
+        },
+        {
+          "level": "motionMechanisms",
+          "researchDecisionId": "creative_decision_7961c067-d651-4258-af5b-d1321e65e1e1",
+          "designExcerpt": "起跳、空中翻转和落地保留连续，空中最高点沿源幅构图；触地时身体下沉可见，局部子窗从后翻全景的非动作区带出原源落地细节，并在完整落稳后才收回。保留原声 10.60–11.10s 的脚落地，按实际接触校正。"
+        }
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "130-c01",
+          "referenceKind": "creative",
+          "unitId": "robot-unit-1",
+          "use": "primary",
+          "researchDecisionId": "creative_decision_7961c067-d651-4258-af5b-d1321e65e1e1",
+          "startMs": 0,
+          "endMs": 10500,
+          "targetRole": "后空翻实拍",
+          "treatment": "母图保持上下文，箱口子幅进入并接手。",
+          "preserveRelation": "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。",
+          "targetRange": {
+            "startFrame": 0,
+            "endFrame": 202
+          }
+        }
+      ],
+      "composition": {
+        "opening": "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。",
+        "primarySubject": "后空翻实拍",
+        "supportingSubjects": [
+          "架口预示"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "后空翻实拍",
+              "架口预示"
+            ],
+            "relation": "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。"
+          }
+        ],
+        "textAndGraphics": "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。",
+        "ending": "Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。"
+      },
+      "sequence": [
+        {
+          "unitId": "robot-unit-1",
+          "purpose": "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。",
+          "subjects": [
+            "后空翻实拍",
+            "架口预示"
+          ],
+          "action": "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。",
+          "retainedElements": [],
+          "transition": "起跳、空中翻转和落地保留连续，空中最高点沿源幅构图；触地时身体下沉可见，局部子窗从后翻全景的非动作区带出原源落地细节，并在完整落稳后才收回。保留原声 10.60–11.10s 的脚落地，按实际接触校正。"
+        },
+        {
+          "unitId": "robot-unit-1",
+          "purpose": "起跳、空中翻转和落地保留连续，空中最高点沿源幅构图；触地时身体下沉可见，局部子窗从后翻全景的非动作区带出原源落地细节，并在完整落稳后才收回。保留原声 10.60–11.10s 的脚落地，按实际接触校正。",
+          "subjects": [
+            "后空翻实拍"
+          ],
+          "action": "起跳、空中翻转和落地保留连续，空中最高点沿源幅构图；触地时身体下沉可见，局部子窗从后翻全景的非动作区带出原源落地细节，并在完整落稳后才收回。保留原声 10.60–11.10s 的脚落地，按实际接触校正。",
+          "retainedElements": [],
+          "transition": "Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。"
+        },
+        {
+          "unitId": "robot-unit-1",
+          "purpose": "Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。",
+          "subjects": [
+            "架口预示"
+          ],
+          "action": "Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。",
+          "retainedElements": [],
+          "transition": "Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。"
+        }
+      ],
+      "attentionPath": [
+        "Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。",
+        "Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "F0–80。Atlas 带地面满幅进入。第一次强调‘后空翻’时保留完整主体与脚边水平线。\n\nF80–161。起跳、空中翻转和落地保留连续，空中最高点沿源幅构图；触地时身体下沉可见，局部子窗从后翻全景的非动作区带出原源落地细节，并在完整落稳后才收回。保留原声 10.60–11.10s 的脚落地，按实际接触校正。\n\nF161–202。Atlas 主窗依然活动。将 hands 工位架口放在右侧无遮挡区，从窄子窗越边扩到下一场的宽镜；箱沿与地面使用同方向横线贯穿接点。"
+        ],
+        "adjustable": [
+          "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。"
+        ],
+        "escalation": "源动作、锁定文案或场间接点出现偏差时回提视觉与导演。"
+      }
+    },
+    "references": [
+      {
+        "id": "130-c01",
+        "startMs": 0,
+        "endMs": 10500
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "后空翻实拍",
+        "assets": [
+          {
+            "assetId": "asset_1abefa1c-af49-44e5-8ef8-3f715c335638",
+            "file": "../素材/实拍/air.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 6267,
+                "endMs": 13000,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "架口预示",
+        "assets": [
+          {
+            "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+            "file": "../素材/实拍/hands.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 6600,
+                "endMs": 8200,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sceneId": "scene_e77636e2-8646-419d-9a06-f4151aad8592",
+    "visualPlan": {
+      "primaryRoles": [
+        "工位宽镜与罩件对位"
+      ],
+      "units": [
+        {
+          "id": "robot-unit-2",
+          "title": "伸手之后",
+          "startFrame": 202,
+          "endFrame": 1087,
+          "mode": "full_reference",
+          "creativeDecisionId": "creative_decision_be3ae15a-f6f8-4313-a2bb-7cf8ddafa474",
+          "creativeDraftId": "unit_draft_bf60d573-5f74-4be4-996f-f964855348fa",
+          "handoffReceiptId": "unit_receipt_1e23106d-b94d-4712-b64e-07c1ca98c481",
+          "restage": {
+            "resourceId": "compare-scene-2",
+            "sourceMs": 30870,
+            "projectFrame": 521
+          }
+        }
+      ],
+      "researchLayers": [
+        {
+          "level": "overallVisual",
+          "researchDecisionId": "creative_decision_be3ae15a-f6f8-4313-a2bb-7cf8ddafa474",
+          "designExcerpt": "横屏1920×1080，30fps，根帧 F0–3458。深钢蓝 #101820、暖灰白 #ECE8DC、车间橙 #FF9950。"
+        },
+        {
+          "level": "sceneComposition",
+          "researchDecisionId": "creative_decision_be3ae15a-f6f8-4313-a2bb-7cf8ddafa474",
+          "designExcerpt": "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。"
+        },
+        {
+          "level": "motionMechanisms",
+          "researchDecisionId": "creative_decision_be3ae15a-f6f8-4313-a2bb-7cf8ddafa474",
+          "designExcerpt": "Mech-Mind 作为独立工位近景，从架口边界接出；旁白说‘伸手’时读得到夹爪入箱，不把不同机器串成一次进出。"
+        }
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "122-c02",
+          "referenceKind": "creative",
+          "unitId": "robot-unit-2",
+          "use": "primary",
+          "researchDecisionId": "creative_decision_be3ae15a-f6f8-4313-a2bb-7cf8ddafa474",
+          "startMs": 18130,
+          "endMs": 46700,
+          "targetRole": "工位宽镜与罩件对位",
+          "treatment": "工位实景、目标聚光、恢复动作、回读。",
+          "preserveRelation": "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。",
+          "targetRange": {
+            "startFrame": 202,
+            "endFrame": 1087
+          }
+        },
+        {
+          "referenceId": "032-m09",
+          "referenceKind": "motion",
+          "unitId": "robot-unit-2",
+          "use": "support",
+          "researchDecisionId": "creative_decision_1318f32e-410b-4202-bea6-9aef4219264a",
+          "startMs": 7400,
+          "endMs": 9070,
+          "targetRole": "工位宽镜与罩件对位",
+          "treatment": "退出窄视线后恢复实际持件、退出、换角、向架口重新送入，在‘再判断／调整’处让同源清晰窗收左、外围退虚，窄线扫过罩口后贴着真实轮廓。采用 032-m09 7400–9070ms 做这一局部；不表现掉件、内部传感器输出或真实故障。",
+          "preserveRelation": "退出窄视线后恢复实际持件、退出、换角、向架口重新送入，在‘再判断／调整’处让同源清晰窗收左、外围退虚，窄线扫过罩口后贴着真实轮廓。采用 032-m09 7400–9070ms 做这一局部；不表现掉件、内部传感器输出或真实故障。",
+          "targetRange": {
+            "startFrame": 560,
+            "endFrame": 853
+          }
+        }
+      ],
+      "composition": {
+        "opening": "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。",
+        "primarySubject": "工位宽镜与罩件对位",
+        "supportingSubjects": [
+          "箱中随机抓取",
+          "BMW 工位并列"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "工位宽镜与罩件对位",
+              "箱中随机抓取",
+              "BMW 工位并列"
+            ],
+            "relation": "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。"
+          }
+        ],
+        "textAndGraphics": "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。",
+        "ending": "在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。"
+      },
+      "sequence": [
+        {
+          "unitId": "robot-unit-2",
+          "purpose": "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。",
+          "subjects": [
+            "工位宽镜与罩件对位",
+            "箱中随机抓取",
+            "BMW 工位并列"
+          ],
+          "action": "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。",
+          "retainedElements": [],
+          "transition": "Mech-Mind 作为独立工位近景，从架口边界接出；旁白说‘伸手’时读得到夹爪入箱，不把不同机器串成一次进出。"
+        },
+        {
+          "unitId": "robot-unit-2",
+          "purpose": "Mech-Mind 作为独立工位近景，从架口边界接出；旁白说‘伸手’时读得到夹爪入箱，不把不同机器串成一次进出。",
+          "subjects": [
+            "箱中随机抓取"
+          ],
+          "action": "Mech-Mind 作为独立工位近景，从架口边界接出；旁白说‘伸手’时读得到夹爪入箱，不把不同机器串成一次进出。",
+          "retainedElements": [],
+          "transition": "罩件与架口首次接触前保留画面参照，约源82.667s 对接阶段作8–10帧停顿，周缘压暗、物件不降亮。短琥珀虚线由手夹点止于实物相交处，画面只用于指视线。"
+        },
+        {
+          "unitId": "robot-unit-2",
+          "purpose": "罩件与架口首次接触前保留画面参照，约源82.667s 对接阶段作8–10帧停顿，周缘压暗、物件不降亮。短琥珀虚线由手夹点止于实物相交处，画面只用于指视线。",
+          "subjects": [
+            "工位宽镜与罩件对位"
+          ],
+          "action": "罩件与架口首次接触前保留画面参照，约源82.667s 对接阶段作8–10帧停顿，周缘压暗、物件不降亮。短琥珀虚线由手夹点止于实物相交处，画面只用于指视线。",
+          "retainedElements": [],
+          "transition": "退出窄视线后恢复实际持件、退出、换角、向架口重新送入，在‘再判断／调整’处让同源清晰窗收左、外围退虚，窄线扫过罩口后贴着真实轮廓。采用 032-m09 7400–9070ms 做这一局部；不表现掉件、内部传感器输出或真实故障。"
+        },
+        {
+          "unitId": "robot-unit-2",
+          "purpose": "退出窄视线后恢复实际持件、退出、换角、向架口重新送入，在‘再判断／调整’处让同源清晰窗收左、外围退虚，窄线扫过罩口后贴着真实轮廓。采用 032-m09 7400–9070ms 做这一局部；不表现掉件、内部传感器输出或真实故障。",
+          "subjects": [
+            "工位宽镜与罩件对位"
+          ],
+          "action": "退出窄视线后恢复实际持件、退出、换角、向架口重新送入，在‘再判断／调整’处让同源清晰窗收左、外围退虚，窄线扫过罩口后贴着真实轮廓。采用 032-m09 7400–9070ms 做这一局部；不表现掉件、内部传感器输出或真实故障。",
+          "retainedElements": [],
+          "transition": "另开 Mech-Mind 窗，保留实拍随机来料位置，从窗口边缘接过上一场橙线，随后给 BMW 工位接权。"
+        },
+        {
+          "unitId": "robot-unit-2",
+          "purpose": "另开 Mech-Mind 窗，保留实拍随机来料位置，从窗口边缘接过上一场橙线，随后给 BMW 工位接权。",
+          "subjects": [
+            "箱中随机抓取"
+          ],
+          "action": "另开 Mech-Mind 窗，保留实拍随机来料位置，从窗口边缘接过上一场橙线，随后给 BMW 工位接权。",
+          "retainedElements": [],
+          "transition": "在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。"
+        },
+        {
+          "unitId": "robot-unit-2",
+          "purpose": "在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。",
+          "subjects": [
+            "BMW 工位并列"
+          ],
+          "action": "在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。",
+          "retainedElements": [],
+          "transition": "在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。"
+        }
+      ],
+      "attentionPath": [
+        "承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。",
+        "在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "F202–338。承上场架口子窗，同源时钟延续至7967ms 后扩满建立 Atlas、物件和架口，先给宽镜，空间关系成立后才切下一件取料。\n\nF338–437。Mech-Mind 作为独立工位近景，从架口边界接出；旁白说‘伸手’时读得到夹爪入箱，不把不同机器串成一次进出。\n\nF437–560。罩件与架口首次接触前保留画面参照，约源82.667s 对接阶段作8–10帧停顿，周缘压暗、物件不降亮。短琥珀虚线由手夹点止于实物相交处，画面只用于指视线。\n\nF560–853。退出窄视线后恢复实际持件、退出、换角、向架口重新送入，在‘再判断／调整’处让同源清晰窗收左、外围退虚，窄线扫过罩口后贴着真实轮廓。采用 032-m09 7400–9070ms 做这一局部；不表现掉件、内部传感器输出或真实故障。\n\nF853–949。另开 Mech-Mind 窗，保留实拍随机来料位置，从窗口边缘接过上一场橙线，随后给 BMW 工位接权。\n\nF949–1087。在深钢蓝上继续播放 BMW 落件及同类工位动作，重整视觉主次为左侧短语‘发现位置变化／重新对位’与右侧实际工位窗；之后以实体动作收接连续仓储作业。"
+        ],
+        "adjustable": [
+          "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。"
+        ],
+        "escalation": "源动作、锁定文案或场间接点出现偏差时回提视觉与导演。"
+      }
+    },
+    "references": [
+      {
+        "id": "122-c02",
+        "startMs": 18130,
+        "endMs": 46700
+      },
+      {
+        "id": "032-m09",
+        "startMs": 7400,
+        "endMs": 9070
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "工位宽镜与罩件对位",
+        "assets": [
+          {
+            "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+            "file": "../素材/实拍/hands.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 6600,
+                "endMs": 93900,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "箱中随机抓取",
+        "assets": [
+          {
+            "assetId": "asset_4199dd15-49c4-4bfc-b36d-aaea6ca724d5",
+            "file": "../素材/实拍/pick.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 3600,
+                "endMs": 20600,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "BMW 工位并列",
+        "assets": [
+          {
+            "assetId": "asset_6fc79752-6a34-4aff-b9ef-25c76c094daf",
+            "file": "../素材/实拍/BMW_Clip_Wide.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 6767,
+                "endMs": 11367,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sceneId": "scene_53cac2e9-ba58-486a-b6ee-6a46fa380c1e",
+    "visualPlan": {
+      "primaryRoles": [
+        "仓储反复作业"
+      ],
+      "units": [
+        {
+          "id": "robot-unit-3",
+          "title": "一百次都成功",
+          "startFrame": 1087,
+          "endFrame": 1871,
+          "mode": "full_reference",
+          "creativeDecisionId": "creative_decision_24409c72-a163-4277-8f6e-8187938888dc",
+          "creativeDraftId": "unit_draft_c08585d5-9237-4382-9355-e439b0fb839b",
+          "handoffReceiptId": "unit_receipt_a9cb2c0c-bf35-4bdc-b73c-398f09beec38",
+          "restage": {
+            "resourceId": "compare-scene-3",
+            "sourceMs": 6967,
+            "projectFrame": 1214
+          }
+        }
+      ],
+      "researchLayers": [
+        {
+          "level": "overallVisual",
+          "researchDecisionId": "creative_decision_24409c72-a163-4277-8f6e-8187938888dc",
+          "designExcerpt": "横屏1920×1080，30fps，根帧 F0–3458。深钢蓝 #101820、暖灰白 #ECE8DC、车间橙 #FF9950。"
+        },
+        {
+          "level": "sceneComposition",
+          "researchDecisionId": "creative_decision_24409c72-a163-4277-8f6e-8187938888dc",
+          "designExcerpt": "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。"
+        },
+        {
+          "level": "motionMechanisms",
+          "researchDecisionId": "creative_decision_24409c72-a163-4277-8f6e-8187938888dc",
+          "designExcerpt": "同一作业空间的真实位相分开成2–4个独立小窗，等距边框逐项建立，不能按格数解释实测。‘100次全部成功’摆在 ≈37% 正下方，数字随画面收势留足阅读，保持同一基线。"
+        }
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "117-c01",
+          "referenceKind": "creative",
+          "unitId": "robot-unit-3",
+          "use": "primary",
+          "researchDecisionId": "creative_decision_24409c72-a163-4277-8f6e-8187938888dc",
+          "startMs": 0,
+          "endMs": 15104,
+          "targetRole": "仓储反复作业",
+          "treatment": "真实工位保持活动，右侧由单点、事件格接到约37%的结论。",
+          "preserveRelation": "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。",
+          "targetRange": {
+            "startFrame": 1087,
+            "endFrame": 1871
+          }
+        }
+      ],
+      "composition": {
+        "opening": "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。",
+        "primarySubject": "仓储反复作业",
+        "supportingSubjects": [
+          "重新对位",
+          "下游输送位置",
+          "持续工位问题"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "仓储反复作业",
+              "重新对位",
+              "下游输送位置",
+              "持续工位问题"
+            ],
+            "relation": "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。"
+          }
+        ],
+        "textAndGraphics": "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。",
+        "ending": "回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。"
+      },
+      "sequence": [
+        {
+          "unitId": "robot-unit-3",
+          "purpose": "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。",
+          "subjects": [
+            "仓储反复作业",
+            "重新对位",
+            "下游输送位置",
+            "持续工位问题"
+          ],
+          "action": "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。",
+          "retainedElements": [],
+          "transition": "同一作业空间的真实位相分开成2–4个独立小窗，等距边框逐项建立，不能按格数解释实测。‘100次全部成功’摆在 ≈37% 正下方，数字随画面收势留足阅读，保持同一基线。"
+        },
+        {
+          "unitId": "robot-unit-3",
+          "purpose": "同一作业空间的真实位相分开成2–4个独立小窗，等距边框逐项建立，不能按格数解释实测。‘100次全部成功’摆在 ≈37% 正下方，数字随画面收势留足阅读，保持同一基线。",
+          "subjects": [
+            "仓储反复作业"
+          ],
+          "action": "同一作业空间的真实位相分开成2–4个独立小窗，等距边框逐项建立，不能按格数解释实测。‘100次全部成功’摆在 ≈37% 正下方，数字随画面收势留足阅读，保持同一基线。",
+          "retainedElements": [],
+          "transition": "概率结果让出右侧，保持原基线作为剪辑边缘，Atlas 复位一段进入。只说明这类动作的处理需求，不指认为真实的故障自动恢复。"
+        },
+        {
+          "unitId": "robot-unit-3",
+          "purpose": "概率结果让出右侧，保持原基线作为剪辑边缘，Atlas 复位一段进入。只说明这类动作的处理需求，不指认为真实的故障自动恢复。",
+          "subjects": [
+            "重新对位"
+          ],
+          "action": "概率结果让出右侧，保持原基线作为剪辑边缘，Atlas 复位一段进入。只说明这类动作的处理需求，不指认为真实的故障自动恢复。",
+          "retainedElements": [],
+          "transition": "独立输送线从右进入，与对位窗先短同屏，‘需要人工时’作条件式短语。画面不伪装需要接管的事故或原场下游。"
+        },
+        {
+          "unitId": "robot-unit-3",
+          "purpose": "独立输送线从右进入，与对位窗先短同屏，‘需要人工时’作条件式短语。画面不伪装需要接管的事故或原场下游。",
+          "subjects": [
+            "下游输送位置"
+          ],
+          "action": "独立输送线从右进入，与对位窗先短同屏，‘需要人工时’作条件式短语。画面不伪装需要接管的事故或原场下游。",
+          "retainedElements": [],
+          "transition": "回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。"
+        },
+        {
+          "unitId": "robot-unit-3",
+          "purpose": "回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。",
+          "subjects": [
+            "持续工位问题"
+          ],
+          "action": "回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。",
+          "retainedElements": [],
+          "transition": "回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。"
+        }
+      ],
+      "attentionPath": [
+        "真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。",
+        "回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "F1087–1279。真实仓储动作先立主位再压左。右侧从同一地面基线生出有限标示‘假设：单次成功率 99%／各次结果互不影响’，实拍正常延时节奏持续。\n\nF1279–1406。同一作业空间的真实位相分开成2–4个独立小窗，等距边框逐项建立，不能按格数解释实测。‘100次全部成功’摆在 ≈37% 正下方，数字随画面收势留足阅读，保持同一基线。\n\nF1406–1538。概率结果让出右侧，保持原基线作为剪辑边缘，Atlas 复位一段进入。只说明这类动作的处理需求，不指认为真实的故障自动恢复。\n\nF1538–1663。独立输送线从右进入，与对位窗先短同屏，‘需要人工时’作条件式短语。画面不伪装需要接管的事故或原场下游。\n\nF1663–1871。回到工作循环，全景在左保持，右侧依次落‘长时间稳定／处理异常／人员介入’，下一场固定机械臂画窗从空出侧面交接。"
+        ],
+        "adjustable": [
+          "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。"
+        ],
+        "escalation": "源动作、锁定文案或场间接点出现偏差时回提视觉与导演。"
+      }
+    },
+    "references": [
+      {
+        "id": "117-c01",
+        "startMs": 0,
+        "endMs": 15104
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "仓储反复作业",
+        "assets": [
+          {
+            "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+            "file": "../素材/实拍/digit-visual-official.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 4200,
+                "endMs": 13233,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "重新对位",
+        "assets": [
+          {
+            "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+            "file": "../素材/实拍/hands.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 84767,
+                "endMs": 89167,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "下游输送位置",
+        "assets": [
+          {
+            "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+            "file": "../素材/实拍/digit-gxo-release.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 24667,
+                "endMs": 28833,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "持续工位问题",
+        "assets": [
+          {
+            "assetId": "asset_6fc79752-6a34-4aff-b9ef-25c76c094daf",
+            "file": "../素材/实拍/BMW_Clip_Wide.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 4500,
+                "endMs": 11434,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sceneId": "scene_27cc2d70-7607-4a18-be03-c41850c889cb",
+    "visualPlan": {
+      "primaryRoles": [
+        "FANUC 固定臂完整循环"
+      ],
+      "units": [
+        {
+          "id": "robot-unit-4",
+          "title": "固定工位",
+          "startFrame": 1871,
+          "endFrame": 2256,
+          "mode": "full_reference",
+          "creativeDecisionId": "creative_decision_f6f361d4-7368-484b-b346-7a75cff66597",
+          "creativeDraftId": "unit_draft_6dabe45c-6452-4697-a06a-66c6c178deed",
+          "handoffReceiptId": "unit_receipt_7571ba6e-c6b6-4135-a048-cc342dc05dad",
+          "restage": {
+            "resourceId": "compare-scene-4",
+            "sourceMs": 9267,
+            "projectFrame": 2028
+          }
+        }
+      ],
+      "researchLayers": [
+        {
+          "level": "overallVisual",
+          "researchDecisionId": "creative_decision_f6f361d4-7368-484b-b346-7a75cff66597",
+          "designExcerpt": "横屏1920×1080，30fps，根帧 F0–3458。深钢蓝 #101820、暖灰白 #ECE8DC、车间橙 #FF9950。"
+        },
+        {
+          "level": "sceneComposition",
+          "researchDecisionId": "creative_decision_f6f361d4-7368-484b-b346-7a75cff66597",
+          "designExcerpt": "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。"
+        },
+        {
+          "level": "motionMechanisms",
+          "researchDecisionId": "creative_decision_f6f361d4-7368-484b-b346-7a75cff66597",
+          "designExcerpt": "用真实机械臂连续时间观察固定夹具和回程，细线仅指可见部位，画央信息精确为‘来料路径／固定接位／下一轮’。"
+        }
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "093-c01",
+          "referenceKind": "creative",
+          "unitId": "robot-unit-4",
+          "use": "primary",
+          "researchDecisionId": "creative_decision_f6f361d4-7368-484b-b346-7a75cff66597",
+          "startMs": 0,
+          "endMs": 20062,
+          "targetRole": "FANUC 固定臂完整循环",
+          "treatment": "让固定机械臂先完整执行一轮，再缩入集合的保留位置。",
+          "preserveRelation": "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。",
+          "targetRange": {
+            "startFrame": 1871,
+            "endFrame": 2256
+          }
+        }
+      ],
+      "composition": {
+        "opening": "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。",
+        "primarySubject": "FANUC 固定臂完整循环",
+        "supportingSubjects": [
+          "独立 Mech-Mind 取料"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "FANUC 固定臂完整循环",
+              "独立 Mech-Mind 取料"
+            ],
+            "relation": "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。"
+          }
+        ],
+        "textAndGraphics": "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。",
+        "ending": "辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。"
+      },
+      "sequence": [
+        {
+          "unitId": "robot-unit-4",
+          "purpose": "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。",
+          "subjects": [
+            "FANUC 固定臂完整循环",
+            "独立 Mech-Mind 取料"
+          ],
+          "action": "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。",
+          "retainedElements": [],
+          "transition": "用真实机械臂连续时间观察固定夹具和回程，细线仅指可见部位，画央信息精确为‘来料路径／固定接位／下一轮’。"
+        },
+        {
+          "unitId": "robot-unit-4",
+          "purpose": "用真实机械臂连续时间观察固定夹具和回程，细线仅指可见部位，画央信息精确为‘来料路径／固定接位／下一轮’。",
+          "subjects": [
+            "FANUC 固定臂完整循环"
+          ],
+          "action": "用真实机械臂连续时间观察固定夹具和回程，细线仅指可见部位，画央信息精确为‘来料路径／固定接位／下一轮’。",
+          "retainedElements": [],
+          "transition": "独立 Mech-Mind 小窗随自己的夹爪闭合进入，主窗保留动作，同一个框内不替换成其他机型。参照原片独立后再聚合，不等大平铺。"
+        },
+        {
+          "unitId": "robot-unit-4",
+          "purpose": "独立 Mech-Mind 小窗随自己的夹爪闭合进入，主窗保留动作，同一个框内不替换成其他机型。参照原片独立后再聚合，不等大平铺。",
+          "subjects": [
+            "FANUC 固定臂完整循环"
+          ],
+          "action": "独立 Mech-Mind 小窗随自己的夹爪闭合进入，主窗保留动作，同一个框内不替换成其他机型。参照原片独立后再聚合，不等大平铺。",
+          "retainedElements": [],
+          "transition": "辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。"
+        },
+        {
+          "unitId": "robot-unit-4",
+          "purpose": "辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。",
+          "subjects": [
+            "FANUC 固定臂完整循环"
+          ],
+          "action": "辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。",
+          "retainedElements": [],
+          "transition": "辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。"
+        }
+      ],
+      "attentionPath": [
+        "实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。",
+        "辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "F1871–1949。实拍满幅立住机械臂、围栏、工件与接位，不以文字挡住第一轮取景。锁定同机位源 10.700–22.800s，以 0.942857 倍源速度连续覆盖 F1871–2256；源叠化与 22.8667s 后机位硬切均留在段外。\n\nF1949–2065。用真实机械臂连续时间观察固定夹具和回程，细线仅指可见部位，画央信息精确为‘来料路径／固定接位／下一轮’。\n\nF2065–2208。独立 Mech-Mind 小窗随自己的夹爪闭合进入，主窗保留动作，同一个框内不替换成其他机型。参照原片独立后再聚合，不等大平铺。\n\nF2208–2256。辅助窗退出，机械臂大窗继续原状态并让出右缘，下一场物流广角接环境尺度。"
+        ],
+        "adjustable": [
+          "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。"
+        ],
+        "escalation": "源动作、锁定文案或场间接点出现偏差时回提视觉与导演。"
+      }
+    },
+    "references": [
+      {
+        "id": "093-c01",
+        "startMs": 0,
+        "endMs": 20062
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "FANUC 固定臂完整循环",
+        "assets": [
+          {
+            "assetId": "asset_bc066939-cc71-4e59-b138-7dff005c9abe",
+            "file": "../素材/实拍/fanuc-fixed.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 10700,
+                "endMs": 22800,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "独立 Mech-Mind 取料",
+        "assets": [
+          {
+            "assetId": "asset_4199dd15-49c4-4bfc-b36d-aaea6ca724d5",
+            "file": "../素材/实拍/pick.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 6200,
+                "endMs": 21700,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sceneId": "scene_77041f32-61b9-4674-a05b-f94d7e8e1d2c",
+    "visualPlan": {
+      "primaryRoles": [
+        "Digit 真实仓库及起托落箱"
+      ],
+      "units": [
+        {
+          "id": "robot-unit-5",
+          "title": "搬箱的实绩",
+          "startFrame": 2256,
+          "endFrame": 3075,
+          "mode": "full_reference",
+          "creativeDecisionId": "creative_decision_be240473-3e0d-464c-a87a-3460950f8cad",
+          "creativeDraftId": "unit_draft_b9f80538-931a-40fa-9d83-9e9df471ac80",
+          "handoffReceiptId": "unit_receipt_82bbe053-6b2e-4642-959f-f53f50f1cb1c",
+          "restage": {
+            "resourceId": "compare-scene-5",
+            "sourceMs": 9267,
+            "projectFrame": 2467
+          }
+        }
+      ],
+      "researchLayers": [
+        {
+          "level": "overallVisual",
+          "researchDecisionId": "creative_decision_be240473-3e0d-464c-a87a-3460950f8cad",
+          "designExcerpt": "横屏1920×1080，30fps，根帧 F0–3458。深钢蓝 #101820、暖灰白 #ECE8DC、车间橙 #FF9950。"
+        },
+        {
+          "level": "sceneComposition",
+          "researchDecisionId": "creative_decision_be240473-3e0d-464c-a87a-3460950f8cad",
+          "designExcerpt": "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。"
+        },
+        {
+          "level": "motionMechanisms",
+          "researchDecisionId": "creative_decision_be240473-3e0d-464c-a87a-3460950f8cad",
+          "designExcerpt": "另处 BMW 工位作为独立对比小窗按边缘接入；晚些短聚合看见两种用途空间，保留不同机型/设备边界，表述仍是未来机会。"
+        }
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "093-c01",
+          "referenceKind": "creative",
+          "unitId": "robot-unit-5",
+          "use": "primary",
+          "researchDecisionId": "creative_decision_be240473-3e0d-464c-a87a-3460950f8cad",
+          "startMs": 0,
+          "endMs": 20062,
+          "targetRole": "Digit 真实仓库及起托落箱",
+          "treatment": "Figure、FANUC 与 Digit 分别立住；最终 Digit 接回实景主位。",
+          "preserveRelation": "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。",
+          "targetRange": {
+            "startFrame": 2256,
+            "endFrame": 3075
+          }
+        }
+      ],
+      "composition": {
+        "opening": "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。",
+        "primarySubject": "Digit 真实仓库及起托落箱",
+        "supportingSubjects": [
+          "Figure 独立工位",
+          "仓库延时"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "Digit 真实仓库及起托落箱",
+              "Figure 独立工位",
+              "仓库延时"
+            ],
+            "relation": "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。"
+          }
+        ],
+        "textAndGraphics": "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。",
+        "ending": "回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。"
+      },
+      "sequence": [
+        {
+          "unitId": "robot-unit-5",
+          "purpose": "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。",
+          "subjects": [
+            "Digit 真实仓库及起托落箱",
+            "Figure 独立工位",
+            "仓库延时"
+          ],
+          "action": "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。",
+          "retainedElements": [],
+          "transition": "另处 BMW 工位作为独立对比小窗按边缘接入；晚些短聚合看见两种用途空间，保留不同机型/设备边界，表述仍是未来机会。"
+        },
+        {
+          "unitId": "robot-unit-5",
+          "purpose": "另处 BMW 工位作为独立对比小窗按边缘接入；晚些短聚合看见两种用途空间，保留不同机型/设备边界，表述仍是未来机会。",
+          "subjects": [
+            "Figure 独立工位"
+          ],
+          "action": "另处 BMW 工位作为独立对比小窗按边缘接入；晚些短聚合看见两种用途空间，保留不同机型/设备边界，表述仍是未来机会。",
+          "retainedElements": [],
+          "transition": "Digit 的真实红色围栏与输送台接管主窗，完整搬运动作中在原速箱接近输送面处出现‘累计搬运超10万料箱’，深钢蓝窄承托避开亮色管架、手部及人脸。"
+        },
+        {
+          "unitId": "robot-unit-5",
+          "purpose": "Digit 的真实红色围栏与输送台接管主窗，完整搬运动作中在原速箱接近输送面处出现‘累计搬运超10万料箱’，深钢蓝窄承托避开亮色管架、手部及人脸。",
+          "subjects": [
+            "Digit 真实仓库及起托落箱"
+          ],
+          "action": "Digit 的真实红色围栏与输送台接管主窗，完整搬运动作中在原速箱接近输送面处出现‘累计搬运超10万料箱’，深钢蓝窄承托避开亮色管架、手部及人脸。",
+          "retainedElements": [],
+          "transition": "仓储延时完成重复，字组‘更多任务／更多意外／使用成本’分拍出入，不冒认这三项已经实现。"
+        },
+        {
+          "unitId": "robot-unit-5",
+          "purpose": "仓储延时完成重复，字组‘更多任务／更多意外／使用成本’分拍出入，不冒认这三项已经实现。",
+          "subjects": [
+            "仓库延时"
+          ],
+          "action": "仓储延时完成重复，字组‘更多任务／更多意外／使用成本’分拍出入，不冒认这三项已经实现。",
+          "retainedElements": [],
+          "transition": "回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。"
+        },
+        {
+          "unitId": "robot-unit-5",
+          "purpose": "回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。",
+          "subjects": [
+            "Digit 真实仓库及起托落箱"
+          ],
+          "action": "回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。",
+          "retainedElements": [],
+          "transition": "回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。"
+        }
+      ],
+      "attentionPath": [
+        "先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。",
+        "回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "F2256–2420。先充分建立仓库通道、围栏和货架相对尺度，随后给可读的侧面手/箱。\n\nF2420–2585。另处 BMW 工位作为独立对比小窗按边缘接入；晚些短聚合看见两种用途空间，保留不同机型/设备边界，表述仍是未来机会。\n\nF2585–2807。Digit 的真实红色围栏与输送台接管主窗，完整搬运动作中在原速箱接近输送面处出现‘累计搬运超10万料箱’，深钢蓝窄承托避开亮色管架、手部及人脸。\n\nF2807–3060。仓储延时完成重复，字组‘更多任务／更多意外／使用成本’分拍出入，不冒认这三项已经实现。\n\nF3060–3075。回原速长通道呼吸一下，以实景光向接回 Atlas 测试场。"
+        ],
+        "adjustable": [
+          "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。"
+        ],
+        "escalation": "源动作、锁定文案或场间接点出现偏差时回提视觉与导演。"
+      }
+    },
+    "references": [
+      {
+        "id": "093-c01",
+        "startMs": 0,
+        "endMs": 20062
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "Digit 真实仓库及起托落箱",
+        "assets": [
+          {
+            "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+            "file": "../素材/实拍/digit-gxo-release.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 12833,
+                "endMs": 32500,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "Figure 独立工位",
+        "assets": [
+          {
+            "assetId": "asset_6fc79752-6a34-4aff-b9ef-25c76c094daf",
+            "file": "../素材/实拍/BMW_Clip_Wide.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 1167,
+                "endMs": 6700,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "仓库延时",
+        "assets": [
+          {
+            "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+            "file": "../素材/实拍/digit-visual-official.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 4767,
+                "endMs": 13200,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sceneId": "scene_9f70bb3f-5115-42c5-9688-17916363141b",
+    "visualPlan": {
+      "primaryRoles": [
+        "回看 Atlas 后空翻落地"
+      ],
+      "units": [
+        {
+          "id": "robot-unit-6",
+          "title": "下一件",
+          "startFrame": 3075,
+          "endFrame": 3458,
+          "mode": "full_reference",
+          "creativeDecisionId": "creative_decision_2e60003c-4464-45c0-b526-fc51978ab0b1",
+          "creativeDraftId": "unit_draft_60f3c6f1-a90f-446d-86eb-2e97a34aea85",
+          "handoffReceiptId": "unit_receipt_2e5d18dc-ed83-4365-8d61-4c4a5da1d8cf",
+          "restage": {
+            "resourceId": "compare-scene-6",
+            "sourceMs": 2200,
+            "projectFrame": 3204
+          }
+        }
+      ],
+      "researchLayers": [
+        {
+          "level": "overallVisual",
+          "researchDecisionId": "creative_decision_2e60003c-4464-45c0-b526-fc51978ab0b1",
+          "designExcerpt": "横屏1920×1080，30fps，根帧 F0–3458。深钢蓝 #101820、暖灰白 #ECE8DC、车间橙 #FF9950。"
+        },
+        {
+          "level": "sceneComposition",
+          "researchDecisionId": "creative_decision_2e60003c-4464-45c0-b526-fc51978ab0b1",
+          "designExcerpt": "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。"
+        },
+        {
+          "level": "motionMechanisms",
+          "researchDecisionId": "creative_decision_2e60003c-4464-45c0-b526-fc51978ab0b1",
+          "designExcerpt": "同一场面扩大至主要位置，真实黑罩与架口的角度变化承接‘摆歪／东西掉了怎么办’；画面始终是实际换角，旁白保持疑问。若近景窗接权先给完整相对位置。"
+        }
+      ],
+      "referenceMappings": [
+        {
+          "referenceId": "130-c01",
+          "referenceKind": "creative",
+          "unitId": "robot-unit-6",
+          "use": "primary",
+          "researchDecisionId": "creative_decision_2e60003c-4464-45c0-b526-fc51978ab0b1",
+          "startMs": 0,
+          "endMs": 10500,
+          "targetRole": "回看 Atlas 后空翻落地",
+          "treatment": "仓库母景内回看 Atlas 落地，再由格口子窗接到下一件。",
+          "preserveRelation": "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。",
+          "targetRange": {
+            "startFrame": 3075,
+            "endFrame": 3458
+          }
+        }
+      ],
+      "composition": {
+        "opening": "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。",
+        "primarySubject": "回看 Atlas 后空翻落地",
+        "supportingSubjects": [
+          "Atlas 架口与罩件",
+          "Digit 下一箱"
+        ],
+        "spatialRelations": [
+          {
+            "roles": [
+              "回看 Atlas 后空翻落地",
+              "Atlas 架口与罩件",
+              "Digit 下一箱"
+            ],
+            "relation": "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。"
+          }
+        ],
+        "textAndGraphics": "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。",
+        "ending": "第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。"
+      },
+      "sequence": [
+        {
+          "unitId": "robot-unit-6",
+          "purpose": "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。",
+          "subjects": [
+            "回看 Atlas 后空翻落地",
+            "Atlas 架口与罩件",
+            "Digit 下一箱"
+          ],
+          "action": "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。",
+          "retainedElements": [],
+          "transition": "同一场面扩大至主要位置，真实黑罩与架口的角度变化承接‘摆歪／东西掉了怎么办’；画面始终是实际换角，旁白保持疑问。若近景窗接权先给完整相对位置。"
+        },
+        {
+          "unitId": "robot-unit-6",
+          "purpose": "同一场面扩大至主要位置，真实黑罩与架口的角度变化承接‘摆歪／东西掉了怎么办’；画面始终是实际换角，旁白保持疑问。若近景窗接权先给完整相对位置。",
+          "subjects": [
+            "Atlas 架口与罩件"
+          ],
+          "action": "同一场面扩大至主要位置，真实黑罩与架口的角度变化承接‘摆歪／东西掉了怎么办’；画面始终是实际换角，旁白保持疑问。若近景窗接权先给完整相对位置。",
+          "retainedElements": [],
+          "transition": "第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。"
+        },
+        {
+          "unitId": "robot-unit-6",
+          "purpose": "第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。",
+          "subjects": [
+            "Digit 下一箱"
+          ],
+          "action": "第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。",
+          "retainedElements": [],
+          "transition": "第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。"
+        }
+      ],
+      "attentionPath": [
+        "重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。",
+        "第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。"
+      ],
+      "odBoundaries": {
+        "locked": [
+          "F3075–3199。重看同源空中到踏实，落地后保留主体姿态。临近 F3190，工位子窗出现于无关背景，Atlas 主窗底层仍动。\n\nF3199–3310。同一场面扩大至主要位置，真实黑罩与架口的角度变化承接‘摆歪／东西掉了怎么办’；画面始终是实际换角，旁白保持疑问。若近景窗接权先给完整相对位置。\n\nF3310–3458。第三层由 Digit 托住蓝箱并抬高起步的真实近景接权，明确它是另一工作现场。源12.300–17.233s，约源15.63s 箱已明显抬起，项目约F3410。最后在抬起、开始移动时停止；收束缩框只保留活动实拍和无文案空白，不加品牌或结论页。"
+        ],
+        "adjustable": [
+          "普通字幕由时间线输出，画内视觉安全边界 y≤920，主体手部和落足区无遮挡。"
+        ],
+        "escalation": "源动作、锁定文案或场间接点出现偏差时回提视觉与导演。"
+      }
+    },
+    "references": [
+      {
+        "id": "130-c01",
+        "startMs": 0,
+        "endMs": 10500
+      }
+    ],
+    "visualRoles": [
+      {
+        "role": "回看 Atlas 后空翻落地",
+        "assets": [
+          {
+            "assetId": "asset_1abefa1c-af49-44e5-8ef8-3f715c335638",
+            "file": "../素材/实拍/air.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 9100,
+                "endMs": 13233,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "Atlas 架口与罩件",
+        "assets": [
+          {
+            "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+            "file": "../素材/实拍/hands.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 85000,
+                "endMs": 88700,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "role": "Digit 下一箱",
+        "assets": [
+          {
+            "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+            "file": "../素材/实拍/digit-gxo-release.mp4",
+            "sourceRanges": [
+              {
+                "startMs": 12300,
+                "endMs": 17233,
+                "timeCoordinates": "asset"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]

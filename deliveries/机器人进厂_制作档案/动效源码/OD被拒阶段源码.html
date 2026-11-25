@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>机器人进工厂</title>
+<style>
+:root{--steel:#101820;--paper:#ece8dc;--amber:#ff9950}
+*{box-sizing:border-box}html,body{margin:0;background:var(--steel)}
+main{position:relative;width:1920px;height:1080px;overflow:hidden;isolation:isolate;background:var(--steel);color:var(--paper);font-family:var(--vfc-font-title);font-synthesis:none}
+.shot,.ink{position:absolute;visibility:hidden}.shot{overflow:hidden;background:var(--steel)}.shot img{position:absolute;display:block;max-width:none;object-fit:fill}.shot:after{content:'';position:absolute;inset:0;border:var(--rule,0px) solid var(--amber);pointer-events:none}.mask{position:absolute;background:var(--steel)}
+.ink{white-space:nowrap}.tag{padding:12px 20px;background:var(--steel);border-bottom:2px solid var(--amber);font-size:40px;line-height:1.2}.line{height:2px;background:var(--amber)}.metric{color:var(--amber);font-size:150px;letter-spacing:-.07em;line-height:1}.note{font-size:37px;line-height:1.25}.key{font-size:53px;line-height:1.25}
+</style></head><body>
+<main id="robot-factory" data-composition-id="robot-factory" data-start="0" data-width="1920" data-height="1080" data-duration="115.26666666666667" aria-label="机器人进工厂">
+<div class="shot" id="atlas"><img id="media-atlas" data-vfc-video-slot="opening" alt=""></div>
+<div class="shot" id="feet"><img id="media-feet" data-vfc-video-slot="opening" alt=""></div>
+<div class="shot" id="rack"><img id="media-rack" data-vfc-video-slot="rack_intro" alt=""></div>
+</main>
+<script>
+const root=document.getElementById('robot-factory');
+const FULL=[0,0,1920,1080], SOURCE=[0,0,1,1], RACK=[.29,0,.71,1], PICK=[.16,.01,.68,.946];
+const layers=[];
+const ramp=(frame,begin,end)=>Math.min(1,Math.max(0,(frame-begin)/(end-begin)));
+const curve=(frame,begin,end)=>{const ratio=ramp(frame,begin,end);return ratio*ratio*(3-2*ratio)};
+const blend=(from,to,ratio)=>from.map((value,index)=>value+(to[index]-value)*ratio);
+const px=value=>value+'px';
+function place(element,rect){element.style.left=px(rect[0]);element.style.top=px(rect[1]);element.style.width=px(rect[2]);element.style.height=px(rect[3])}
+function shot(id,start,end,layout,crop=SOURCE,options={}){
+  const element=document.getElementById(id),image=element.firstElementChild;
+  element.style.zIndex=options.z??5;
+  let mask;if(options.mask){mask=document.createElement('div');mask.className='mask';element.append(mask)}
+  layers.push({element,start,end,paint(frame){
+    const state=layout(frame),rect=state.rect??state,area=state.crop??crop;
+    place(element,rect);element.style.opacity=state.opacity??1;element.style.filter=state.filter??'none';element.style.clipPath=state.clip??'none';element.style.setProperty('--rule',px(state.rule??options.rule??0));
+    const scale=Math.max(rect[2]/(1920*area[2]),rect[3]/(1080*area[3])),width=1920*scale,height=1080*scale;
+    const left=rect[2]/2-(area[0]+area[2]/2)*width,top=rect[3]/2-(area[1]+area[3]/2)*height;
+    place(image,[left,top,width,height]);
+    if(mask){const area=options.mask;place(mask,[left+area[0]*width,top+area[1]*height,area[2]*width,area[3]*height])}
+  }});
+}
+function ink(start,end,classes,content,position,options={}){
+  const element=document.createElement('div');element.className='ink '+classes;element.textContent=content;element.style.zIndex=options.z??30;Object.assign(element.style,options.style??{});root.append(element);
+  layers.push({element,start,end,paint(frame){
+    const state=position(frame),intro=options.enter?curve(frame,start,start+options.enter):1,outro=options.exit?curve(frame,end-options.exit,end):0;
+    element.style.left=px(state[0]);element.style.top=px(state[1]+(1-intro)*9);if(state.length>2)element.style.width=px(state[2]);element.style.opacity=intro*(1-outro);
+  }});
+}
+const handsMask=[.65,.844,.258,.061];
+shot('atlas',0,231,()=>FULL);
+shot('feet',130,160,frame=>({rect:[116,616,512,288],crop:[.49,.51,.31,.31],opacity:curve(frame,130,137)*(1-curve(frame,153,160))}),SOURCE,{z:12,rule:2});
+shot('rack',161,338,frame=>{
+  const enter=curve(frame,161,173),expand=curve(frame,184,231),open=blend([1472,446,380,350],FULL,expand);
+  return {rect:[open[0]+46*(1-enter),open[1],open[2],open[3]],crop:blend([.47,.05,.45,.84],RACK,expand),opacity:enter,rule:2*(1-expand)};
+},RACK,{z:15,mask:handsMask});
+ink(170,224,'line','',frame=>{const expand=curve(frame,184,231);return [1472*(1-expand),795+124*expand,380+1540*expand]},{enter:8,exit:11,z:18});
+
+const clock={frame:0};
+function paint(frame){const sample=Math.floor(frame+0.0001);for(const layer of layers){const visible=sample>=layer.start&&sample<layer.end;layer.element.style.visibility=visible?'visible':'hidden';if(visible)layer.paint(sample)}}
+const timeline=gsap.timeline({paused:true,onUpdate:()=>paint(clock.frame)});
+timeline.to(clock,{frame:3458,duration:3458/30,ease:'none'},0);
+const events=[['atlas-contact-review','Atlas 落脚候选，按可见接触复核原声',132,146],['rack-takes-frame','架口子窗扩满并接过主位',231],];
+for(const [id,meaning,frame] of events)timeline.addLabel(id,frame/30);
+window.__timelines=Object.assign(window.__timelines??{},{'robot-factory':timeline});
+window.getVfcMotionEvents=()=>events.map(([id,meaning,frame,endFrame])=>({id,meaning,startFrame:Math.round(timeline.labels[id]*30),...(endFrame?{endFrame}:{})}));
+if(window.vfc?.fonts?.title){root.style.fontWeight=vfc.fonts.title.weight;root.style.fontStyle=vfc.fonts.title.style}
+paint(0);
+</script></body></html>

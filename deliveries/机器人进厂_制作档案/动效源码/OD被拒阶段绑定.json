@@ -1,0 +1,47 @@
+{
+  "work": {
+    "name": "机器人进工厂",
+    "creativeBrief": "阶段首件 F0–338：Atlas 实拍建立全身和地面，落脚窗复用同一源时钟，独立架口子窗沿横向边缘接权并跨场保持时钟。依据采用原片 130、122、117、093、032 与六场对照顺序抽帧，未完成连续播放审阅。落脚约 F132 是待复核候选；原声、普通字幕由外层处理。",
+    "width": 1920,
+    "height": 1080,
+    "fps": 30,
+    "durationInFrames": 3458,
+    "compositing": "opaque",
+    "fontBindings": {
+      "title": "noto-sans-sc-bold"
+    },
+    "videoBindings": {
+      "opening": {
+        "assetId": "asset_1abefa1c-af49-44e5-8ef8-3f715c335638",
+        "sourceStartMs": 6267,
+        "sourceEndMs": 13967,
+        "startFrame": 0,
+        "endFrame": 231,
+        "素材": "../素材/实拍/air.mp4"
+      },
+      "rack_intro": {
+        "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+        "sourceStartMs": 6600,
+        "sourceEndMs": 12500,
+        "startFrame": 161,
+        "endFrame": 338,
+        "素材": "../素材/实拍/hands.mp4"
+      }
+    }
+  },
+  "readyRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 338
+    }
+  ],
+  "changedRanges": [
+    {
+      "startFrame": 0,
+      "endFrame": 338,
+      "reason": "首批落地与独立架口接权"
+    }
+  ],
+  "authorSubmissionId": "9aad42903e4f5d641297344b1f769ff54491375ec7de98eba287d5bbf16c7a47",
+  "sourceSha256": "af700e59cf523bd23b36c22bde0313ccb2beaf187c555d0145ba16afeb0a837b"
+}

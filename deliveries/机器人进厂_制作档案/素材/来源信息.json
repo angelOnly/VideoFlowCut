@@ -1,0 +1,51 @@
+[
+  {
+    "name": "air.mp4",
+    "file": "实拍/air.mp4",
+    "sourceHash": "b1da6f9524c82d8925279d42e9c17ea4bd8dff37e37ce19747b71a3e6dea1d72",
+    "原始来源网址": "https://bostondynamics.com/video/atlas-airborne/",
+    "provider": "bostondynamics.com"
+  },
+  {
+    "name": "digit-gxo-release.mp4",
+    "file": "实拍/digit-gxo-release.mp4",
+    "sourceHash": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+    "原始来源网址": "https://www.agilityrobotics.com/content/digit-moves-over-100k-totes",
+    "provider": "www.agilityrobotics.com"
+  },
+  {
+    "name": "digit-visual-official.mp4",
+    "file": "实拍/digit-visual-official.mp4",
+    "sourceHash": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+    "原始来源网址": "https://www.agilityrobotics.com/content/digit-moves-over-100k-totes",
+    "provider": "www.agilityrobotics.com"
+  },
+  {
+    "name": "BMW_Clip_Wide.mp4",
+    "file": "实拍/BMW_Clip_Wide.mp4",
+    "sourceHash": "aff65c575dc9a293ba8b8dfe68f4d496076ab98332956a6e7c1d4cc2a5e2bdc8",
+    "原始来源网址": "https://www.figure.ai/news/production-at-bmw",
+    "provider": "Figure"
+  },
+  {
+    "name": "pick.mp4",
+    "file": "实拍/pick.mp4",
+    "sourceHash": "12491606958bcaf8a2a4d3213b85aeb12f01fccadc1aa7518f14f20a22c72940",
+    "原始来源网址": "https://www.mech-mind.com/video/ai-3d-vision-guided-bin-picking-of-randomly-located-small-parts.html",
+    "provider": "Mech-Mind"
+  },
+  {
+    "name": "hands.mp4",
+    "file": "实拍/hands.mp4",
+    "sourceHash": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+    "原始来源网址": "https://bostondynamics.com/video/atlas-goes-hands-on/",
+    "provider": "bostondynamics.com"
+  },
+  {
+    "name": "fanuc-fixed.mp4",
+    "file": "实拍/fanuc-fixed.mp4",
+    "sourceHash": "8d5a76614b996edcf9e5178127250223b26d2ed3d00e2c01c34c2555147e214d",
+    "原始来源网址": "https://www.fanucamerica.com/applications/material-handling",
+    "provider": "www.fanucamerica.com"
+  }
+]

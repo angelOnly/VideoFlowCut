@@ -1,0 +1,214 @@
+{
+  "name": "后空翻之后，机器人怎样进工厂｜架口窗口",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 3458,
+  "compositing": "opaque",
+  "fontBindings": {
+    "title": "noto-sans-sc-bold"
+  },
+  "videoBindings": {
+    "air": {
+      "assetId": "asset_1abefa1c-af49-44e5-8ef8-3f715c335638",
+      "sourceStartMs": 6267,
+      "sourceEndMs": 13001,
+      "startFrame": 0,
+      "endFrame": 202,
+      "素材": "../素材/实拍/air.mp4"
+    },
+    "rack": {
+      "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+      "sourceStartMs": 6600,
+      "sourceEndMs": 12500,
+      "startFrame": 161,
+      "endFrame": 338,
+      "素材": "../素材/实拍/hands.mp4"
+    },
+    "bin": {
+      "assetId": "asset_4199dd15-49c4-4bfc-b36d-aaea6ca724d5",
+      "sourceStartMs": 3600,
+      "sourceEndMs": 6900,
+      "startFrame": 338,
+      "endFrame": 437,
+      "素材": "../素材/实拍/pick.mp4"
+    },
+    "regrip": {
+      "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+      "sourceStartMs": 80000,
+      "sourceEndMs": 93867,
+      "startFrame": 437,
+      "endFrame": 853,
+      "素材": "../素材/实拍/hands.mp4"
+    },
+    "bin2": {
+      "assetId": "asset_4199dd15-49c4-4bfc-b36d-aaea6ca724d5",
+      "sourceStartMs": 17400,
+      "sourceEndMs": 20600,
+      "startFrame": 853,
+      "endFrame": 949,
+      "素材": "../素材/实拍/pick.mp4"
+    },
+    "bmw": {
+      "assetId": "asset_6fc79752-6a34-4aff-b9ef-25c76c094daf",
+      "sourceStartMs": 6767,
+      "sourceEndMs": 11367,
+      "startFrame": 949,
+      "endFrame": 1087,
+      "素材": "../素材/实拍/BMW_Clip_Wide.mp4"
+    },
+    "loop": {
+      "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+      "sourceStartMs": 4200,
+      "sourceEndMs": 10600,
+      "startFrame": 1087,
+      "endFrame": 1279,
+      "素材": "../素材/实拍/digit-visual-official.mp4"
+    },
+    "loop2": {
+      "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+      "sourceStartMs": 9000,
+      "sourceEndMs": 13234,
+      "startFrame": 1279,
+      "endFrame": 1406,
+      "素材": "../素材/实拍/digit-visual-official.mp4"
+    },
+    "cycle1": {
+      "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+      "sourceStartMs": 4200,
+      "sourceEndMs": 8300,
+      "startFrame": 1283,
+      "endFrame": 1406,
+      "素材": "../素材/实拍/digit-visual-official.mp4"
+    },
+    "cycle2": {
+      "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+      "sourceStartMs": 6000,
+      "sourceEndMs": 10100,
+      "startFrame": 1283,
+      "endFrame": 1406,
+      "素材": "../素材/实拍/digit-visual-official.mp4"
+    },
+    "cycle3": {
+      "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+      "sourceStartMs": 8000,
+      "sourceEndMs": 12100,
+      "startFrame": 1283,
+      "endFrame": 1406,
+      "素材": "../素材/实拍/digit-visual-official.mp4"
+    },
+    "align": {
+      "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+      "sourceStartMs": 84767,
+      "sourceEndMs": 90401,
+      "startFrame": 1406,
+      "endFrame": 1575,
+      "素材": "../素材/实拍/hands.mp4"
+    },
+    "line": {
+      "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+      "sourceStartMs": 24667,
+      "sourceEndMs": 28834,
+      "startFrame": 1538,
+      "endFrame": 1663,
+      "素材": "../素材/实拍/digit-gxo-release.mp4"
+    },
+    "stable": {
+      "assetId": "asset_6fc79752-6a34-4aff-b9ef-25c76c094daf",
+      "sourceStartMs": 4500,
+      "sourceEndMs": 11434,
+      "startFrame": 1663,
+      "endFrame": 1871,
+      "素材": "../素材/实拍/BMW_Clip_Wide.mp4"
+    },
+    "fixed": {
+      "assetId": "asset_bc066939-cc71-4e59-b138-7dff005c9abe",
+      "sourceStartMs": 10700,
+      "sourceEndMs": 22800,
+      "startFrame": 1871,
+      "endFrame": 2234,
+      "素材": "../素材/实拍/fanuc-fixed.mp4"
+    },
+    "fixedEnd": {
+      "assetId": "asset_bc066939-cc71-4e59-b138-7dff005c9abe",
+      "sourceStartMs": 22067,
+      "sourceEndMs": 22801,
+      "startFrame": 2234,
+      "endFrame": 2256,
+      "素材": "../素材/实拍/fanuc-fixed.mp4"
+    },
+    "pickWindow": {
+      "assetId": "asset_4199dd15-49c4-4bfc-b36d-aaea6ca724d5",
+      "sourceStartMs": 6200,
+      "sourceEndMs": 11834,
+      "startFrame": 2065,
+      "endFrame": 2234,
+      "素材": "../素材/实拍/pick.mp4"
+    },
+    "aisle": {
+      "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+      "sourceStartMs": 12833,
+      "sourceEndMs": 18300,
+      "startFrame": 2256,
+      "endFrame": 2420,
+      "素材": "../素材/实拍/digit-gxo-release.mp4"
+    },
+    "adapt": {
+      "assetId": "asset_6fc79752-6a34-4aff-b9ef-25c76c094daf",
+      "sourceStartMs": 1167,
+      "sourceEndMs": 6667,
+      "startFrame": 2420,
+      "endFrame": 2585,
+      "素材": "../素材/实拍/BMW_Clip_Wide.mp4"
+    },
+    "carrying": {
+      "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+      "sourceStartMs": 18000,
+      "sourceEndMs": 28400,
+      "startFrame": 2495,
+      "endFrame": 2807,
+      "素材": "../素材/实拍/digit-gxo-release.mp4"
+    },
+    "shift": {
+      "assetId": "asset_d65e4a28-7a7b-42a4-8011-b379358a8230",
+      "sourceStartMs": 4767,
+      "sourceEndMs": 13201,
+      "startFrame": 2807,
+      "endFrame": 3060,
+      "素材": "../素材/实拍/digit-visual-official.mp4"
+    },
+    "shiftEnd": {
+      "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+      "sourceStartMs": 30533,
+      "sourceEndMs": 31033,
+      "startFrame": 3060,
+      "endFrame": 3075,
+      "素材": "../素材/实拍/digit-gxo-release.mp4"
+    },
+    "reprise": {
+      "assetId": "asset_1abefa1c-af49-44e5-8ef8-3f715c335638",
+      "sourceStartMs": 9100,
+      "sourceEndMs": 13234,
+      "startFrame": 3075,
+      "endFrame": 3199,
+      "素材": "../素材/实拍/air.mp4"
+    },
+    "holder": {
+      "assetId": "asset_322795a1-485c-4758-8fcd-723210195a0f",
+      "sourceStartMs": 84700,
+      "sourceEndMs": 88700,
+      "startFrame": 3190,
+      "endFrame": 3310,
+      "素材": "../素材/实拍/hands.mp4"
+    },
+    "next": {
+      "assetId": "asset_3ec6dd66-a1b4-4343-a799-de9bdf1bb27f",
+      "sourceStartMs": 12300,
+      "sourceEndMs": 17567,
+      "startFrame": 3300,
+      "endFrame": 3458,
+      "素材": "../素材/实拍/digit-gxo-release.mp4"
+    }
+  },
+  "definitionHash": "9220453f0549cc33ee3b1cd6ed775624985a77e08bb953457e2892e762d3476e"
+}

@@ -1,0 +1,86 @@
+[
+  {
+    "startFrame": 0,
+    "endFrame": 161,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 0,
+    "sourceEndFrame": 161
+  },
+  {
+    "startFrame": 161,
+    "endFrame": 202,
+    "workId": "motion_work_9220453f0549cc33ee3b1cd6ed775624985a77e08bb953457e2892e762d3476e",
+    "sourceStartFrame": 161,
+    "sourceEndFrame": 202
+  },
+  {
+    "startFrame": 202,
+    "endFrame": 338,
+    "workId": "motion_work_9220453f0549cc33ee3b1cd6ed775624985a77e08bb953457e2892e762d3476e",
+    "sourceStartFrame": 202,
+    "sourceEndFrame": 338
+  },
+  {
+    "startFrame": 338,
+    "endFrame": 437,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 338,
+    "sourceEndFrame": 437
+  },
+  {
+    "startFrame": 437,
+    "endFrame": 853,
+    "workId": "motion_work_7f474036f8d7b364b6e0a13b51835af56175875cc706fdeca15bc781fa8cff2d",
+    "sourceStartFrame": 437,
+    "sourceEndFrame": 853
+  },
+  {
+    "startFrame": 853,
+    "endFrame": 1087,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 853,
+    "sourceEndFrame": 1087
+  },
+  {
+    "startFrame": 1087,
+    "endFrame": 1110,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 1087,
+    "sourceEndFrame": 1110
+  },
+  {
+    "startFrame": 1110,
+    "endFrame": 1663,
+    "workId": "motion_work_7f474036f8d7b364b6e0a13b51835af56175875cc706fdeca15bc781fa8cff2d",
+    "sourceStartFrame": 1110,
+    "sourceEndFrame": 1663
+  },
+  {
+    "startFrame": 1663,
+    "endFrame": 1871,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 1663,
+    "sourceEndFrame": 1871
+  },
+  {
+    "startFrame": 1871,
+    "endFrame": 2256,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 1871,
+    "sourceEndFrame": 2256
+  },
+  {
+    "startFrame": 2256,
+    "endFrame": 3075,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 2256,
+    "sourceEndFrame": 3075
+  },
+  {
+    "startFrame": 3075,
+    "endFrame": 3458,
+    "workId": "motion_work_38fbe1093fcf9ba6d7e93a882a265126512ccf39a2c783e2e3587597b82146b9",
+    "sourceStartFrame": 3075,
+    "sourceEndFrame": 3458
+  }
+]
