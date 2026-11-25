@@ -1,0 +1,157 @@
+[
+  {
+    "id": "asset_6899092e-783b-4eff-a443-bdadcd1721fe",
+    "name": "digit-real.mp4",
+    "path": "视频/使用素材/digit-real.mp4",
+    "hash": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+    "source": "provider",
+    "creator": "Agility Robotics",
+    "provider": "Agility Robotics",
+    "originalAssetId": null,
+    "durationMs": 37300
+  },
+  {
+    "id": "asset_10ed0d89-9e51-4acc-9437-9437d2626e76",
+    "name": "digit-timelapse.mp4",
+    "path": "视频/使用素材/digit-timelapse.mp4",
+    "hash": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+    "source": "provider",
+    "provider": "Agility Robotics",
+    "originalAssetId": null,
+    "durationMs": 13900
+  },
+  {
+    "id": "asset_f0a7a97f-4948-4752-bb2a-f7e4b04c2b04",
+    "name": "BMW_Clip_Wide.mp4",
+    "path": "视频/使用素材/BMW_Clip_Wide.mp4",
+    "hash": "aff65c575dc9a293ba8b8dfe68f4d496076ab98332956a6e7c1d4cc2a5e2bdc8",
+    "source": "provider",
+    "creator": "Figure",
+    "provider": "Figure",
+    "originalAssetId": null,
+    "durationMs": 11762
+  },
+  {
+    "id": "asset_97c31a51-badc-46d3-8189-b13f4735730b",
+    "name": "Sequence_02.mp4",
+    "path": "视频/使用素材/Sequence_02.mp4",
+    "hash": "249784595928ca963ae00a146a52a750f0829f475410da6a2f735c9f80297778",
+    "source": "provider",
+    "creator": "Figure",
+    "provider": "Figure",
+    "originalAssetId": null,
+    "durationMs": 84376
+  },
+  {
+    "id": "asset_5e2ef542-b3ee-48f6-b710-a46b67abc206",
+    "name": "pick.mp4",
+    "path": "视频/使用素材/pick.mp4",
+    "hash": "12491606958bcaf8a2a4d3213b85aeb12f01fccadc1aa7518f14f20a22c72940",
+    "source": "provider",
+    "provider": "Mech-Mind",
+    "originalAssetId": null,
+    "durationMs": 26965
+  },
+  {
+    "id": "asset_44ac01b1-ec30-4a50-bd39-7ccb050ca766",
+    "name": "atlas-flip.mp4",
+    "path": "视频/使用素材/atlas-flip.mp4",
+    "hash": "4811511d613f912711b448f434428a8f878d72f3d8bd3bb9e57e1d9e67366a6a",
+    "source": "provider",
+    "creator": "Boston Dynamics",
+    "provider": "GIPHY",
+    "originalAssetId": null,
+    "durationMs": 5000
+  },
+  {
+    "id": "asset_6f01a788-0d12-47dc-b45a-f94f62d9b787",
+    "name": "grasp-explainer.mp4",
+    "path": "视频/使用素材/grasp-explainer.mp4",
+    "hash": "a57d7797f09d0337c44bf3cce4560e1e19b6ef3d0a48847582b7489088965881",
+    "source": "generated",
+    "creator": "本轮原创解释素材",
+    "originalAssetId": "asset_f0a7a97f-4948-4752-bb2a-f7e4b04c2b04",
+    "durationMs": 12000
+  },
+  {
+    "id": "asset_b9924e89-3512-4a89-8e04-ae5405f0366a",
+    "name": "probability-single.mp4",
+    "path": "视频/使用素材/probability-single.mp4",
+    "hash": "89d3a19ac0d6f236bd87a1f5c68910b3e083855806f930249967bc4602089382",
+    "source": "generated",
+    "creator": "本轮原创解释素材",
+    "originalAssetId": "asset_97c31a51-badc-46d3-8189-b13f4735730b",
+    "durationMs": 13467
+  },
+  {
+    "id": "asset_e2d9297d-a877-46dd-be87-3fefd579e418",
+    "name": "probability-repeat.mp4",
+    "path": "视频/使用素材/probability-repeat.mp4",
+    "hash": "1dfa35c52c9c72825e9c3c4e1b630dfcd9a06d98d41824a6dbfa18f7ed06e24c",
+    "source": "generated",
+    "creator": "本轮原创解释素材",
+    "originalAssetId": "asset_97c31a51-badc-46d3-8189-b13f4735730b",
+    "durationMs": 9467
+  },
+  {
+    "id": "asset_6fb8a711-f4aa-4c2e-8f1b-b6833ca7b0d5",
+    "name": "digit-milestone.mp4",
+    "path": "视频/使用素材/digit-milestone.mp4",
+    "hash": "d45292ed95bfec0807b2a4915bb7120be5cb9f3daaa53a74029749e20f4a1b32",
+    "source": "generated",
+    "creator": "本轮原创画面包装",
+    "originalAssetId": "asset_6899092e-783b-4eff-a443-bdadcd1721fe",
+    "durationMs": 12000
+  },
+  {
+    "id": "asset_fef2ba45-e867-46d1-bfe9-6a554c355e71",
+    "name": "figure-workcell-observation-40-64.mp4",
+    "path": "视频/使用素材/figure-workcell-observation-40-64.mp4",
+    "hash": "0f1f850bcf2553ca4e18f79e9575cd2a6b86330534af5c7019a4106906ecf5ff",
+    "source": "generated",
+    "creator": "本轮横屏构图",
+    "originalAssetId": "asset_97c31a51-badc-46d3-8189-b13f4735730b",
+    "durationMs": 23967
+  },
+  {
+    "id": "asset_f796ce84-aabc-4ded-b0bc-4d2bdd24466b",
+    "name": "atlas-opening-1080p.mp4",
+    "path": "视频/使用素材/atlas-opening-1080p.mp4",
+    "hash": "649e2d0136346237bdaeece14bdd8f1de1ae1d0178f448f96984ad857fd59b3e",
+    "source": "generated",
+    "creator": "本轮横屏剪辑",
+    "originalAssetId": "asset_44ac01b1-ec30-4a50-bd39-7ccb050ca766",
+    "durationMs": 6400
+  },
+  {
+    "id": "asset_77b82e51-9a58-4901-a7a4-66e8d143cef6",
+    "name": "atlas-opening-1080p-upgrade.mp4",
+    "path": "视频/使用素材/atlas-opening-1080p-upgrade.mp4",
+    "hash": "74d11afd53e766ff779f6a2fa6854f0280f43b53578563c4982a5b9673d0ae26",
+    "source": "generated",
+    "creator": "本轮横屏剪辑",
+    "originalAssetId": null,
+    "durationMs": 6400
+  },
+  {
+    "id": "asset_f647215c-36a2-488e-9be2-733d9ae39cae",
+    "name": "atlas-engine-cover.mp4",
+    "path": "视频/使用素材/atlas-engine-cover.mp4",
+    "hash": "c2684fc45b17638e789f26d5375507fbba93a3003af9f233d927761927317d12",
+    "source": "provider",
+    "creator": "Boston Dynamics",
+    "provider": "Boston Dynamics",
+    "originalAssetId": null,
+    "durationMs": 172633
+  },
+  {
+    "id": "asset_004e4c98-86e5-4813-916a-82e13d37d95e",
+    "name": "grasp-8.3s.mp4",
+    "path": "视频/使用素材/grasp-8.3s.mp4",
+    "hash": "3e1b09a49e9849c18999a5520b5db2e5e457470c7411bcc7b025cbaf5a3dd754",
+    "source": "generated",
+    "creator": "本轮抓取示意时序调整",
+    "originalAssetId": "asset_6f01a788-0d12-47dc-b45a-f94f62d9b787",
+    "durationMs": 8400
+  }
+]
