@@ -1,0 +1,73 @@
+[
+  {
+    "id": "asset_90e00cc5-3af5-443a-a0e3-741f50bbab35",
+    "file": "../素材/视频/atlas-airborne.mp4",
+    "sha256": "b1da6f9524c82d8925279d42e9c17ea4bd8dff37e37ce19747b71a3e6dea1d72",
+    "durationMs": 87539,
+    "provenance": {
+      "provider": "bostondynamics.com",
+      "host": "bostondynamics.com",
+      "route": "/video/atlas-airborne/",
+      "acquiredAt": "2026-11-25T08:20:58.414Z"
+    }
+  },
+  {
+    "id": "asset_3e1b6707-2f71-4739-a7a6-3a19d8757dde",
+    "file": "../素材/视频/atlas-hands-on.mp4",
+    "sha256": "9e52386c015427a5f3a36610b9356d9623d363eab795491958b4a55b711bc5bc",
+    "durationMs": 163307,
+    "provenance": {
+      "provider": "bostondynamics.com",
+      "host": "bostondynamics.com",
+      "route": "/video/atlas-goes-hands-on/",
+      "acquiredAt": "2026-11-25T08:20:58.564Z"
+    }
+  },
+  {
+    "id": "asset_076701f3-6d82-4d34-9efe-d50f3bf950da",
+    "file": "../素材/视频/fanuc-fixed.mp4",
+    "sha256": "8d5a76614b996edcf9e5178127250223b26d2ed3d00e2c01c34c2555147e214d",
+    "durationMs": 68367,
+    "provenance": {
+      "provider": "www.fanucamerica.com",
+      "host": "www.fanucamerica.com",
+      "route": "/applications/material-handling",
+      "acquiredAt": "2026-11-25T08:20:58.601Z"
+    }
+  },
+  {
+    "id": "asset_eb3b26a9-f152-4f37-8471-954511dc967e",
+    "file": "../素材/视频/digit-gxo.mp4",
+    "sha256": "17f5904fe84e077ffb0ce51b023315e812db9e7b9ba318f66d173f5656fcd655",
+    "durationMs": 37300,
+    "provenance": {
+      "provider": "www.agilityrobotics.com",
+      "host": "www.agilityrobotics.com",
+      "route": "/content/digit-moves-over-100k-totes",
+      "acquiredAt": "2026-11-25T08:20:58.639Z"
+    }
+  },
+  {
+    "id": "asset_fa15d05d-3f9d-4554-8b68-38e4055349ce",
+    "file": "../素材/视频/digit-gxo-timelapse.mp4",
+    "sha256": "8edef86ffbfcada938e92097e9a72e32e9362069d856f87a651abc932187cb11",
+    "durationMs": 13900,
+    "provenance": {
+      "provider": "www.agilityrobotics.com",
+      "host": "www.agilityrobotics.com",
+      "route": "/content/digit-moves-over-100k-totes",
+      "acquiredAt": "2026-11-25T08:20:58.673Z"
+    }
+  },
+  {
+    "id": "本次导演观察候选",
+    "file": "../素材/视频/atlas-2025-poc-参考.mp4",
+    "sha256": "6330c2bba263e04cf11c70c9445eb0aa52039ab3802396edebb4ae592176f028",
+    "provenance": {
+      "provider": "bostondynamics.com",
+      "host": "bostondynamics.com",
+      "route": "/blog/atlas-evolution-from-research-robot-to-industrial-humanoid/",
+      "note": "导演抽帧参考，未进入最终切镜"
+    }
+  }
+]
