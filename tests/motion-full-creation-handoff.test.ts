@@ -54,6 +54,10 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
 
     const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
       operationId: "full-run", loadedSkills: ["production-coordinator"] });
+    assert.throws(() => app.submitExport({ projectId, purpose: "delivery" }), { code: "EXPORT_AUTHORED_SCENES_INCOMPLETE" });
+    assert.equal(app.submitExport({ projectId, purpose: "draft" }).kind, "export");
+    const initial = await app.evaluateProductionCompletion({ projectId, runId: run.id, revision: rev(), completionScope: { kind: "project" } });
+    assert.ok(initial.coordinationIssues.some(issue => issue.code === "OD_COMMISSION_MISSING"));
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign-authors", action: "add_assignment",
       assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "visual_design", "motion_research"],
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"],
@@ -67,9 +71,14 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
       (await app.recordCreativeDecision({ projectId, runId, operationId: randomUUID(), category: "visual", phase,
         assignmentId: phase === "creative_research" ? "creative" : "authors",
         inputRevision: rev(), objectIds: sceneIds, decision: "隔离场面", rationale: "依据测试参考和真实素材", ...extra })).creativeDecisions.at(-1)!;
+    await assert.rejects(record("creative_research", { researchOutcome: "researched" }),
+      { code: "PRODUCTION_RESEARCH_COVERAGE_INVALID" });
+    await assert.rejects(record("creative_research", { researchOutcome: "researched",
+      researchCoverage: { ...completeResearchCoverage, blockingQuestions: ["尚未看完采用范围"] } }),
+      { code: "PRODUCTION_RESEARCH_INCOMPLETE" });
     const actualVideo = (readCreativeCase(resolve("references/motion-cases/skillry"), { id: "002-c01", include_storyboard: false }).result.resources as { video: { absolute_path: string } }).video.absolute_path;
     const fileHash = createHash("sha256").update(await readFile(actualVideo)).digest("hex");
-    await assert.rejects(record("creative_research", { researchOutcome: "researched", researchReferences: [{ kind: "creative", id: "002-c01", sourceSha256: fileHash }] }),
+    await assert.rejects(record("creative_research", { researchOutcome: "researched", researchCoverage: completeResearchCoverage, researchReferences: [{ kind: "creative", id: "002-c01", sourceSha256: fileHash }] }),
       /002-c01.*source_sha256.*顶层/u);
     const mechanism = readLibraryMechanism(resolve("references/motion-cases/skillry"), { id: "001-m03", include_storyboard: false }).result;
     const motionFingerprint = mechanism.source_sha256;
@@ -115,7 +124,15 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
       action: "submit_draft", assignmentId: "creative", inputRevision: rev(),
       sceneId: item.id, unitId: item.id, startFrame: item.startFrame, endFrame: item.endFrame, creativeDecisionId: research.id,
       mode: "full_reference",
-      body: "从本片读数出现时开始观察，再让画面中的" + caption + "接力。\n先保留整幅实拍至局部可认，接手比原片晚两拍。\n",
+      body: [
+        "## 整片视觉研究\n保留暖白底与实拍主体。",
+        "## 原片完整表现\n从全景进入读数并叠字。",
+        "## 本片素材与源范围\n使用已绑定的静态实拍。",
+        `## 本片完整演出\n从本片读数出现时开始观察，再让画面中的${caption}接力。\n先保留整幅实拍至局部可认，接手比原片晚两拍。`,
+        "## 必须保留的视觉特征\n实拍连续留在中心。",
+        "## 替换与补偿\n使用本片读数局部承接。",
+        "## 场间接续\n结果停留后交给后场。"
+      ].join("\n\n") + "\n",
       assets: [{ assetId: asset.id }],
       reference: { researchDecisionId: research.id, kind: "creative", id: "002-c01", sourceSha256: fingerprint, startMs: 100, endMs: 900 }
     });
@@ -130,7 +147,12 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     };
     const accept = async (draft: ProductionUnitDraft, comparisonPath = restagePath) => {
       const result = await handoff({ action: "accept_draft", draftId: draft.id, assignmentId: "authors", inputRevision: rev(),
-        sourceMs: draft.reference.startMs, projectFrame: draft.startFrame, comparisonPath, observation: "00:00–00:00.4 同状态，00:00.4–00:01 连续过程" });
+        sourceMs: draft.reference.startMs, projectFrame: draft.startFrame, comparisonPath, observation: [
+          "## 同状态对照\n00:00–00:00.4", "## 连续过程对照\n00:00.4–00:01",
+          `## 原片时间\n${draft.reference.startMs}–${draft.reference.endMs} ms`,
+          `## 本片帧段\n${draft.startFrame}–${draft.endFrame}`,
+          "## 实际差异\n本片文字接手偏晚。", "## 删减判断\n保留全幅实拍与接管关系。"
+        ].join("\n\n") });
       assert.equal(result.action, "accept_draft");
       drafts.set(draft.unitId, { draft, receipt: result.id });
     };
@@ -142,6 +164,7 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     assert.equal(productionUnitHandoffSchema.safeParse({ ...input, reference: undefined }).success, false);
     assert.equal(productionUnitHandoffSchema.safeParse({ ...input, mode: "original" }).success, false);
     await assert.rejects(handoff({ ...input, reference: { ...input.reference, startMs: 50 } }), /50–100 ms/u);
+    await assert.rejects(handoff({ ...input, body: "002-c01" }), /缺少 Markdown 小节/u);
     await assert.rejects(handoff({ ...input, assets: [] }), /真实素材/u);
     await assert.rejects(handoff({ ...input, mode: "local_mechanism", reference: { ...motionSource, researchDecisionId: motion.id } }),
       /主要单元须使用完整参考/u);
@@ -393,6 +416,7 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     assert.equal(submitted.status, 200);
     const result = await authoring as any;
     returnedAuthoring = result.authoring;
+    app.updateJob(job.id, { status: "succeeded", result });
     assert.equal(result.authoring.status, "succeeded", JSON.stringify(result.authoring));
     assert.deepEqual(feedback?.range, { startFrame: 5, endFrame: 10 });
     assert.equal(feedback?.frozenVersion, frozenVersion);
@@ -450,6 +474,11 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
 
     app.repository.commit(projectId, rev(), "核对完整解说导出门禁", snapshot => { snapshot.project.profile = "visual_explainer"; });
     assert.equal(app.submitExport({ projectId }).kind, "export", "采用对应的冻结作品允许正式导出");
+    const wrongReceipt = structuredClone(result);
+    wrongReceipt.authoring.receipts.at(-1).frozenVersion = "different-frozen-version";
+    app.updateJob(job.id, { status: "succeeded", result: wrongReceipt });
+    assert.throws(() => app.submitExport({ projectId }), { code: "EXPORT_AUTHORED_SCENES_INCOMPLETE" });
+    app.updateJob(job.id, { status: "succeeded", result });
     if (secondScene) {
       await returnDraft(drafts.get(secondScene.id)!.draft);
       const current = app.readProject(projectId).snapshot;
@@ -460,6 +489,7 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
       const readback = await app.readProductionStatus(projectId, { runId: run.id, referenceDecisionId: design.id });
       assert.equal(readback.unitHandoffs?.find(item => item.sceneId === secondScene.id)?.status, "returned");
       assert.equal("authorRequest" in readback, false, "已被退回的冻结设计仅保留对照");
+      assert.throws(() => app.submitExport({ projectId }), { code: "EXPORT_AUTHORED_SCENES_INCOMPLETE" });
       await assert.rejects(record("adoption", { inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } }),
         (error: unknown) => !!(error as { issues?: Array<{ code: string }> }).issues?.some(issue => issue.code === "VISUAL_UNIT_HANDOFF_RETURNED"));
     }

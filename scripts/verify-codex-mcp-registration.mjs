@@ -15,9 +15,9 @@ function samePath(left, right) {
 }
 
 // 已安装文件正确不代表宿主启动入口正确；两项分别核验，避免旧缓存路径被遗漏。
-export function assertCodexMcpRegistration(registration, { installedPluginRoot, repoRoot, mcpSpec }) {
-  if (registration?.name !== "videoflowcut" || registration.enabled !== true || registration.disabled_reason) {
-    fail("videoflowcut 未直接注册或未启用。");
+export function assertCodexMcpRegistration(registration, { installedPluginRoot, repoRoot, mcpSpec, name = "videoflowcut" }) {
+  if (registration?.name !== name || registration.enabled !== true || registration.disabled_reason) {
+    fail(`${name} 未直接注册或未启用。`);
   }
   const transport = registration.transport;
   if (transport?.type !== "stdio" || transport.command !== mcpSpec.command) fail("启动命令与已安装声明不一致。");
@@ -39,7 +39,7 @@ export function assertCodexMcpRegistration(registration, { installedPluginRoot, 
   return { hostRegistrationVerified: true, launcher: expectedLauncher, desktopConnectionVerified: false };
 }
 
-export function verifyCodexMcpRegistration(args) {
+export function verifyCodexMcpRegistration(args, { allServers = false } = {}) {
   const cliIndex = args.indexOf("--codex-cli");
   const codexCli = args[cliIndex + 1];
   if (cliIndex < 0 || args.lastIndexOf("--codex-cli") !== cliIndex || !codexCli || !isAbsolute(codexCli)) {
@@ -48,16 +48,22 @@ export function verifyCodexMcpRegistration(args) {
   const release = verifyInstalledRelease(args);
   const installedPluginRoot = resolve(args[args.indexOf("--installed-plugin-root") + 1]);
   const repoRoot = resolve(import.meta.dirname, "..");
-  const mcpSpec = JSON.parse(readFileSync(join(installedPluginRoot, ".mcp.json"), "utf8")).mcpServers.videoflowcut;
+  const specs = JSON.parse(readFileSync(join(installedPluginRoot, ".mcp.json"), "utf8")).mcpServers;
+  const names = allServers ? Object.keys(specs) : ["videoflowcut"];
   // 只调用官方只读配置查询，不启动独立剪辑任务、不访问正式视频对象、不改变审批规则。
-  const registration = JSON.parse(execFileSync(codexCli, ["mcp", "get", "videoflowcut", "--json"], {
-    cwd: repoRoot, encoding: "utf8", windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024
+  const servers = Object.fromEntries(names.map((name) => {
+    const registration = JSON.parse(execFileSync(codexCli, ["mcp", "get", name, "--json"], {
+      cwd: repoRoot, encoding: "utf8", windowsHide: true, timeout: 15_000, maxBuffer: 1024 * 1024
+    }));
+    return [name, { ...assertCodexMcpRegistration(registration, { installedPluginRoot, repoRoot, mcpSpec: specs[name], name }),
+      transport: registration.transport, startupTimeout: specs[name].startup_timeout_sec }];
   }));
-  const host = assertCodexMcpRegistration(registration, { installedPluginRoot, repoRoot, mcpSpec });
   return {
     installedReleaseVerified: release.verified,
     releaseId: release.installed.releaseId,
-    ...host,
+    ...(allServers ? { servers } : servers.videoflowcut && {
+      hostRegistrationVerified: true, launcher: servers.videoflowcut.launcher, desktopConnectionVerified: false
+    }),
     pendingVerification: "仍需现有剪辑任务真实调用 read_runtime_release；本命令不证明桌面会话已连接。"
   };
 }

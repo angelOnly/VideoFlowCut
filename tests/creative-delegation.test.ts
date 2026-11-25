@@ -505,7 +505,7 @@ test("分派、结果和真实输入版本可回读，同一请求安全重试",
     await assert.rejects(() => f.app.updateProductionRun({ ...update, assignment: { ...update.assignment, agentId: "/other" } }), { code: "PRODUCTION_OPERATION_CONFLICT" });
     const result = { projectId: f.projectId, runId: f.run.id, operationId: "research", category: "visual" as const,
       phase: "creative_research" as const, assignmentId: "author", inputRevision: f.revision(), objectIds: [f.projectId],
-      researchOutcome: "researched" as const, decision: "研究完整场面", rationale: "记录候选与采用依据", evidence: ["fixture-reference"] };
+      researchOutcome: "researched" as const, researchCoverage: completeResearchCoverage, decision: "研究完整场面", rationale: "记录候选与采用依据", evidence: ["fixture-reference"] };
     const recorded = await f.app.recordCreativeDecision(result);
     assert.deepEqual(await f.app.recordCreativeDecision(result), JSON.parse(JSON.stringify(recorded)));
     assert.equal(recorded.creativeDecisions.length, 1);
@@ -783,13 +783,13 @@ test("同一场面内不同 Beat 的职责独立分派并按目标范围核对",
           responsibilities: ["creative_research"], skillIds: ["creative-sequence-design"], scope: { kind: "beats", beatIds: [beat.id] }, inputRevision: f.revision() } });
     }
     report = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "first-beat-research", category: "visual", phase: "creative_research",
-      assignmentId: "author-0", inputRevision: f.revision(), objectIds: [beats[0]!.id], researchOutcome: "researched", decision: "第一拍研究", rationale: "只覆盖第一拍" });
+      assignmentId: "author-0", inputRevision: f.revision(), objectIds: [beats[0]!.id], researchOutcome: "researched", researchCoverage: completeResearchCoverage, decision: "第一拍研究", rationale: "只覆盖第一拍" });
     const issues = await evaluateProductionCoordination({ report, snapshot: f.app.readProject(f.projectId).snapshot, scope: { kind: "beats", beatIds: [beats[1]!.id] },
       readRevision: revision => f.app.readProject(f.projectId, revision).snapshot });
     assert.ok(issues.some(issue => issue.code === "RESEARCH_PENDING" && issue.assignmentId === "author-1"));
     assert.ok(!issues.some(issue => issue.assignmentId === "author-0"));
     report = await f.app.recordCreativeDecision({ projectId: f.projectId, runId: f.run.id, operationId: "second-beat-research", category: "visual", phase: "creative_research",
-      assignmentId: "author-1", inputRevision: f.revision(), objectIds: [beats[1]!.id], researchOutcome: "researched", decision: "第二拍研究", rationale: "只覆盖第二拍" });
+      assignmentId: "author-1", inputRevision: f.revision(), objectIds: [beats[1]!.id], researchOutcome: "researched", researchCoverage: completeResearchCoverage, decision: "第二拍研究", rationale: "只覆盖第二拍" });
     const second = report.creativeDecisions.at(-1)!;
     const snapshot = f.app.readProject(f.projectId).snapshot;
     assert.equal(referenceResearchOwnerAccepted(report, snapshot, snapshot.scenes.find(scene => scene.id === f.scene.id)!, undefined, second, "creative_research"), true,
@@ -853,7 +853,10 @@ test("真实 MCP 合同可接回研究，HTTP 与 MCP 返回同一待办", async
     const originalHash = createHash("sha256").update(await readFile(readCard.resources.video.absolute_path)).digest("hex");
     const wrongHash = await client.callTool({ name: "record_creative_decision", arguments: { project_id: f.projectId, run_id: run.id,
       operation_id: "mcp-wrong-hash", category: "visual", phase: "creative_research", assignment_id: "creative", input_revision: f.revision(),
-      object_ids: [f.projectId], research_outcome: "researched", research_references: [{ kind: "creative", id: "016-c01", source_sha256: originalHash }],
+      object_ids: [f.projectId], research_outcome: "researched",
+      research_coverage: { overall_visual: "covered", scene_composition: "covered", motion_mechanisms: "covered", blocking_questions: [],
+        layer_notes: { overall_visual: "整片保持实拍", scene_composition: "主体持续留在中心", motion_mechanisms: "文字接管跟随主体" } },
+      research_references: [{ kind: "creative", id: "016-c01", source_sha256: originalHash }],
       decision: "研究记录", rationale: "验证原片哈希不能代替库指纹" } });
     assert.equal(wrongHash.isError, true);
     const wrongHashResult = JSON.parse((wrongHash.content as Array<{ text: string }>)[0]!.text);
@@ -862,6 +865,7 @@ test("真实 MCP 合同可接回研究，HTTP 与 MCP 返回同一待办", async
     assert.ok(!(await f.app.readSkillExecutionReport({ projectId: f.projectId, runId: run.id })).operations!.some(operation => operation.id === "mcp-wrong-hash"));
     const pendingReport = await call("record_creative_decision", { project_id: f.projectId, run_id: run.id, operation_id: "mcp-research", category: "visual",
       phase: "creative_research", assignment_id: "creative", input_revision: f.revision(), object_ids: [f.projectId], research_outcome: "pending",
+      research_coverage: { overall_visual: "pending", scene_composition: "pending", motion_mechanisms: "pending", blocking_questions: ["待连续观察"] },
       research_references: [{ kind: "creative", id: "016-c01", source_sha256: creativeFingerprint }], decision: "候选已回传", rationale: "仍需连续观察" });
     await call("update_production_run", { project_id: f.projectId, run_id: run.id, expected_audit_version: pendingReport.auditVersion,
       operation_id: "mcp-visual-assign", action: "add_assignment", assignment: { assignment_id: "visual", agent_id: "/fixture/visual",

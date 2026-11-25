@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import type { CreativeDecision, EditorialQualityReview, ProductionAssignment, ProductionCompletionScope, ProductionCoordinationIssue, ProjectSnapshot, SkillExecutionReport, VisualResponsibility, VisualTreatment } from "@videocut/contracts";
+import type { JobRecord, CreativeDecision, EditorialQualityReview, ProductionAssignment, ProductionCompletionScope, ProductionCoordinationIssue, ProjectSnapshot, SkillExecutionReport, VisualResponsibility, VisualTreatment } from "@videocut/contracts";
 import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges, openEditorialFindings } from "../../quality-system/src/editorial-review.js";
 import { compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
-import { motionHandoffDependencyHash } from "./motion-adoption.js";
+import type { MotionAuthoringInput } from "../../contracts/src/motion-authoring.js";
+import { frozenWorkForDelivery, motionHandoffDependencyHash } from "./motion-adoption.js";
 import { sameVisualDelivery, visualDesignCovers } from "./visual-design-revisions.js";
 import { productionObservationRanges } from "./editorial-evidence.js";
 import type { ReferenceManifest, ReferenceScene } from "./opendesign-reference-package.mjs";
@@ -16,6 +17,56 @@ type Scene = ProjectSnapshot["scenes"][number];
 /** 实拍事件主导的新片使用实际剪辑判断；明确视觉重做仍走完整视觉设计。 */
 export function requiresFullVisualCoordination(report: SkillExecutionReport, snapshot: ProjectSnapshot): boolean {
   return report.intent === "visual_rework" || report.intent === "full_creation" && snapshot.project.profile !== "vlog";
+}
+
+/** 正式作品按制作回执、当前采用与实际可见帧共同核对。OD 项目号来自委托。 */
+export function fullCreationMotionIssues(report: SkillExecutionReport, snapshot: ProjectSnapshot,
+  scope: ProductionCompletionScope, jobs: JobRecord[], verifyInputs?: (cue: ProjectSnapshot["effectCues"][number]) => void): ProductionCoordinationIssue[] {
+  if (!requiresVisualReferenceUnits(report, snapshot)) return [];
+  const active = resolveCompositionReachability(snapshot);
+  const commissions = jobs.flatMap(job => {
+    if (job.kind !== "motion_authoring") return [];
+    const request = job.payload.input as MotionAuthoringInput;
+    return request.productionRunId === report.id ? [{ job, project: request.openDesignRequest.project }] : [];
+  });
+  const scenes = snapshot.scenes.filter(scene => coversScene(snapshot, scope, scene)
+    || snapshot.visualTreatments.some(treatment => (treatment.sceneId === scene.id
+      || !treatment.sceneId && !!treatment.narrativeBeatId && scene.narrativeBeatIds.includes(treatment.narrativeBeatId))
+      && coversScene(snapshot, scope, scene, treatment)));
+  const finalized = commissions.flatMap(({ job, project }) => {
+    const authoring = job.result?.authoring as { status?: string; receipts?: Array<Record<string, unknown>> } | undefined;
+    return job.status === "succeeded" && authoring?.status === "succeeded" ? [{ project, receipts: authoring.receipts ?? [] }] : [];
+  });
+  const cues = snapshot.effectCues.filter(cue => {
+    if (!scenes.some(scene => scene.id === cue.sceneId) || !active.effectCueIds.has(cue.id)
+      || !cue.authoringInputs?.some(input => input.adoptedDecisionRef.productionRunId === report.id)) return false;
+    const frozen = frozenWorkForDelivery(snapshot, cue);
+    if (!frozen) return false;
+    const { work, author } = frozen;
+    const confirmed = finalized.some(({ project, receipts }) => project === author.project
+      && receipts.some(receipt => receipt.runId === author.run_id && receipt.frozenVersion === author.frozen_version
+        && receipt.workId === work.id && receipt.definitionHash === work.definitionHash));
+    if (!confirmed) return false;
+    verifyInputs?.(cue);
+    return true;
+  });
+  const mainScenes = scenes.filter(scene => scene.narrativeBeatIds.length);
+  const ranges = productionScopeRanges(snapshot, scope);
+  const issue = (code: string, message: string, sceneId?: string, range?: FrameRange): ProductionCoordinationIssue => ({
+    code, message, scope: range ? { kind: "frames", ...range } : scope,
+    state: "missing", relatedDecisionIds: [], relatedObjectIds: sceneId ? [sceneId] : [],
+    nextAction: "沿本次制作委托和同版冻结稿接回作品，再核对项目中的实际范围"
+  });
+  if (!scenes.length) return [issue("OD_TARGET_MISSING", "本次完整新制没有可制作的场面")];
+  if (!commissions.length) return [issue("OD_COMMISSION_MISSING", "本次完整新制缺少正式 OD 制作委托")];
+  if (!finalized.some(entry => entry.receipts.length)) {
+    return [issue("OD_FROZEN_WORK_MISSING", "本次 OD 制作委托尚未确认完成，或缺少冻结作品回执")];
+  }
+  return (mainScenes.length ? mainScenes : scenes).flatMap(scene => {
+    const sceneRanges = intersectRanges([scene], ranges);
+    return sceneRanges.flatMap(range => missingReviewRanges(cues.filter(cue => cue.sceneId === scene.id), range.startFrame, range.endFrame)
+      .map(gap => issue("OD_COVERAGE_MISSING", `场面「${scene.title}」缺少已采用的同版 OD 冻结作品（${gap.startFrame}–${gap.endFrame} 帧）`, scene.id, gap)));
+  });
 }
 
 export function normalizeProductionScope(scope: ProductionCompletionScope): ProductionCompletionScope {

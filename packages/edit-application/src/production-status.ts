@@ -1,3 +1,4 @@
+import type { MotionAuthoringInput } from "../../contracts/src/motion-authoring.js";
 import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
 import type { EditingApplication } from "./index.js";
 import type { MotionContinuationResult, ProductionCompletionScope } from "@videocut/contracts";
@@ -47,6 +48,10 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
         decisions: run.creativeDecisions.filter(item => item.phase === responsibility && item.assignmentId === assignment.assignmentId)
           .map(item => ({ id: item.id, decision: item.decision })) }))) } : {}),
     work: {
+      ...(run ? { commissions: jobs.filter(job => job.kind === "motion_authoring"
+        && (job.payload.input as MotionAuthoringInput).productionRunId === run.id)
+        .map(job => ({ jobId: job.id, status: job.status, targetRange: job.payload.targetRange,
+          authoring: job.result?.authoring, error: job.error })) } : {}),
       adopted: state.snapshot.effectCues.filter(cue => cue.type === "ManagedMotion").map(cue => {
         const work = motionWorkForCue(state.snapshot, cue);
         const asset = motionMediaForCue(state.snapshot, cue);

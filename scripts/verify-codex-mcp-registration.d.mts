@@ -1,4 +1,5 @@
 export interface McpRegistrationOptions {
+  name?: string;
   installedPluginRoot: string;
   repoRoot: string;
   mcpSpec: {

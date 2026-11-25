@@ -2782,7 +2782,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。创意研究可先交接局部结果；正式采用前，为每个 covered 层次填实际研究与迁移正文，not_applicable 须说明理由。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
+  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。完整新制创意研究登记三层覆盖，covered 填实际研究与本片迁移，not_applicable 说明原因。有未完成层次或阻断问题时登记 pending；researched 应在实际观察、迁移和必要试摆后登记。写入成功仅表示记录已保存。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -3062,7 +3062,7 @@ server.registerTool("inspect_composed_frames", {
 
 server.registerTool("submit_export", {
   title: "提交导出",
-  description: "固定目标 Revision，按 draft 或 delivery 用途提交导出，执行技术预检、渲染和最终文件校验。制作完成状态由 complete_production_run 与 read_production_status 读取，用户对具体文件的认可单独记录。",
+  description: "固定目标 Revision，按 draft 或 delivery 用途提交导出。完整新制正式交付先核对同版冻结制作回件及项目覆盖，再执行技术预检、渲染和最终文件校验。制作完成状态由 complete_production_run 与 read_production_status 读取，用户对具体文件的认可单独记录。",
   inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional(), preflight_job_id: z.string().optional() }
 }, async ({ project_id, revision, purpose, idempotency_key, preflight_job_id }) => {
   try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key, preflightJobId: preflight_job_id })); } catch (error) { return asError(error); }

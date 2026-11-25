@@ -1,3 +1,4 @@
+import { fullReferenceDraftSections, fullReferenceObservationSections } from "../../contracts/src/production-unit-handoff.js";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
@@ -15,6 +16,15 @@ const imageComparison = /^\.(?:jpeg|jpg|png|webp)$/iu;
 
 export function requiresVisualReferenceUnits(report: SkillExecutionReport, snapshot: ProjectSnapshot): boolean {
   return report.intent === "full_creation" && snapshot.project.profile !== "vlog";
+}
+
+function missingMarkdownSections(body: string, headings: readonly string[]): string[] {
+  const sections = new Map<string, string>();
+  const markers = [...body.matchAll(/^#{1,6}[ \t]+(.+?)[ \t]*\r?$/gmu)];
+  for (const [index, marker] of markers.entries()) {
+    sections.set(marker[1]!, body.slice(marker.index + marker[0].length, markers[index + 1]?.index).trim());
+  }
+  return headings.filter(heading => !sections.get(heading));
 }
 
 function unitModeAllowed(report: SkillExecutionReport, snapshot: ProjectSnapshot, mode: unknown): boolean {
@@ -139,6 +149,10 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
       invalid("本片创意原稿缺少本单元原作者的研究记录");
     }
     if (!input.body.trim()) invalid("请提交原创意作者实际写出的本片正文");
+    if (input.mode === "full_reference") {
+      const missing = missingMarkdownSections(input.body, fullReferenceDraftSections);
+      if (missing.length) invalid(`完整参考原稿缺少 Markdown 小节或正文：${missing.join("、")}`);
+    }
     const source = input.reference;
     if (source.endMs <= source.startMs || input.mode === "local_mechanism" && source.kind !== "motion"
       || source.kind === "creative" && source.researchDecisionId !== creative.id) invalid("采用模式、研究决定与原片区间不符");
@@ -184,6 +198,10 @@ export async function buildUnitHandoffEvent(report: SkillExecutionReport, inputS
   const extension = extname(comparisonPath);
   if (!videoComparison.test(extension) && (submitted.mode === "full_reference" || !imageComparison.test(extension))) {
     invalid(submitted.mode === "full_reference" ? "完整迁移接件须提供同状态与连续过程的视频对照" : "局部机制接件需要图片或视频对照");
+  }
+  if (submitted.mode === "full_reference") {
+    const missing = missingMarkdownSections(input.observation, fullReferenceObservationSections);
+    if (missing.length) invalid(`完整参考接件缺少 Markdown 小节或观察：${missing.join("、")}`);
   }
   if (await hashFile(submitted.path).catch(() => "") !== submitted.sha256) invalid("固定的本片原稿不可读取或内容已变");
   const comparisonSha256 = await hashFile(comparisonPath).catch(() => invalid("无法打开视觉试摆对照"));

@@ -2,7 +2,7 @@ import { readProductionStatus, type ProductionStatusContext } from "./production
 import { referenceComparisonsForRevision } from "./reference-comparison.js";
 import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
-import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
+import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, fullCreationMotionIssues, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
 import { responsibilityReviewFindings, validateResponsibilityReviews } from "./responsibility-review.js";
 import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "./motion-coordination-error.js";
 import { assertVisualDesign, readFrozenAuthorRequest, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
@@ -43,7 +43,7 @@ import { applyAudioDesign, soundRequirementSchema, type AudioDesignInput } from 
 import { prepareProjectFrameRateChange } from "./frame-rate-change.js";
 import { canvasAspectRatio, projectCanvasSizeSchema } from "../../contracts/src/canvas-size.js";
 import { digest as mediaDigest, assetRequestVersion } from "../../media-intelligence/src/index.js";
-import { assertEffectCoverage, effectBeatRanges, resolveCompositionReachability } from "@videocut/domain";
+import { assertEffectCoverage } from "@videocut/domain";
 import { MediaIntelligenceApplication } from "./media-intelligence.js";
 import { submitSfxGeneration, completeSfxGeneration } from "./sfx-generation.js";
 import { createHash, randomUUID } from "node:crypto";
@@ -61,7 +61,7 @@ import { MotionSourceValidationError } from "../../contracts/src/authored-motion
 import { MotionSubmissionValidationError } from "./motion-submission-validation.js";
 import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { inspectEffectContentContract } from "@videocut/contracts";
-import { closeSync, createReadStream, existsSync, openSync, readFileSync, readSync, statSync } from "node:fs";
+import { closeSync, createReadStream, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import type {
@@ -2644,6 +2644,17 @@ export class EditingApplication {
           throw new DomainError("创意研究覆盖需要三个层次、未决问题，以及各不适用层次的理由", "PRODUCTION_RESEARCH_COVERAGE_INVALID");
         }
       }
+      if (input.phase === "creative_research" && requiresVisualReferenceUnits(report, inputSnapshot)) {
+        const coverage = input.researchCoverage;
+        if (!coverage || (["overallVisual", "sceneComposition", "motionMechanisms"] as const)
+          .some(level => coverage[level] === "covered" && !coverage.layerNotes?.[level]?.trim())) {
+          throw new DomainError("完整新制须登记三层研究覆盖，并为已覆盖层填写实际研究和本片迁移正文", "PRODUCTION_RESEARCH_COVERAGE_INVALID");
+        }
+        if (input.researchOutcome === "researched" && (coverage.blockingQuestions.length
+          || [coverage.overallVisual, coverage.sceneComposition, coverage.motionMechanisms].includes("pending"))) {
+          throw new DomainError("研究仍有未完成层次或阻断问题，请登记为 pending", "PRODUCTION_RESEARCH_INCOMPLETE");
+        }
+      }
       if (input.researchReferences?.some(reference => !isResearch
         || reference.kind !== (input.phase === "creative_research" ? "creative" : "motion")
         || !reference.id.trim() || !/^[a-f0-9]{64}$/u.test(reference.sourceSha256)
@@ -2973,7 +2984,8 @@ export class EditingApplication {
     }
     const blockers: string[] = report.intent === "review_only" ? [] : completionReconciliationBlockers(target.snapshot, scope);
     if (scope.kind === "objects" && report.intent !== "review_only") blockers.push(...this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds).map(entry => `${entry.objectId}：${entry.message}`));
-    const authoringJobs = this.repository.listJobs(input.projectId).filter(job => {
+    const projectJobs = this.repository.listJobs(input.projectId);
+    const authoringJobs = projectJobs.filter(job => {
       if (job.kind !== "motion_authoring") return false;
       const request = job.payload.input as MotionAuthoringInput;
       if (request.productionRunId !== input.runId) return false;
@@ -3101,6 +3113,7 @@ export class EditingApplication {
     const captionTextOnly = isCaptionTextOnlyChange(source, target.snapshot, scope);
     const coordinationIssues = await evaluateProductionCoordination({ report, snapshot: target.snapshot, scope, review: coordinationReview, captionTextOnly,
       readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
+    coordinationIssues.push(...fullCreationMotionIssues(report, target.snapshot, scope, projectJobs));
     blockers.push(...coordinationIssues.map(issue => issue.message));
     if (report.intent !== "review_only") {
       const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview, this.repository.readReviews(input.projectId));
@@ -10330,8 +10343,8 @@ export class EditingApplication {
     const revision = input.revision ?? state.revision.number;
     const purpose = input.purpose ?? "delivery";
     const { snapshot } = this.repository.getRevision(input.projectId, revision);
-    if (purpose === "delivery" && snapshot.project.profile === "visual_explainer") {
-      this.assertAdoptedSceneDelivery(snapshot);
+    if (purpose === "delivery" && snapshot.project.profile !== "vlog") {
+      this.assertAdoptedSceneDelivery(snapshot, revision);
     }
     const job = this.repository.createJob({
       projectId: input.projectId,
@@ -10344,32 +10357,38 @@ export class EditingApplication {
     return job;
   }
 
-  /** 完整解说中已采用的场面须由同一采用稿的冻结回件覆盖，草稿仍可查看未完成版本。 */
-  private assertAdoptedSceneDelivery(snapshot: ProjectSnapshot): void {
-    const fullCreation = new Map<Id, boolean>();
-    const active = resolveCompositionReachability(snapshot);
-    const cues = snapshot.effectCues.filter(cue => active.effectCueIds.has(cue.id) && cue.type === "ManagedMotion"
-      && cue.authoringInputs?.length && motionAuthoringInputsCurrent(snapshot, cue.authoringInputs) && motionWorkForCue(snapshot, cue)?.author);
-    const missing: string[] = [];
-    for (const treatment of snapshot.visualTreatments) {
-      const runId = treatment.adoptedDecisionRef?.productionRunId;
-      if (!runId) continue;
-      if (!fullCreation.has(runId)) {
-        const report = JSON.parse(readFileSync(this.reportPath(snapshot.project.id, runId), "utf8")) as SkillExecutionReport;
-        fullCreation.set(runId, requiresVisualReferenceUnits(report, snapshot));
-      }
-      if (!fullCreation.get(runId)) continue;
-      const treatmentCues = cues.filter(cue => cue.authoringInputs?.some(input => input.visualTreatmentId === treatment.id));
-      for (const id of visualScopeSceneIds(snapshot, [treatment.id])) {
-        const scene = snapshot.scenes.find(item => item.id === id)!;
-        const ranges = treatment.narrativeBeatId ? effectBeatRanges(snapshot, treatment.narrativeBeatId, id) : [scene];
-        const sceneCues = treatmentCues.filter(cue => cue.sceneId === id);
-        for (const range of ranges) for (const gap of missingReviewRanges(sceneCues, range.startFrame, range.endFrame)) {
-          missing.push(`${scene.title} ${gap.startFrame}–${gap.endFrame} 帧`);
-        }
-      }
+  /** 首次交付前从制作记录定位整片任务，即使还没有写入任何采用。 */
+  private assertAdoptedSceneDelivery(snapshot: ProjectSnapshot, revision: number): void {
+    const projectId = snapshot.project.id;
+    const directory = join(this.getProjectRoot(projectId), "reports");
+    const reports = (existsSync(directory) ? readdirSync(directory, { withFileTypes: true }) : [])
+      .filter(entry => entry.isFile() && /^production-run-production_run_[a-zA-Z0-9-]+\.json$/u.test(entry.name))
+      .map(entry => JSON.parse(readFileSync(join(directory, entry.name), "utf8")) as SkillExecutionReport)
+      .filter(report => report.projectId === projectId && report.baseRevision <= revision);
+    const adoptedRunIds = new Set(snapshot.visualTreatments.map(treatment => treatment.adoptedDecisionRef?.productionRunId));
+    const wholeFilm = reports.filter(report => report.completionScope.kind === "project"
+      && report.status !== "abandoned" && requiresVisualReferenceUnits(report, snapshot))
+      .sort((a, b) => b.baseRevision - a.baseRevision || b.createdAt.localeCompare(a.createdAt))[0];
+    const jobs = this.repository.listJobs(projectId);
+    const gatedReports = reports.filter(report => requiresVisualReferenceUnits(report, snapshot)
+      && (report.id === wholeFilm?.id || adoptedRunIds.has(report.id)));
+    if (!gatedReports.length) return;
+    const review = mergeEditorialReviews(reports.flatMap(report => [
+      ...(report.editorialReviewHistory ?? []), ...(report.editorialReview ? [report.editorialReview] : [])
+    ]), revision);
+    const findings = openEditorialFindings(review).filter(finding => finding.severity === "blocking");
+    if (findings.length) {
+      throw new DomainError(`正式交付前须复查阻断问题：${findings.map(finding => finding.summary).join("、")}`, "EXPORT_EDITORIAL_BLOCKED");
     }
-    if (missing.length) throw new DomainError(`已采用场面仍缺冻结制作回件：${[...new Set(missing)].join("、")}。可先导出草稿。`, "EXPORT_AUTHORED_SCENES_INCOMPLETE");
+    const issues = gatedReports
+      .flatMap(report => fullCreationMotionIssues(report, snapshot, report.completionScope, jobs, cue => {
+        try {
+          this.assertMotionAuthoringInputsCurrent(snapshot, cue.sceneId, cue.authoringInputs!, true, cue);
+        } catch (error) {
+          throw new DomainError(`场面 ${cue.sceneId} 的冻结制作输入需要复核：${error instanceof Error ? error.message : String(error)}`, "EXPORT_AUTHORED_SCENES_INCOMPLETE");
+        }
+      }));
+    if (issues.length) throw new DomainError(`正式交付仍缺制作回件：${issues.map(issue => issue.message).join("、")}。可先导出草稿。`, "EXPORT_AUTHORED_SCENES_INCOMPLETE");
   }
 
   /**
