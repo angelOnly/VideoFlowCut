@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import type { JobRecord, CreativeDecision, EditorialQualityReview, ProductionAssignment, ProductionCompletionScope, ProductionCoordinationIssue, ProjectSnapshot, SkillExecutionReport, VisualResponsibility, VisualTreatment } from "@videocut/contracts";
+import type { JobRecord, CreativeDecision, EditorialQualityReview, ProductionAssignment, ProductionCompletionScope, ProductionCoordinationIssue, MotionWorkReview, ProjectSnapshot, SkillExecutionReport, VisualResponsibility, VisualTreatment } from "@videocut/contracts";
 import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges, openEditorialFindings } from "../../quality-system/src/editorial-review.js";
 import { compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
+import { motionRootRangeAtProjectRange, motionWorkForCue } from "@videocut/contracts";
 import type { MotionAuthoringInput } from "../../contracts/src/motion-authoring.js";
 import { frozenWorkForDelivery, motionHandoffDependencyHash } from "./motion-adoption.js";
 import { sameVisualDelivery, visualDesignCovers } from "./visual-design-revisions.js";
@@ -20,8 +21,8 @@ export function requiresFullVisualCoordination(report: SkillExecutionReport, sna
 }
 
 /** 正式作品按制作回执、当前采用与实际可见帧共同核对。OD 项目号来自委托。 */
-export function fullCreationMotionIssues(report: SkillExecutionReport, snapshot: ProjectSnapshot,
-  scope: ProductionCompletionScope, jobs: JobRecord[], verifyInputs?: (cue: ProjectSnapshot["effectCues"][number]) => void): ProductionCoordinationIssue[] {
+export function productionMotionIssues(report: SkillExecutionReport, snapshot: ProjectSnapshot,
+  scope: ProductionCompletionScope, jobs: JobRecord[], verifyInputs: (cue: ProjectSnapshot["effectCues"][number]) => void, reviews?: MotionWorkReview[]): ProductionCoordinationIssue[] {
   if (!requiresVisualReferenceUnits(report, snapshot)) return [];
   const active = resolveCompositionReachability(snapshot);
   const commissions = jobs.flatMap(job => {
@@ -37,36 +38,72 @@ export function fullCreationMotionIssues(report: SkillExecutionReport, snapshot:
     const authoring = job.result?.authoring as { status?: string; receipts?: Array<Record<string, unknown>> } | undefined;
     return job.status === "succeeded" && authoring?.status === "succeeded" ? [{ project, receipts: authoring.receipts ?? [] }] : [];
   });
+  const issues: ProductionCoordinationIssue[] = [];
   const cues = snapshot.effectCues.filter(cue => {
     if (!scenes.some(scene => scene.id === cue.sceneId) || !active.effectCueIds.has(cue.id)
       || !cue.authoringInputs?.some(input => input.adoptedDecisionRef.productionRunId === report.id)) return false;
     const frozen = frozenWorkForDelivery(snapshot, cue);
     if (!frozen) return false;
     const { work, author } = frozen;
-    const confirmed = finalized.some(({ project, receipts }) => project === author.project
+    const origin = work.productionOrigin;
+    const assignment = report.assignments.find(item => item.assignmentId === origin?.assignmentId);
+    const direct = origin?.runId === report.id && assignment
+      && !missingReviewRanges(responsibilityAssignmentRanges(snapshot, report, assignment, "visual_design", assignment.operationId), cue.startFrame, cue.endFrame).length;
+    const commissioned = author && finalized.some(({ project, receipts }) => project === author.project
       && receipts.some(receipt => receipt.runId === author.run_id && receipt.frozenVersion === author.frozen_version
         && receipt.workId === work.id && receipt.definitionHash === work.definitionHash));
-    if (!confirmed) return false;
-    verifyInputs?.(cue);
+    if (!direct && !commissioned) return false;
+    try { verifyInputs(cue); }
+    catch (error) {
+      issues.push({ code: "MOTION_INPUT_STALE", scope: { kind: "frames", startFrame: cue.startFrame, endFrame: cue.endFrame },
+        state: "stale", relatedObjectIds: [cue.id], relatedDecisionIds: [],
+        message: error instanceof Error ? error.message : String(error), nextAction: "由视觉作者重新确认固定作品及制作输入" });
+      return false;
+    }
     return true;
   });
-  const mainScenes = scenes.filter(scene => scene.narrativeBeatIds.length);
   const ranges = productionScopeRanges(snapshot, scope);
   const issue = (code: string, message: string, sceneId?: string, range?: FrameRange): ProductionCoordinationIssue => ({
     code, message, scope: range ? { kind: "frames", ...range } : scope,
-    state: "missing", relatedDecisionIds: [], relatedObjectIds: sceneId ? [sceneId] : [],
-    nextAction: "沿本次制作委托和同版冻结稿接回作品，再核对项目中的实际范围"
+    state: code.startsWith("VISUAL_AUTHOR_") ? "pending" : "missing", relatedDecisionIds: [], relatedObjectIds: sceneId ? [sceneId] : [],
+    assignmentId: [...report.assignments].reverse().find(item => item.responsibilities.includes("visual_design")
+      && (!range || responsibilityAssignmentRanges(snapshot, report, item, "visual_design").some(part => rangesOverlap(part, range))))?.assignmentId,
+    nextAction: "续接原视觉作者，接回同版受管作品并核对实际范围"
   });
-  if (!scenes.length) return [issue("OD_TARGET_MISSING", "本次完整新制没有可制作的场面")];
-  if (!commissions.length) return [issue("OD_COMMISSION_MISSING", "本次完整新制缺少正式 OD 制作委托")];
-  if (!finalized.some(entry => entry.receipts.length)) {
-    return [issue("OD_FROZEN_WORK_MISSING", "本次 OD 制作委托尚未确认完成，或缺少冻结作品回执")];
+  if (!scenes.length) return [issue("MOTION_TARGET_MISSING", "本次完整新制没有可制作的场面")];
+  for (const scene of scenes) {
+    const adopted = cues.filter(cue => cue.sceneId === scene.id);
+    for (const range of intersectRanges([scene], ranges)) {
+      for (const gap of missingReviewRanges(adopted, range.startFrame, range.endFrame)) {
+        const failure = commissions.find(({ job }) => ["failed", "unknown", "cancelled"].includes(job.status)
+          && (!job.payload.targetRange || rangesOverlap(job.payload.targetRange as FrameRange, gap)));
+        issues.push(issue(failure ? "MOTION_COMMISSION_UNFINISHED" : "MOTION_COVERAGE_MISSING",
+          failure ? `场面「${scene.title}」的 OD 委托 ${failure.job.id} 未完成：${failure.job.error ?? failure.job.status}`
+            : `场面「${scene.title}」缺少已采用的同版受管作品（${gap.startFrame}–${gap.endFrame} 帧）`, scene.id, gap));
+      }
+      if (!reviews) continue;
+      for (const cue of adopted.filter(item => rangesOverlap(item, range))) {
+        const work = motionWorkForCue(snapshot, cue)!;
+        const [visible] = intersectRanges([cue], [range]);
+        const offset = (cue.sourceStartFrame ?? 0) - cue.startFrame;
+        const root = motionRootRangeAtProjectRange(visible!.startFrame + offset, visible!.endFrame + offset, work.fps, snapshot.timeline.fps);
+        const observations = reviews.flatMap(item => item.productionRunId === report.id && item.workId === work.id
+          && item.definitionHash === work.definitionHash && item.evidence && report.assignments.some(assignment =>
+            assignment.assignmentId === item.assignmentId && assignment.agentId === item.evidence?.observer
+            && !missingReviewRanges(responsibilityAssignmentRanges(snapshot, report, assignment, "visual_design"), cue.startFrame, cue.endFrame).length)
+          ? [{ startFrame: item.evidence.workStartFrame, endFrame: item.evidence.workEndFrame, outcome: item.outcome }] : []);
+        const confirmed = observations.flatMap((entry, index) => entry.outcome === "passed"
+          ? missingReviewRanges(observations.slice(index + 1).filter(later => later.outcome !== "passed"), entry.startFrame, entry.endFrame) : []);
+        const gaps = missingReviewRanges(confirmed, root.startFrame, root.endFrame);
+        if (gaps.length) {
+          const failed = observations.some(entry => entry.outcome === "failed" && gaps.some(gap => rangesOverlap(entry, gap)));
+          issues.push(issue(failed ? "VISUAL_AUTHOR_REVISION_REQUIRED" : "VISUAL_AUTHOR_REVIEW_PENDING",
+            `场面「${scene.title}」的实际作品待视觉作者确认`, scene.id, visible));
+        }
+      }
+    }
   }
-  return (mainScenes.length ? mainScenes : scenes).flatMap(scene => {
-    const sceneRanges = intersectRanges([scene], ranges);
-    return sceneRanges.flatMap(range => missingReviewRanges(cues.filter(cue => cue.sceneId === scene.id), range.startFrame, range.endFrame)
-      .map(gap => issue("OD_COVERAGE_MISSING", `场面「${scene.title}」缺少已采用的同版 OD 冻结作品（${gap.startFrame}–${gap.endFrame} 帧）`, scene.id, gap)));
-  });
+  return issues;
 }
 
 export function normalizeProductionScope(scope: ProductionCompletionScope): ProductionCompletionScope {
@@ -530,6 +567,7 @@ export async function evaluateProductionCoordination(input: {
   snapshot: ProjectSnapshot;
   scope: ProductionCompletionScope;
   review?: EditorialQualityReview;
+  referenceEvidenceIds?: ReadonlySet<string>;
   readRevision: (revision: number) => ProjectSnapshot;
   /** 制作前只检查当前目标，成片实现及作品审阅留到最终收口。 */
   phase?: "authoring" | "completion";
@@ -766,7 +804,8 @@ export async function evaluateProductionCoordination(input: {
                 endFrame: Math.min(range.endFrame, scene.endFrame, mapping.targetRange?.endFrame ?? scene.endFrame)
               })).filter(range => range.startFrame < range.endFrame);
               const evidence = (review?.evidenceRecords ?? []).filter(item =>
-                (item.source === "workbench" || item.source === "artifact")
+                (!input.referenceEvidenceIds || input.referenceEvidenceIds.has(item.id))
+                && (item.source === "workbench" || item.source === "artifact")
                 && (item.method === "continuous_video" || item.method === "audiovisual")
                 && (item.referenceReviews?.some(ref => ref.productionRunId === report.id && ref.decisionId === adoption.id
                   && sameReferenceReview(ref, targetReference))));

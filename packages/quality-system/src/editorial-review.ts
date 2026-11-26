@@ -1,5 +1,5 @@
 import { motionWorkForCue } from "@videocut/contracts";
-import type { ProductionCompletionScope, EditorialQualityReview, EditorialReviewEvidence, EditorialReviewFinding, EditorialReviewPass, ProjectSnapshot, QualityReport } from "@videocut/contracts";
+import type { ProductionCompletionScope, EditorialQualityReview, EditorialReviewEvidence, EditorialReviewFinding, EditorialReviewPass, ProjectSnapshot, QualityReport, SkillExecutionReport, ProductionAssignment, ExportArtifact } from "@videocut/contracts";
 import { avatarBindingMatches, compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
 import { motionRootSpanOnTimeline } from "../../contracts/src/frame-rate.js";
 
@@ -9,6 +9,26 @@ export function evidenceSupportsPass(evidence: Pick<EditorialReviewEvidence, "me
   if (evidence.pass === "audio_only") return evidence.method === "audio";
   if (evidence.pass === "mute_visual") return evidence.method === "continuous_video";
   return evidence.method === "audiovisual";
+}
+
+/** 仅对声明最终审核的完整新片整片交付启用独立审片门槛。 */
+export function requiresEditorialReview(report: SkillExecutionReport): boolean {
+  return report.deliveryReviewRequired === true && report.intent === "full_creation" && report.completionScope.kind === "project";
+}
+
+/** 文件绑定来自审片任务，观察者必须与独立分派一致。 */
+export function deliveryReviewAssignment(production: SkillExecutionReport, review: SkillExecutionReport,
+  artifact: ExportArtifact, assignmentId: string | undefined, observer: string | undefined): ProductionAssignment | undefined {
+  if (review.intent !== "review_only" || review.deliveryProductionRunId !== production.id
+    || production.deliveryArtifactId !== artifact.id || review.deliveryArtifactId !== artifact.id
+    || review.baseRevision !== artifact.revision || review.completionScope.kind !== "project" || review.status === "abandoned"
+    || !review.loadedSkills.includes("quality-verification")) return undefined;
+  const assignment = review.assignments.find(item => item.assignmentId === assignmentId && item.agentId === observer
+    && item.scope.kind === "project" && item.inputRevision === artifact.revision && item.responsibilities.includes("review")
+    && item.skillIds.includes("quality-verification"));
+  if (!assignment || review.assignments.some(item => item.supersedesAssignmentId === assignmentId && item.responsibilities.includes("review"))
+    || production.assignments.some(item => item.agentId === observer && item.responsibilities.includes("visual_design"))) return undefined;
+  return assignment;
 }
 
 export function missingReviewRanges(ranges: Array<{ startFrame: number; endFrame: number }>, startFrame: number, endFrame: number) {

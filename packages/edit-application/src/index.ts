@@ -2,7 +2,7 @@ import { readProductionStatus, type ProductionStatusContext } from "./production
 import { referenceComparisonsForRevision } from "./reference-comparison.js";
 import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
-import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, fullCreationMotionIssues, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
+import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, productionMotionIssues, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityAssignmentRanges, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
 import { responsibilityReviewFindings, validateResponsibilityReviews } from "./responsibility-review.js";
 import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "./motion-coordination-error.js";
 import { assertVisualDesign, readFrozenAuthorRequest, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
@@ -53,7 +53,7 @@ import { applicableWorkbenchEvidence, evidenceHash, productionObservationRanges,
 import type { ProductionCompletionEvaluation } from "@videocut/contracts";
 import { validateMotionReviewEvidence, validateSourceMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
-import { completionReconciliationBlockers, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, reviewCoverage } from "../../quality-system/src/editorial-review.js";
+import { completionReconciliationBlockers, deliveryReviewAssignment, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, requiresEditorialReview, reviewCoverage } from "../../quality-system/src/editorial-review.js";
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionPixelKey, motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
@@ -2438,7 +2438,7 @@ export class EditingApplication {
     this.inspectAgentWorkOrderObjects(snapshot, scope.objectIds);
   }
 
-  async startProductionRun(input: { projectId: Id; baseRevision: number; intent: ProductionIntent; completionScope: ProductionCompletionScope; operationId: string; loadedSkills: string[]; loadedReferences?: string[]; deliveryReviewRequired?: boolean }): Promise<SkillExecutionReport> {
+  async startProductionRun(input: { projectId: Id; baseRevision: number; intent: ProductionIntent; completionScope: ProductionCompletionScope; operationId: string; loadedSkills: string[]; loadedReferences?: string[]; deliveryReviewRequired?: boolean; deliveryProductionRunId?: Id }): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, async () => {
       if (!/^[a-zA-Z0-9_-]{1,160}$/u.test(input.operationId)) throw new DomainError("操作编号格式无效", "PRODUCTION_OPERATION_INVALID");
       const current = this.readProject(input.projectId);
@@ -2451,6 +2451,16 @@ export class EditingApplication {
         this.addProductionOperation(existing, input.operationId, input);
         return existing;
       }
+      const production = input.deliveryProductionRunId ? await this.readSkillExecutionReport({
+        projectId: input.projectId, runId: input.deliveryProductionRunId
+      }) : undefined;
+      const artifact = production?.deliveryArtifactId
+        ? this.readExportArtifact({ projectId: input.projectId, artifactId: production.deliveryArtifactId }) : undefined;
+      if (production && (production.intent === "review_only" || input.intent !== "review_only" || input.completionScope.kind !== "project"
+        || !input.loadedSkills.includes("quality-verification") || !artifact || artifact.revision !== input.baseRevision
+        || input.baseRevision !== current.revision.number)) {
+        throw new DomainError("独立审片须指定已选择当前最终文件的制作 Run，并加载质量审核技能", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
+      }
       const report: SkillExecutionReport = {
       id,
       projectId: input.projectId,
@@ -2458,7 +2468,9 @@ export class EditingApplication {
       baseRevision: input.baseRevision,
       intent: input.intent,
       completionScope: normalizeProductionScope(input.completionScope),
-      deliveryReviewRequired: input.deliveryReviewRequired || undefined,
+      deliveryReviewRequired: input.deliveryReviewRequired || !!production || undefined,
+      ...(production && artifact ? { deliveryProductionRunId: production.id, deliveryArtifactId: artifact.id,
+        deliveryArtifactHistory: [artifact.id] } : {}),
       assignments: [],
       auditVersion: 0,
       operations: [],
@@ -2498,6 +2510,9 @@ export class EditingApplication {
         report.completionScope = normalizeProductionScope(input.completionScope);
         report.mcpCommands.push({ name: `update_scope: ${input.reason.trim()}`, createdAt: now() });
       } else if (input.action === "select_delivery_artifact") {
+        if (report.deliveryProductionRunId && input.artifactId !== report.deliveryArtifactId) {
+          throw new DomainError("新版最终文件需要新建对应版本的独立审片任务", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
+        }
         const artifact = this.readExportArtifact({ projectId: input.projectId, artifactId: input.artifactId });
         if (artifact.purpose !== "delivery" || artifact.revision !== this.readProject(input.projectId).revision.number) {
           throw new DomainError("交付文件必须属于当前项目和当前版本", "PRODUCTION_DELIVERY_ARTIFACT_INVALID");
@@ -2985,7 +3000,8 @@ export class EditingApplication {
     const blockers: string[] = report.intent === "review_only" ? [] : completionReconciliationBlockers(target.snapshot, scope);
     if (scope.kind === "objects" && report.intent !== "review_only") blockers.push(...this.inspectAgentWorkOrderObjects(target.snapshot, scope.objectIds).map(entry => `${entry.objectId}：${entry.message}`));
     const projectJobs = this.repository.listJobs(input.projectId);
-    const authoringJobs = projectJobs.filter(job => {
+    // 完整新片以当前采用作品核对范围；已被接管的旧委托保留审计，不重复阻塞收口。
+    const authoringJobs = requiresVisualReferenceUnits(report, target.snapshot) ? [] : projectJobs.filter(job => {
       if (job.kind !== "motion_authoring") return false;
       const request = job.payload.input as MotionAuthoringInput;
       if (request.productionRunId !== input.runId) return false;
@@ -3078,9 +3094,25 @@ export class EditingApplication {
         }
       }
     }
+    const independentRequired = requiresEditorialReview(report);
+    const reviewProduction = report.deliveryProductionRunId ? await this.readSkillExecutionReport({
+      projectId: input.projectId, runId: report.deliveryProductionRunId
+    }) : undefined;
+    const independentRecords: ArtifactReviewObservation[] = [];
+    if (deliveryArtifact && (independentRequired || reviewProduction)) {
+      const production = reviewProduction ?? report;
+      const entries = deliveryArtifact.artifactReview?.observations ?? [];
+      const reviewIds = new Set(entries.flatMap(item => item.runId && item.runId !== production.id ? [item.runId] : []));
+      for (const id of reviewIds) {
+        if (reviewProduction && id !== report.id) continue;
+        const audit = id === report.id ? report : await this.readSkillExecutionReport({ projectId: input.projectId, runId: id });
+        independentRecords.push(...entries.filter(item => item.runId === id
+          && deliveryReviewAssignment(production, audit, deliveryArtifact!, item.assignmentId, item.observer)));
+      }
+    }
     let additionalReferenceEvidence: EditorialReviewEvidence[] = [];
     if (deliveryArtifact) {
-      const previousArtifacts = (report.deliveryArtifactHistory ?? []).map(id => this.readExportArtifact({ projectId: input.projectId, artifactId: id }));
+      const previousArtifacts = (reviewProduction?.deliveryArtifactHistory ?? report.deliveryArtifactHistory ?? []).map(id => this.readExportArtifact({ projectId: input.projectId, artifactId: id }));
       const findings = previousArtifacts.flatMap(item => item.artifactReview?.findings ?? []);
       const uniqueFindings = [...new Map(findings.map(item => [item.id, item])).values()];
       const records = (deliveryArtifact.artifactReview?.observations ?? []).filter(item => item.outcome === "confirmed"
@@ -3112,8 +3144,10 @@ export class EditingApplication {
     const source = this.repository.getRevision(input.projectId, report.baseRevision).snapshot;
     const captionTextOnly = isCaptionTextOnlyChange(source, target.snapshot, scope);
     const coordinationIssues = await evaluateProductionCoordination({ report, snapshot: target.snapshot, scope, review: coordinationReview, captionTextOnly,
+      referenceEvidenceIds: independentRequired && deliveryArtifact ? new Set(independentRecords.map(item => item.id)) : undefined,
       readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
-    coordinationIssues.push(...fullCreationMotionIssues(report, target.snapshot, scope, projectJobs));
+    coordinationIssues.push(...productionMotionIssues(report, target.snapshot, scope, projectJobs,
+      cue => this.assertAdoptedMotionInputs(target.snapshot, cue), this.repository.readReviews(input.projectId).motions));
     blockers.push(...coordinationIssues.map(issue => issue.message));
     if (report.intent !== "review_only") {
       const quality = await evaluateQualityWithBrowser(target.snapshot, finalRevision, projectReview, this.repository.readReviews(input.projectId));
@@ -3155,7 +3189,7 @@ export class EditingApplication {
     }
     const ownEvidenceIds = new Set(ownEvidence.map(entry => entry.id));
     // 独立审阅使用本次实际选择的观察方式，不把只听声音升级成声画审阅。
-    const reviewMethod = report.intent === "review_only" ? ownEvidence.find(entry => ranges.some(range => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame))?.method : undefined;
+    const reviewMethod = report.intent === "review_only" && !reviewProduction ? ownEvidence.find(entry => ranges.some(range => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame))?.method : undefined;
     const method: ProductionCompletionEvaluation["observationGaps"][number]["method"] = reviewMethod ?? (captionTextOnly ? "frames" : audioOnly ? "audio" : hasAudio ? "audiovisual" : "continuous_video");
     const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => (entry.source === "workbench" || entry.source === "artifact") && (entry.method === method
       || entry.method === "audiovisual" && (method === "audio" || method === "continuous_video" || method === "frames")
@@ -3173,7 +3207,8 @@ export class EditingApplication {
       for (const gap of missingReviewRanges(applicable, range.startFrame, range.endFrame)) observationGaps.push({ ...gap, method });
     }
     const openRequiredFindings = openEditorialFindings(projectReview).filter(finding => {
-      if (!["blocking", "major"].includes(finding.severity)) return false;
+      if (!["blocking", "major"].includes(finding.severity)
+        || finding.deliveryProductionRunId && finding.deliveryProductionRunId !== (reviewProduction ?? report).id) return false;
       if (scope.kind === "project" || scope.kind === "objects" && finding.objectId && scope.objectIds.includes(finding.objectId)) return true;
       const findingRange = finding.objectId && finding.revision !== undefined && finding.revision !== finalRevision
         ? editorialResolutionRange(finding, this.repository.getRevision(input.projectId, finding.revision).snapshot, target.snapshot)
@@ -3183,10 +3218,17 @@ export class EditingApplication {
     for (const gap of observationGaps) blockers.push(`声画待观察范围：${gap.startFrame}–${gap.endFrame}（${gap.method}）。`);
     const artifactGaps: typeof observationGaps = [];
     if (deliveryArtifact) {
-      const fileRecords = (deliveryArtifact.artifactReview?.observations ?? []).filter(item => item.check === "audiovisual" && item.outcome === "confirmed"
-        && (item.method === method || item.method === "audiovisual" && ["audio", "continuous_video", "frames"].includes(method)));
-      for (const range of ranges) {
-        for (const gap of missingReviewRanges(fileRecords, range.startFrame, range.endFrame)) artifactGaps.push({ ...gap, method });
+      const fileMethod = independentRequired || reviewProduction ? (deliveryArtifact.validation.hasAudio ? "audiovisual" : "continuous_video") : method;
+      const fileRecords = (independentRequired || reviewProduction ? independentRecords : deliveryArtifact.artifactReview?.observations ?? []).filter(item => item.check === "audiovisual" && item.outcome === "confirmed"
+        && (item.method === fileMethod || item.method === "audiovisual" && ["audio", "continuous_video", "frames"].includes(fileMethod)));
+      if (independentRequired || reviewProduction) {
+        // 整片审片证据来自一次完整观看，分散抽查不能补成整片声画。
+        const endFrame = target.snapshot.timeline.durationInFrames;
+        if (!fileRecords.some(item => item.startFrame === 0 && item.endFrame === endFrame)) {
+          artifactGaps.push({ startFrame: 0, endFrame, method: fileMethod });
+        }
+      } else for (const range of ranges) {
+        for (const gap of missingReviewRanges(fileRecords, range.startFrame, range.endFrame)) artifactGaps.push({ ...gap, method: fileMethod });
       }
       for (const gap of artifactGaps) blockers.push(`交付文件待观察范围：${gap.startFrame}–${gap.endFrame}（${gap.method}）。`);
     }
@@ -3230,7 +3272,7 @@ export class EditingApplication {
     const assignmentForScope = (responsibility: ProductionAssignment["responsibilities"][number], requested: ProductionCompletionScope) =>
       [...report.assignments].reverse().find(entry => entry.responsibilities.includes(responsibility)
         && assignmentScopesOverlap(target.snapshot, entry.scope, requested) && isCurrentAssignment(entry, responsibility, requested));
-    const nextGaps = [...new Map([...observationGaps, ...artifactGaps]
+    const nextGaps = [...new Map([...observationGaps, ...(independentRequired || reviewProduction ? [] : artifactGaps)]
       .map(gap => [`${gap.startFrame}:${gap.endFrame}:${gap.method}`, gap])).values()];
     const nextActions: NonNullable<ProductionCompletionEvaluation["nextActions"]> = [
       ...coordinationIssues.map(issue => ({ code: issue.code, scope: issue.scope, revision: finalRevision, artifactId: deliveryArtifact?.id,
@@ -3247,15 +3289,21 @@ export class EditingApplication {
         const findingScope: ProductionCompletionScope = range ? { kind: "frames", ...range } : scope;
         return { code: "FINDING_PENDING", scope: findingScope, revision: finalRevision, artifactId: deliveryArtifact?.id,
         assignmentId: (finding.responsibilityReview ? assignmentForScope(finding.responsibilityReview.responsibility, findingScope)
-          : finding.referenceReview ? assignmentForScope("visual_design", findingScope) : finding.category === "audio"
+          : finding.referenceReview ? assignmentForScope(finding.referenceReview.referenceKind === "creative" ? "creative_research" : "visual_design", findingScope) : finding.category === "audio"
           ? [...report.assignments].reverse().find(entry => entry.skillIds.some(id => /(?:audio-finishing|voice-production)$/u.test(id)) && assignmentScopesOverlap(target.snapshot, entry.scope, scope)
             && entry.responsibilities.some(role => isCurrentAssignment(entry, role, scope)))
-          : assignmentForScope(["motion", "typography"].includes(finding.category) ? "visual_design" : "director", scope))?.assignmentId,
+          : assignmentForScope(["motion", "typography", "attention"].includes(finding.category) ? "visual_design" : "director", findingScope))?.assignmentId,
         relatedRefs: [finding.id, ...(finding.responsibilityReview?.decisionIds ?? []), ...(finding.referenceReview ? [finding.referenceReview.referenceId, finding.referenceReview.decisionId] : [])],
         referenceReview: finding.referenceReview, question: finding.summary,
         nextAction: finding.referenceReview ? "续接视觉作者及原参考研究负责人，组织原作品返修并复查" : "交原负责人修订并复查",
         closesWhen: "用当前文件的有效证据关闭问题" }; })
     ];
+    if (independentRequired || reviewProduction) for (const gap of artifactGaps) {
+      nextActions.push({ code: "DELIVERY_REVIEW_PENDING", scope: { kind: "frames", startFrame: gap.startFrame, endFrame: gap.endFrame },
+        revision: finalRevision, artifactId: deliveryArtifact?.id, relatedRefs: [],
+        question: "当前文件缺少独立审片作者的整片连续观察",
+        nextAction: "续接选定文件的独立审片任务并登记实际观察", closesWhen: "登记独立作者对当前文件的整片观察" });
+    }
     if (report.deliveryReviewRequired && !deliveryArtifact) nextActions.push({ code: "DELIVERY_ARTIFACT_PENDING", scope, revision: finalRevision,
       relatedRefs: [], question: "缺少有效交付文件", nextAction: "导出当前版本并选择本次交付文件", closesWhen: "选择哈希有效的当前版本文件" });
     const director = assignmentForScope("director", scope);
@@ -3269,7 +3317,10 @@ export class EditingApplication {
     const uniqueNextActions = [...new Map(nextActions.map(action => [JSON.stringify(action), action])).values()];
     return { runId: input.runId, revision: finalRevision, completionScope: scope, recordedStatus: report.status,
       recordedFinalRevision: report.finalRevision, recordedCompletionScope: report.completionScope, artifactId: deliveryArtifact?.id, nextActions: uniqueNextActions,
-      ready: completionBlockers.length === 0, completionBlockers, validObservations, observationGaps, openRequiredFindingIds: openRequiredFindings.map(finding => finding.id), coordinationIssues };
+      ready: completionBlockers.length === 0, completionBlockers, validObservations, observationGaps, openRequiredFindingIds: openRequiredFindings.map(finding => finding.id), coordinationIssues,
+      deliveryReview: deliveryArtifact && !artifactGaps.length && !eventPending.length
+        && !coordinationIssues.some(issue => issue.code === "REFERENCE_REVIEW_PENDING") ? (openRequiredFindings.some(item => item.artifactId) ? "needs_revision" : "confirmed")
+        : openRequiredFindings.some(item => item.artifactId) ? "needs_revision" : "pending" };
   }
 
   async completeProductionRun(input: { completionScope: ProductionCompletionScope; projectId: Id; runId: Id; finalRevision: number; operationId: string; qualityReview?: string[]; previewEvidence?: string[] }): Promise<SkillExecutionReport & { evaluation: ProductionCompletionEvaluation }> {
@@ -3321,6 +3372,55 @@ export class EditingApplication {
 
   registerMotionWork(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; logicalWorkId?: Id; onSuccess?: MotionOnSuccess; readyRanges?: MotionWork["readyRanges"]; inputBundle?: Parameters<EditingApplication["submitManagedMotion"]>[0]["inputBundle"] }) {
     return this.submitManagedMotion({ ...input, outputIntent: "prepare" });
+  }
+
+  async registerVisualAuthorMotionWork(input: Parameters<EditingApplication["registerMotionWork"]>[0] & {
+    productionOrigin: NonNullable<MotionWork["productionOrigin"]>; visualTreatmentIds: Id[];
+  }) {
+    const { productionOrigin, visualTreatmentIds, onSuccess } = input;
+    if (!onSuccess || input.inputBundle || !visualTreatmentIds.length) {
+      throw new DomainError("直接制作须提交源码、当前采用的视觉计划和采用目标", "MOTION_AUTHORING_TREATMENT_REQUIRED");
+    }
+    const queued = this.repository.listJobs(input.projectId).find(job => job.idempotencyKey === `motion:${input.idempotencyKey}`);
+    if (queued) {
+      const frozen = queued.payload.continuation as FrozenMotionContinuation | undefined;
+      if (JSON.stringify(frozen?.authoringInputs?.map(item => item.visualTreatmentId)) !== JSON.stringify([...new Set(visualTreatmentIds)])) {
+        throw new DomainError("幂等键已用于不同视觉计划", "MOTION_IDEMPOTENCY_CONFLICT");
+      }
+      return this.submitManagedMotion({ ...input, outputIntent: "prepare", authoringInputs: frozen?.authoringInputs });
+    }
+    const state = this.readProject(input.projectId, input.baseRevision);
+    const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: productionOrigin.runId });
+    const cue = onSuccess.action === "create_cue" ? undefined : state.snapshot.effectCues.find(item => item.id === onSuccess.cueId);
+    const sceneId = onSuccess.action === "create_cue" ? onSuccess.sceneId : cue?.sceneId;
+    const range = onSuccess.action === "create_cue" ? onSuccess : onSuccess.action === "replace_range" ? onSuccess.targetRange : cue;
+    const assignment = report.assignments.find(item => item.assignmentId === productionOrigin.assignmentId);
+    if (!sceneId || !range || !assignment || report.status === "completed" || report.status === "abandoned"
+      || !assignmentCoversScope(state.snapshot, report.completionScope, { kind: "frames", ...range })
+      || missingReviewRanges(responsibilityAssignmentRanges(state.snapshot, report, assignment, "visual_design"), range.startFrame, range.endFrame).length) {
+      throw new DomainError("采用目标须属于当前制作任务和原视觉作者分派", "PRODUCTION_ASSIGNMENT_INVALID");
+    }
+    if (report.intent === "review_only") throw new DomainError("审片任务不能登记制作作品", "PRODUCTION_ASSIGNMENT_INVALID");
+    const issues = await evaluateProductionCoordination({ report, snapshot: state.snapshot, scope: { kind: "frames", ...range },
+      phase: "authoring", targetTreatmentIds: visualTreatmentIds, targetRange: range, continuingAuthoring: !!cue,
+      targetBeatIds: onSuccess.action === "create_cue" ? onSuccess.coveredNarrativeBeatIds : cue?.coveredNarrativeBeatIds,
+      readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
+    if (issues.length) throw new MotionAuthoringCoordinationError(issues);
+    if (productionOrigin.supersedesJobId) {
+      const failed = this.repository.getJob(productionOrigin.supersedesJobId);
+      const target = failed.payload.targetRange as MotionFrameRange | undefined;
+      if (failed.projectId !== input.projectId || failed.kind !== "motion_authoring"
+        || (failed.payload.input as MotionAuthoringInput).productionRunId !== report.id
+        || !["failed", "unknown", "cancelled"].includes(failed.status)
+        || !target || target.startFrame > range.startFrame || target.endFrame < range.endFrame) {
+        throw new DomainError("接管范围必须属于同一制作任务的未完成 OD 委托", "MOTION_AUTHORING_TAKEOVER_INVALID");
+      }
+    }
+    const authoringInputs = await this.resolveMotionAuthoringInputs({
+      projectId: input.projectId, productionRunId: report.id, visualTreatmentIds, target: onSuccess
+    }, state, new Map());
+    this.assertMotionAuthoringInputsCurrent(state.snapshot, sceneId, authoringInputs, true, range);
+    return this.submitManagedMotion({ ...input, outputIntent: "prepare", authoringInputs });
   }
 
   readSourceMotionWork(projectId: Id, workId: Id, revision?: number, definitionHash?: string) {
@@ -3421,7 +3521,7 @@ export class EditingApplication {
     return updated;
   }
 
-  private async resolveMotionAuthoringInputs(input: MotionAuthoringInput & { target: MotionOnSuccess }, state: ProjectState, manifests: Map<string, ReferenceManifest>): Promise<MotionAuthoringTreatmentInput[]> {
+  private async resolveMotionAuthoringInputs(input: Pick<MotionAuthoringInput, "projectId" | "productionRunId" | "visualTreatmentIds"> & { target: MotionOnSuccess }, state: ProjectState, manifests: Map<string, ReferenceManifest>): Promise<MotionAuthoringTreatmentInput[]> {
     const target = input.target;
     const targetCue = target.action === "create_cue" ? undefined : state.snapshot.effectCues.find(cue => cue.id === target.cueId);
     const targetSceneId = target.action === "create_cue" ? target.sceneId : targetCue?.sceneId;
@@ -3761,7 +3861,7 @@ export class EditingApplication {
     return motionWorkVersion(state.snapshot.motionWorks, work.id, work.definitionHash)!;
   }
 
-  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; fixedWorkId?: Id; fixedDefinitionHash?: string; logicalWorkId?: Id; frameRange?: MotionFrameRange; outputIntent?: "prepare" | "proof" | "asset"; readyRanges?: MotionWork["readyRanges"]; proofJobId?: Id; onSuccess?: MotionOnSuccess; inputBundle?: { bundlePath: string; bundleSha256: string; manifestSha256: string; source: { project: string; run_id: string; frozen_version: string } } }): JobRecord {
+  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; fixedWorkId?: Id; fixedDefinitionHash?: string; logicalWorkId?: Id; frameRange?: MotionFrameRange; outputIntent?: "prepare" | "proof" | "asset"; readyRanges?: MotionWork["readyRanges"]; proofJobId?: Id; onSuccess?: MotionOnSuccess; productionOrigin?: MotionWork["productionOrigin"]; authoringInputs?: MotionAuthoringTreatmentInput[]; inputBundle?: { bundlePath: string; bundleSha256: string; manifestSha256: string; source: { project: string; run_id: string; frozen_version: string } } }): JobRecord {
     const work = motionSubmissionSchema.parse(input.work);
     const frameRange = input.frameRange ? motionFrameRangeSchema.parse(input.frameRange) : undefined;
     const outputIntent = input.outputIntent ?? (frameRange ? "proof" : "asset");
@@ -3778,7 +3878,7 @@ export class EditingApplication {
     if (existing) {
       if (existing.payload.fixedWorkId !== input.fixedWorkId || existing.payload.fixedDefinitionHash !== input.fixedDefinitionHash || existing.payload.logicalWorkId !== input.logicalWorkId) throw new DomainError("幂等键已用于不同固定作品", "MOTION_IDEMPOTENCY_CONFLICT");
       if (JSON.stringify((existing.payload.continuation as FrozenMotionContinuation | undefined)?.request) !== JSON.stringify(onSuccess)) throw new DomainError("幂等键已用于不同采用指令", "MOTION_IDEMPOTENCY_CONFLICT");
-      if (existing.payload.requestedRevision !== input.baseRevision || JSON.stringify(existing.payload.inputBundle) !== JSON.stringify(input.inputBundle) || JSON.stringify(existing.payload.readyRanges) !== JSON.stringify(input.readyRanges)) throw new DomainError("幂等键已用于不同基准、可用范围或冻结来源", "MOTION_IDEMPOTENCY_CONFLICT");
+      if (existing.payload.requestedRevision !== input.baseRevision || (!input.fixedWorkId && JSON.stringify(existing.payload.productionOrigin) !== JSON.stringify(input.productionOrigin)) || JSON.stringify(existing.payload.inputBundle) !== JSON.stringify(input.inputBundle) || JSON.stringify(existing.payload.readyRanges) !== JSON.stringify(input.readyRanges)) throw new DomainError("幂等键已用于不同基准、可用范围或冻结来源", "MOTION_IDEMPOTENCY_CONFLICT");
       if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work) || JSON.stringify(existing.payload.frameRange) !== JSON.stringify(frameRange) || (existing.payload.outputIntent ?? (existing.payload.frameRange ? "proof" : "asset")) !== outputIntent || (existing.payload.reusableProof as { jobId?: string } | undefined)?.jobId !== input.proofJobId) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");
       return existing;
     }
@@ -3806,7 +3906,8 @@ export class EditingApplication {
         checkMotionRangeCompatibility(expected, { width: work.width, height: work.height, fps: work.fps,
           frameCount: rootRange.endFrame - rootRange.startFrame, rootRange: { ...rootRange, fullDurationInFrames: work.durationInFrames } });
       }
-      continuation = { request: onSuccess, targetDependencyHash: motionTargetDependencyHash(current.snapshot, onSuccess) };
+      continuation = { request: onSuccess, targetDependencyHash: motionTargetDependencyHash(current.snapshot, onSuccess, input.authoringInputs?.map(item => item.visualTreatmentId)),
+        ...(input.authoringInputs ? { authoringInputs: input.authoringInputs } : {}) };
     }
     if (work.previousAssetId && !current.snapshot.assets.some((asset) => asset.id === work.previousAssetId && asset.motion)) throw new DomainError("上一版本不是当前项目的受管作品", "MOTION_PREVIOUS_VERSION_MISSING");
     const fixedWork = input.fixedWorkId ? motionWorkVersion(current.snapshot.motionWorks, input.fixedWorkId, input.fixedDefinitionHash) : undefined;
@@ -3847,7 +3948,7 @@ export class EditingApplication {
     const reusable = current.snapshot.assets.find(asset => asset.status === "ready" && asset.motion?.output && asset.motion.pixelKey === pixelKey
       && (!work.renderedAssetId || asset.id === work.renderedAssetId));
     if (work.renderedAssetId && (!reusable || outputIntent === "proof")) throw new DomainError("所引用媒体没有相同源码、绑定、字体、时钟、输出范围和编码身份，或当前提交为校样", "MOTION_RENDERED_ASSET_MISMATCH");
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, outputIntent, ...(input.fixedWorkId ? { fixedWorkId: input.fixedWorkId, fixedDefinitionHash: input.fixedDefinitionHash, sourceAuthor: fixedWork?.author } : {}), ...(input.logicalWorkId ? { logicalWorkId: input.logicalWorkId } : {}), ...(input.readyRanges ? { readyRanges: input.readyRanges } : {}), ...(input.inputBundle ? { inputBundle: input.inputBundle } : {}), ...(continuation ? { continuation } : {}), ...(reusableProof ? { reusableProof } : {}), ...(reusable && outputIntent === "asset" ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, outputIntent, ...(input.fixedWorkId ? { fixedWorkId: input.fixedWorkId, fixedDefinitionHash: input.fixedDefinitionHash, sourceAuthor: fixedWork?.author } : {}), ...((fixedWork?.productionOrigin ?? input.productionOrigin) ? { productionOrigin: fixedWork?.productionOrigin ?? input.productionOrigin } : {}), ...(input.logicalWorkId ? { logicalWorkId: input.logicalWorkId } : {}), ...(input.readyRanges ? { readyRanges: input.readyRanges } : {}), ...(input.inputBundle ? { inputBundle: input.inputBundle } : {}), ...(continuation ? { continuation } : {}), ...(reusableProof ? { reusableProof } : {}), ...(reusable && outputIntent === "asset" ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -3963,16 +4064,26 @@ export class EditingApplication {
     return this.commitMotionAdoption(job, String(job.payload.workId));
   }
 
-  async reviewSourceMotionWork(input: { projectId: Id; baseRevision: number; workId: Id; definitionHash?: string; assetId?: Id; outcome: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
+  async reviewSourceMotionWork(input: { projectId: Id; baseRevision: number; workId: Id; productionRunId?: Id; assignmentId?: Id; definitionHash?: string; assetId?: Id; outcome: MotionReviewOutcome; note: string; evidence?: MotionReviewEvidenceInput }): Promise<ProjectState> {
     if (input.note.trim().length < 16 || input.note.length > 2400) throw new DomainError("请记录实际观察和仍未知范围", "MOTION_REVIEW_EVIDENCE_REQUIRED");
     const current = this.readProject(input.projectId);
     if (current.revision.number !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, current.revision.number);
     const media = input.assetId ? current.snapshot.assets.find(asset => asset.id === input.assetId && asset.motion?.workId === input.workId) : undefined;
     const { work } = this.readSourceMotionWork(input.projectId, input.workId, undefined, input.definitionHash ?? media?.motion?.definitionHash);
     if (media?.motion && media.motion.version !== work.version) throw new DomainError("审阅媒体与指定作品版本不一致", "MOTION_VERSION_MISMATCH");
-    const evidence = await validateSourceMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), work, input.outcome, input.evidence, media);
+    if (input.productionRunId || input.assignmentId) {
+      const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionRunId ?? "" });
+      const assignment = report.assignments.find(item => item.assignmentId === input.assignmentId);
+      const cues = current.snapshot.effectCues.filter(cue => cue.workId === work.id && cue.workDefinitionHash === work.definitionHash
+        && cue.authoringInputs?.some(entry => entry.adoptedDecisionRef.productionRunId === report.id));
+      if (!assignment || assignment.agentId !== input.evidence?.observer?.trim() || !cues.length
+        || !cues.some(cue => !missingReviewRanges(responsibilityAssignmentRanges(current.snapshot, report, assignment, "visual_design"), cue.startFrame, cue.endFrame).length)) {
+        throw new DomainError("视觉确认必须由当前视觉作者观察已采用的同版作品", "PRODUCTION_ASSIGNMENT_INVALID");
+      }
+    }
+    const evidence = await validateSourceMotionReviewEvidence(current.snapshot, input.baseRevision, this.repository.listJobs(input.projectId), work, input.outcome, input.evidence, media, !!input.productionRunId);
     const state = this.repository.recordReview(input.projectId, input.baseRevision, reviews => {
-      reviews.motions.push({ workId: work.id, assetId: media?.id, version: work.version, definitionHash: work.definitionHash, outcome: input.outcome, evidence, note: input.note.trim(), reviewedAt: now() });
+      reviews.motions.push({ workId: work.id, assetId: media?.id, version: work.version, definitionHash: work.definitionHash, productionRunId: input.productionRunId, assignmentId: input.assignmentId, outcome: input.outcome, evidence, note: input.note.trim(), reviewedAt: now() });
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "review" });
     return state;
@@ -3992,6 +4103,19 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "review" });
     return state;
+  }
+
+  private assertAdoptedMotionInputs(snapshot: ProjectSnapshot, cue: EffectCue): void {
+    this.assertManagedMotionCue(snapshot, cue);
+    const work = motionWorkForCue(snapshot, cue)!;
+    readMotionDefinition(snapshot.project.rootPath, work);
+    for (const binding of [...work.imageSources, ...work.videoSources]) {
+      if (!snapshot.assets.some(asset => asset.id === binding.assetId && asset.status === "ready"
+        && asset.sourceHash === binding.hash && asset.managedPath === binding.managedPath)) {
+        throw new DomainError("受管作品素材已变更，请重新绑定并登记", "MOTION_AUTHORING_MATERIAL_CHANGED");
+      }
+    }
+    this.assertMotionAuthoringInputsCurrent(snapshot, cue.sceneId, cue.authoringInputs!, true, cue);
   }
 
   private assertManagedMotionCue(snapshot: ProjectSnapshot, cue: EffectCue): void {
@@ -10381,13 +10505,8 @@ export class EditingApplication {
       throw new DomainError(`正式交付前须复查阻断问题：${findings.map(finding => finding.summary).join("、")}`, "EXPORT_EDITORIAL_BLOCKED");
     }
     const issues = gatedReports
-      .flatMap(report => fullCreationMotionIssues(report, snapshot, report.completionScope, jobs, cue => {
-        try {
-          this.assertMotionAuthoringInputsCurrent(snapshot, cue.sceneId, cue.authoringInputs!, true, cue);
-        } catch (error) {
-          throw new DomainError(`场面 ${cue.sceneId} 的冻结制作输入需要复核：${error instanceof Error ? error.message : String(error)}`, "EXPORT_AUTHORED_SCENES_INCOMPLETE");
-        }
-      }));
+      .flatMap(report => productionMotionIssues(report, snapshot, report.completionScope, jobs,
+        cue => this.assertAdoptedMotionInputs(snapshot, cue)));
     if (issues.length) throw new DomainError(`正式交付仍缺制作回件：${issues.map(issue => issue.message).join("、")}。可先导出草稿。`, "EXPORT_AUTHORED_SCENES_INCOMPLETE");
   }
 
@@ -10498,7 +10617,14 @@ export class EditingApplication {
     }
     const timestamp = now();
     const records: ArtifactReviewObservation[] = [];
-    const history = (report?.deliveryArtifactHistory ?? []).map(id => this.readExportArtifact({ projectId: input.projectId, artifactId: id }));
+    const production = report?.deliveryProductionRunId ? await this.readSkillExecutionReport({
+      projectId: input.projectId, runId: report.deliveryProductionRunId
+    }) : undefined;
+    if (production && (!deliveryReviewAssignment(production, report!, artifact, input.assignmentId, input.observer?.trim())
+      || artifact.revision !== this.readProject(input.projectId).revision.number)) {
+      throw new DomainError("最终文件复核须由同版独立审片分派的实际观察者提交", "PRODUCTION_ASSIGNMENT_INVALID");
+    }
+    const history = (production?.deliveryArtifactHistory ?? report?.deliveryArtifactHistory ?? []).map(id => this.readExportArtifact({ projectId: input.projectId, artifactId: id }));
     const projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: artifact.revision });
     const priorReviews = [...history.map(item => item.artifactReview), artifact.artifactReview].filter((item): item is NonNullable<ExportArtifact["artifactReview"]> => !!item);
     const resolvedIds = new Set([...priorReviews.flatMap(item => item.resolutions ?? []), ...(projectReview?.resolutions ?? [])].map(item => item.findingId));
@@ -10555,6 +10681,9 @@ export class EditingApplication {
     if (observations.some(item => item.outcome === "issue" && !item.referenceReviews?.some(reference => reference.outcome === "issue")
       && !item.responsibilityReviews?.some(review => review.outcome === "issue"))
       && !input.findings?.length) throw new DomainError("发现问题时需要登记具体问题", "INVALID_EXPORT_ARTIFACT_FINDING");
+    if (production && input.findings?.some(finding => !finding.frameRange)) {
+      throw new DomainError("正式独立审片的问题需要定位到实际文件帧范围", "INVALID_EXPORT_ARTIFACT_FINDING");
+    }
     const passes = [...new Set(input.passes ?? [])];
     if (passes.some(pass => !EDITORIAL_PASSES.includes(pass))) throw new DomainError("文件复核轮次无效", "EXPORT_ARTIFACT_REVIEW_INCOMPLETE");
     const evidence = [...new Set((input.evidence ?? []).map(value => value.trim()).filter(Boolean))];
@@ -10576,6 +10705,10 @@ export class EditingApplication {
       revision: artifact.revision, pass: entry.pass ?? (entry.method === "audio" ? "audio_only" : entry.method === "frames" || entry.method === "continuous_video" ? "mute_visual" : "audiovisual"),
       startFrame: entry.startFrame, endFrame: entry.endFrame, recordedAt: entry.recordedAt, captionTextOnly,
       objectId: report?.completionScope.kind === "objects" && report.completionScope.objectIds.length === 1 ? report.completionScope.objectIds[0] : undefined }));
+    for (const finding of findings) {
+      finding.artifactId = artifact.id;
+      finding.deliveryProductionRunId = production?.id;
+    }
     const allFindings = [...(projectReview?.findings ?? []), ...history.flatMap(item => item.artifactReview?.findings ?? []), ...(artifact.artifactReview?.findings ?? []), ...findings];
     const allEvidence = [...(artifact.artifactReview?.observations ?? []), ...records];
     const resolutions: EditorialFindingResolution[] = (input.resolutions ?? []).map(resolution => {
@@ -10591,6 +10724,14 @@ export class EditingApplication {
       if (finding?.responsibilityReview && relevant.some(entry => !entry?.responsibilityReviews?.some(item =>
         item.outcome === "confirmed" && item.findingId === finding.id && item.responsibility === finding.responsibilityReview!.responsibility))) {
         throw new DomainError("关闭职责问题需要引用同一职责的已确认复查", "RESPONSIBILITY_REVIEW_RESOLUTION_REQUIRED");
+      }
+      if (finding?.artifactId && !production && finding.deliveryProductionRunId) {
+        throw new DomainError("最终文件问题应由独立审片作者复查", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
+      }
+      if (production && finding?.artifactId && ((finding.deliveryProductionRunId && finding.deliveryProductionRunId !== production.id)
+        || finding.artifactId === artifact.id
+        || relevant.some(item => !item || !deliveryReviewAssignment(production, report!, artifact, item.assignmentId, item.observer) || item.runId !== report!.id))) {
+        throw new DomainError("最终文件问题须在新版文件上由独立审片作者复查", "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED");
       }
       if (!finding || !resolution.note.trim() || !relevant.length || relevant.some(item => !item || item.outcome !== "confirmed"
         || (finding.recordedAt && item.recordedAt < finding.recordedAt)

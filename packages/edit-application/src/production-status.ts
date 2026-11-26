@@ -28,6 +28,14 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
   }) : undefined;
   const fullReferenceUnits = run && requiresVisualReferenceUnits(run, state.snapshot);
   const draftedSceneIds = new Set(run?.unitHandoffs?.flatMap(event => event.action === "submit_draft" ? [event.draft.sceneId] : []));
+  const commissions = run ? jobs.filter(job => job.kind === "motion_authoring"
+    && (job.payload.input as MotionAuthoringInput).productionRunId === run.id) : [];
+  const directJobs = run ? jobs.filter(job => job.kind === "motion_generation"
+    && (job.payload.productionOrigin as { runId?: string } | undefined)?.runId === run.id) : [];
+  const issues = completion?.coordinationIssues ?? [];
+  const hasIssue = (...codes: string[]) => issues.some(issue => codes.includes(issue.code));
+  const coveragePending = hasIssue("MOTION_TARGET_MISSING", "MOTION_INPUT_STALE", "MOTION_COVERAGE_MISSING", "MOTION_COMMISSION_UNFINISHED");
+  const method = directJobs.length ? "visual_author" : commissions.length ? "opendesign" : undefined;
   return {
     projectId, revision: state.revision.number, generatedAt: new Date().toISOString(),
     ...(comparison ? { referenceComparisons: comparison.referenceComparisons } : {}),
@@ -35,6 +43,15 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
     ...(comparison && "authorRequest" in comparison ? { authorRequest: comparison.authorRequest } : {}),
     ...(comparisonArtifact ? { referenceArtifact: { id: comparisonArtifact.id, revision: comparisonArtifact.revision } } : {}),
     ...(completion ? { completion } : {}),
+    ...(fullReferenceUnits ? { production: {
+      method,
+      status: !coveragePending
+        ? "ready" : [...directJobs, ...commissions].some(job => ["queued", "running"].includes(job.status)) ? "working"
+          : [...directJobs, ...commissions].some(job => ["failed", "unknown", "cancelled"].includes(job.status)) ? "failed" : "pending",
+      visualAuthorReview: hasIssue("VISUAL_AUTHOR_REVISION_REQUIRED") ? "needs_revision"
+        : coveragePending || hasIssue("VISUAL_AUTHOR_REVIEW_PENDING") ? "pending" : "confirmed",
+      deliveryReview: completion?.deliveryReview ?? "pending"
+    } } : {}),
     ...(preparationIssues && scope ? { preparation: { revision: state.revision.number, scope, ready: preparationIssues.length === 0, issues: preparationIssues } } : {}),
     ...(run && scope && (fullReferenceUnits || draftedSceneIds.size) ? {
       unitHandoffs: readUnitHandoffs(run, state.snapshot, state.snapshot.scenes.filter(scene =>
@@ -48,16 +65,15 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
         decisions: run.creativeDecisions.filter(item => item.phase === responsibility && item.assignmentId === assignment.assignmentId)
           .map(item => ({ id: item.id, decision: item.decision })) }))) } : {}),
     work: {
-      ...(run ? { commissions: jobs.filter(job => job.kind === "motion_authoring"
-        && (job.payload.input as MotionAuthoringInput).productionRunId === run.id)
-        .map(job => ({ jobId: job.id, status: job.status, targetRange: job.payload.targetRange,
+      ...(run ? { commissions: commissions.map(job => ({ jobId: job.id, status: job.status, targetRange: job.payload.targetRange,
           authoring: job.result?.authoring, error: job.error })) } : {}),
       adopted: state.snapshot.effectCues.filter(cue => cue.type === "ManagedMotion").map(cue => {
         const work = motionWorkForCue(state.snapshot, cue);
         const asset = motionMediaForCue(state.snapshot, cue);
         const job = work ? jobById.get(work.jobId) : undefined;
         return { cueId: cue.id, status: cue.status, range: { startFrame: cue.startFrame, endFrame: cue.endFrame },
-          workId: work?.id, assetId: asset?.id, version: work?.version, jobId: job?.id, authoringInputs: cue.authoringInputs,
+          workId: work?.id, assetId: asset?.id, version: work?.version, jobId: job?.id, productionMethod: work?.productionOrigin?.method ?? (work?.author ? "opendesign" : undefined),
+          productionOrigin: work?.productionOrigin, authoringInputs: cue.authoringInputs,
           inputBundle: job?.payload.inputBundle ?? null };
       }),
       pending: jobs.filter(job => ["motion_generation", "motion_adoption", "motion_authoring"].includes(job.kind) &&
@@ -106,7 +122,7 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
         method: review.method, fromFrame: review.fromFrame, toFrame: review.toFrame, outcome: review.outcome,
         currentRevisionApplicability: review.previewRevision === state.revision.number ? "same_revision" : "requires_dependency_check" })),
       motion: state.reviews.motions.map(review => ({ workId: review.workId, assetId: review.assetId, version: review.version, definitionHash: review.definitionHash,
-        outcome: review.outcome, note: review.note, evidence: review.evidence })),
+        outcome: review.outcome, productionRunId: review.productionRunId, assignmentId: review.assignmentId, note: review.note, evidence: review.evidence })),
       editorial: completion ? { observationGaps: completion.observationGaps, openRequiredFindingIds: completion.openRequiredFindingIds } : undefined
     },
     user: artifacts.map(artifact => ({ artifactId: artifact.id, fileHash: artifact.fileHash, approval: artifact.approval ?? null }))

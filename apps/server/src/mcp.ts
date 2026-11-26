@@ -2728,9 +2728,9 @@ server.registerTool("start_production_run", {
     operation_id: productionOperationIdSchema,
     loaded_skills: z.array(z.string().min(1)).min(1).max(40),
     loaded_references: z.array(z.string().min(1)).max(120).optional(),
-    delivery_review_required: z.boolean().optional()
+    delivery_review_required: z.boolean().optional(), delivery_production_run_id: z.string().min(1).optional()
   }
-}, async ({ project_id, base_revision_id, intent, completion_scope, operation_id, loaded_skills, loaded_references, delivery_review_required }) => {
+}, async ({ project_id, base_revision_id, intent, completion_scope, operation_id, loaded_skills, loaded_references, delivery_review_required, delivery_production_run_id }) => {
   try {
     return asText(await application.startProductionRun({
       projectId: projectIdFrom(project_id),
@@ -2740,7 +2740,7 @@ server.registerTool("start_production_run", {
       operationId: operation_id,
       loadedSkills: loaded_skills,
       loadedReferences: loaded_references,
-      deliveryReviewRequired: delivery_review_required
+      deliveryReviewRequired: delivery_review_required, deliveryProductionRunId: delivery_production_run_id
     }));
   } catch (error) { return asError(error); }
 });

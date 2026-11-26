@@ -692,3 +692,80 @@ test("声音负责人接替后不把待办继续发给旧负责人", async () =>
     assert.equal(resumed.completion!.nextActions!.find(item => item.code === "FINDING_PENDING" && item.question === "旁白被音乐盖住")?.assignmentId, "audio-new");
   } finally { await f.dispose(); }
 });
+
+test("完整交付须独立连续审片，旧文件的问题只能凭新版复查关闭", async () => {
+  const { app, projectId, state, dispose } = await fixture();
+  const scope = { kind: "project" } as const;
+  const revision = () => app.readProject(projectId).revision.number;
+  try {
+    const create = (id: string, productionId?: string) => app.startProductionRun({
+      projectId, baseRevision: revision(), operationId: id, completionScope: scope,
+      intent: productionId ? "review_only" : "full_creation", loadedSkills: ["quality-verification"],
+      deliveryReviewRequired: true, deliveryProductionRunId: productionId
+    });
+    const production = await create("full-delivery");
+    const assign = async (runId: string, agentId: string, role: "review" | "visual_design", replaces?: string) => {
+      const report = await app.readSkillExecutionReport({ projectId, runId });
+      return app.updateProductionRun({ projectId, runId, expectedAuditVersion: report.auditVersion,
+        action: replaces ? "replace_assignment" : "add_assignment", operationId: agentId, assignment: { assignmentId: agentId, agentId, responsibilities: [role], supersedesAssignmentId: replaces,
+          scope, inputRevision: revision(), skillIds: [role === "review" ? "quality-verification" : "visual-treatment-planning"] } });
+    };
+    await assign(production.id, "visual-author", "visual_design");
+    const exportDir = join(state.snapshot.project.rootPath, "exports");
+    await mkdir(exportDir, { recursive: true });
+    async function select(id: string) {
+      const file = join(exportDir, id + ".mp4");
+      await copyFile(join(state.snapshot.project.rootPath, "assets/source/source.mp4"), file);
+      const job = app.repository.createJob({ projectId, kind: "export", payload: { revision: revision() }, idempotencyKey: id });
+      app.updateJob(job.id, { status: "succeeded", result: { path: file } });
+      const { size } = await import("node:fs/promises").then(module => module.stat(file));
+      app.registerExportArtifact({ id, projectId, revision: revision(), jobId: job.id, purpose: "delivery",
+        relativePath: `exports/${id}.mp4`, fileHash: await hashMediaFile(file), fileSizeBytes: size, createdAt: new Date().toISOString(),
+        preflight: {} as any, sourceManifest: {} as any, validation: { durationMs: 2000, fps: 24, frameCount: 48, hasAudio: true, blackSegments: [] } });
+      const report = await app.readSkillExecutionReport({ projectId, runId: production.id });
+      await app.updateProductionRun({ projectId, runId: production.id, expectedAuditVersion: report.auditVersion,
+        operationId: id, action: "select_delivery_artifact", artifactId: id });
+    }
+    const evaluate = () => app.evaluateProductionCompletion({ projectId, runId: production.id, revision: revision(), completionScope: scope });
+    await select("version-a");
+    const observation = { check: "audiovisual", method: "audiovisual", outcome: "confirmed",
+      startFrame: 0, endFrame: 48, note: "隔离测试声明：连续观察整段" } as const;
+    const body = { projectId, artifactId: "version-a", runId: production.id, assignmentId: "visual-author",
+      observer: "visual-author", operationId: "self-check", passes: ["audiovisual"] as ["audiovisual"], observations: [observation] };
+    await app.recordExportArtifactReview(body);
+    assert.equal((await evaluate()).deliveryReview, "pending");
+    const first = await create("review-a", production.id);
+    await assign(first.id, "visual-author", "review");
+    const request = { ...body, runId: first.id, operationId: "full-review" };
+    await assert.rejects(app.recordExportArtifactReview(request), { code: "PRODUCTION_ASSIGNMENT_INVALID" });
+    await assign(first.id, "reviewer", "review", "visual-author");
+    assert.equal((await evaluate()).deliveryReview, "pending");
+    const independent = { ...request, assignmentId: "reviewer", observer: "reviewer" };
+    await app.recordExportArtifactReview({ ...independent, operationId: "frames-only", observations: [{ ...observation, method: "frames" }] });
+    assert.equal((await evaluate()).deliveryReview, "pending");
+    const observed = await app.recordExportArtifactReview({ ...independent,
+      findings: [{ pass: "audiovisual", severity: "major", category: "motion", summary: "隔离测试问题",
+        evidence: "测试观察", impact: "影响动态", frameRange: { startFrame: 0, endFrame: 20 } }] });
+    const findingId = observed.reviewReceipt!.findingIds[0]!;
+    const needsRevision = await evaluate();
+    assert.equal(needsRevision.deliveryReview, "needs_revision");
+    assert.equal(needsRevision.nextActions?.find(item => item.relatedRefs.includes(findingId))?.assignmentId, "visual-author");
+
+    app.repository.commit(projectId, revision(), "隔离返修版", snapshot => { snapshot.project.name = "隔离返修"; });
+    await select("version-b");
+    const second = await create("review-b", production.id);
+    await assign(second.id, "reviewer", "review");
+    await assert.rejects(app.recordExportArtifactReview({ ...independent, artifactId: "version-b" }), { code: "PRODUCTION_ASSIGNMENT_INVALID" });
+    assert.ok((await evaluate()).openRequiredFindingIds.includes(findingId));
+    const revised = { ...independent, runId: second.id, artifactId: "version-b" };
+    const newReview = await app.recordExportArtifactReview(revised);
+    await assert.rejects(app.recordExportArtifactReview({ ...revised, operationId: "old-evidence",
+      resolutions: [{ findingId, evidenceIds: observed.reviewReceipt!.evidenceIds, note: "错用旧版证据" }] }),
+      { code: "EDITORIAL_RESOLUTION_EVIDENCE_REQUIRED" });
+    await app.recordExportArtifactReview({ ...revised, operationId: "resolve-new", observations: [],
+      resolutions: [{ findingId, evidenceIds: newReview.reviewReceipt!.evidenceIds, note: "隔离测试声明：已复查新版" }] });
+    const done = await evaluate();
+    assert.equal(done.deliveryReview, "confirmed");
+    assert.ok(!done.openRequiredFindingIds.includes(findingId));
+  } finally { await dispose(); }
+});

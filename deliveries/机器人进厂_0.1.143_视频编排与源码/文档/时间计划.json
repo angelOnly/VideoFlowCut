@@ -1,0 +1,80 @@
+{
+  "fps": 30,
+  "startFrame": 0,
+  "endFrame": 3372,
+  "durationInFrames": 3372,
+  "sceneTiming": [
+    {
+      "sceneId": "scene_b8ce953e-8b8b-4405-a96b-b4e7d27c04f4",
+      "startFrame": 0,
+      "endFrame": 191
+    },
+    {
+      "sceneId": "scene_4853d24e-f554-434c-aed4-4c49e33ff574",
+      "startFrame": 191,
+      "endFrame": 921
+    },
+    {
+      "sceneId": "scene_70ba64cf-1ba7-4f33-bdde-af97ed704567",
+      "startFrame": 921,
+      "endFrame": 1362
+    },
+    {
+      "sceneId": "scene_7a0abb81-a39a-44ce-8d0e-45c471785986",
+      "startFrame": 1362,
+      "endFrame": 1815
+    },
+    {
+      "sceneId": "scene_ced25320-6f67-41f7-86b5-d87eb2b650cd",
+      "startFrame": 1815,
+      "endFrame": 2515
+    },
+    {
+      "sceneId": "scene_a1ee6e56-1124-4287-9e3c-a600bb9adf1a",
+      "startFrame": 2515,
+      "endFrame": 2993
+    },
+    {
+      "sceneId": "scene_d0f14d93-8e93-4382-a2cb-a03e6161e13d",
+      "startFrame": 2993,
+      "endFrame": 3372
+    }
+  ],
+  "scenes": [
+    {
+      "sceneId": "scene_b8ce953e-8b8b-4405-a96b-b4e7d27c04f4",
+      "startFrame": 0,
+      "endFrame": 191
+    },
+    {
+      "sceneId": "scene_4853d24e-f554-434c-aed4-4c49e33ff574",
+      "startFrame": 191,
+      "endFrame": 921
+    },
+    {
+      "sceneId": "scene_70ba64cf-1ba7-4f33-bdde-af97ed704567",
+      "startFrame": 921,
+      "endFrame": 1362
+    },
+    {
+      "sceneId": "scene_7a0abb81-a39a-44ce-8d0e-45c471785986",
+      "startFrame": 1362,
+      "endFrame": 1815
+    },
+    {
+      "sceneId": "scene_ced25320-6f67-41f7-86b5-d87eb2b650cd",
+      "startFrame": 1815,
+      "endFrame": 2515
+    },
+    {
+      "sceneId": "scene_a1ee6e56-1124-4287-9e3c-a600bb9adf1a",
+      "startFrame": 2515,
+      "endFrame": 2993
+    },
+    {
+      "sceneId": "scene_d0f14d93-8e93-4382-a2cb-a03e6161e13d",
+      "startFrame": 2993,
+      "endFrame": 3372
+    }
+  ]
+}

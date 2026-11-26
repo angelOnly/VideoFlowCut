@@ -15,10 +15,11 @@ export function motionDefinitionFromPayload(payload: JobRecord["payload"]) {
   const boundFonts = boundMotionFontSchema.array().parse(payload.boundFonts ?? []);
   const sourceDisplay = payload.sourceDisplay === undefined ? undefined : frozenSourceDisplaySchema.parse(payload.sourceDisplay);
   const author = (payload.sourceAuthor ?? (payload.inputBundle as { source?: MotionWork["author"] } | undefined)?.source ?? payload.author) as MotionWork["author"] | undefined;
+  const productionOrigin = payload.productionOrigin as MotionWork["productionOrigin"];
   motionHashEngine(work, boundImages, payload.version, payload.engineVersion, boundVideos, boundFonts, sourceDisplay);
   const readyRanges = (payload.readyRanges as MotionWork["readyRanges"] | undefined) ?? [{ startFrame: 0, endFrame: work.durationInFrames }];
   for (const range of readyRanges) if (!Number.isInteger(range.startFrame) || !Number.isInteger(range.endFrame) || range.startFrame < 0 || range.endFrame <= range.startFrame || range.endFrame > work.durationInFrames) throw new Error("MOTION_BUNDLE_RANGE_INVALID");
-  return { work, boundImages, boundVideos, boundFonts, sourceDisplay, readyRanges, ...(author ? { author } : {}), version: String(payload.version), engineVersion: MOTION_ENGINE_VERSION };
+  return { work, boundImages, boundVideos, boundFonts, sourceDisplay, readyRanges, ...(author ? { author } : {}), ...(productionOrigin ? { productionOrigin } : {}), version: String(payload.version), engineVersion: MOTION_ENGINE_VERSION };
 }
 
 /** 原子保存完整固定输入；快照只引用此文件，阶段包和 Job 是来源审计。 */
@@ -43,7 +44,7 @@ export function storeMotionDefinition(root: string, job: JobRecord, eventMap?: M
     frameCount: work.durationInFrames, compositing: work.compositing ?? "alpha", creativeBrief: work.creativeBrief,
     imageSources: definition.boundImages, videoSources: definition.boundVideos, fontSources: definition.boundFonts,
     sourceDisplay: definition.sourceDisplay, eventMap,
-    readyRanges: definition.readyRanges, author: definition.author };
+    readyRanges: definition.readyRanges, author: definition.author, productionOrigin: definition.productionOrigin };
 }
 
 export function readMotionDefinition(root: string, work: MotionWork) {

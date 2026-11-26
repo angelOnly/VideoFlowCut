@@ -4,7 +4,7 @@ import { DomainError, now, resolveCompositionReachability } from "@videocut/doma
 import { inspectEvidenceMedia, validateEditorialObservations } from "./editorial-evidence.js";
 
 /** 同一作品支持文件和工作台观察；记录行为不能证明审阅者实际看过。 */
-export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapshot, revision: number, jobs: JobRecord[], work: MotionWork, outcome: MotionReviewOutcome, input?: MotionReviewEvidenceInput, media?: Asset): Promise<MotionReviewEvidence | undefined> {
+export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapshot, revision: number, jobs: JobRecord[], work: MotionWork, outcome: MotionReviewOutcome, input?: MotionReviewEvidenceInput, media?: Asset, allowPartial = false): Promise<MotionReviewEvidence | undefined> {
   if (!input) {
     if (outcome === "passed") throw new DomainError("通过作品审阅需要完整连续动态证据；尚未观看请登记 inconclusive", "MOTION_REVIEW_EVIDENCE_REQUIRED");
     return undefined;
@@ -35,7 +35,7 @@ export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapsh
       end: Math.min(work.frameCount, Math.ceil((end + offset) * work.fps / snapshot.timeline.fps))
     });
     let range = rootRange(Math.max(cue.startFrame, input.startFrame), Math.min(cue.endFrame, input.endFrame), (cue.sourceStartFrame ?? 0) - cue.startFrame);
-    if (outcome === "passed") {
+    if (outcome === "passed" && !allowPartial) {
       // 只有项目时间与作品源时间同时连续，多个 Cue 才能证明一次完整顺播。
       const groups = new Map<number, Array<{ start: number; end: number }>>();
       for (const part of cues) {
@@ -62,7 +62,7 @@ export async function validateSourceMotionReviewEvidence(snapshot: ProjectSnapsh
     evidence = { ...input, relativePath: record!.relativePath, contentHash: record!.contentHash, snapshotHash: record!.snapshotHash, renderReleaseId: record!.renderReleaseId, workbenchIdentity: record!.workbenchIdentity, revision,
       workStartFrame: range.start, workEndFrame: range.end, recordedAt: now() };
   }
-  if (outcome === "passed" && (!["continuous_video", "audiovisual"].includes(input.method) || evidence.workStartFrame !== 0 || evidence.workEndFrame !== work.frameCount)) throw new DomainError("静帧、只听声音或局部范围不能证明完整作品动态通过", "MOTION_REVIEW_INCOMPLETE");
+  if (outcome === "passed" && (!["continuous_video", "audiovisual"].includes(input.method) || !allowPartial && (evidence.workStartFrame !== 0 || evidence.workEndFrame !== work.frameCount))) throw new DomainError("静帧、只听声音或局部范围不能证明完整作品动态通过", "MOTION_REVIEW_INCOMPLETE");
   return evidence;
 }
 

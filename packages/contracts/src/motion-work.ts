@@ -24,6 +24,7 @@ export interface MotionWork {
   eventMap?: MotionEventMap;
   sourceDisplay?: FrozenSourceDisplay;
   readyRanges: Array<{ startFrame: number; endFrame: number }>;
+  productionOrigin?: { method: "visual_author"; runId: string; assignmentId: string; supersedesJobId?: string };
   author?: { project: string; run_id: string; frozen_version: string };
   /** 旧版本保留在同一作品内，已采用片段始终引用它实际使用的定义。 */
   previousVersions?: Array<Omit<MotionWork, "previousVersions">>;

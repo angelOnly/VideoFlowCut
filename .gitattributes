@@ -19,6 +19,10 @@ plugins/videoflowcut/skills/visual-treatment-planning/references/whole-scene-col
 .agents/skills/visual-treatment-planning/references/object-drawing/** -text
 plugins/videoflowcut/skills/visual-treatment-planning/references/object-drawing/** -text
 # 视频交付包中的源码、清单和素材均按原字节保存，确保文件校验有效。
+# 0.1.143 解说片交付包保留原字节，音视频由 Git LFS 管理。
+deliveries/机器人进厂_0.1.143_视频编排与源码/** -text
+deliveries/机器人进厂_0.1.143_视频编排与源码/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进厂_0.1.143_视频编排与源码/**/*.wav filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进厂_本轮视频编排与动效源码/** -text
 deliveries/机器人进厂_本轮视频编排与动效源码/机器人进厂_视频_R140.mp4 filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进厂_本轮视频编排与动效源码/01_影片与声音/视频预览_R140.mp4 filter=lfs diff=lfs merge=lfs -text

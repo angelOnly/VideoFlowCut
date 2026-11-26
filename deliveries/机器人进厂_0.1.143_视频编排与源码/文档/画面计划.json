@@ -1,0 +1,1118 @@
+{
+  "scenes": [
+    {
+      "title": "落脚",
+      "sceneId": "scene_b8ce953e-8b8b-4405-a96b-b4e7d27c04f4",
+      "startFrame": 0,
+      "endFrame": 191,
+      "process": "保留脚与地板，在动作者起、翻、落、稳的同一轴线原速观察。下一场还在小窗时，只在落脚线后另开工位。",
+      "visualRoles": [
+        {
+          "role": "launch",
+          "referenceFunction": "训练场的侧视全身",
+          "usage": "本场真实画面 launch",
+          "assetIds": [
+            "asset_00f3d441-8a21-4538-b788-4d4615591eb6"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+              "startMs": 7100,
+              "endMs": 13400
+            }
+          ]
+        },
+        {
+          "role": "land",
+          "referenceFunction": "训练场的侧视全身",
+          "usage": "本场真实画面 land",
+          "assetIds": [
+            "asset_00f3d441-8a21-4538-b788-4d4615591eb6"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+              "startMs": 13400,
+              "endMs": 13467
+            }
+          ]
+        },
+        {
+          "role": "rackApproach",
+          "referenceFunction": "训练场的侧视全身",
+          "usage": "本场真实画面 rackApproach",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 109100,
+              "endMs": 111900
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "launch"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-1",
+            "title": "落脚",
+            "startFrame": 0,
+            "endFrame": 191,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "训练场的侧视全身",
+          "primarySubject": "训练场的侧视全身",
+          "supportingSubjects": [
+            "land",
+            "rackApproach"
+          ],
+          "textAndGraphics": "同一机位实拍、落脚线、开始露出的架口",
+          "ending": "保留脚与地板，在动作者起、翻、落、稳的同一轴线原速观察。下一场还在小窗时，只在落脚线后另开工位。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-1",
+            "purpose": "落脚",
+            "subjects": [
+              "launch",
+              "land",
+              "rackApproach"
+            ],
+            "action": "保留脚与地板，在动作者起、翻、落、稳的同一轴线原速观察。下一场还在小窗时，只在落脚线后另开工位。",
+            "retainedElements": [
+              "同一机位实拍、落脚线、开始露出的架口"
+            ],
+            "transition": "保留脚与地板，在动作者起、翻、落、稳的同一轴线原速观察。下一场还在小窗时，只在落脚线后另开工位。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "训练场的侧视全身",
+          "同一机位实拍、落脚线、开始露出的架口"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "保留脚与地板，在动作者起、翻、落、稳的同一轴线原速观察。下一场还在小窗时，只在落脚线后另开工位。",
+            "同一机位实拍、落脚线、开始露出的架口"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    },
+    {
+      "title": "零件与接触",
+      "sceneId": "scene_4853d24e-f554-434c-aed4-4c49e33ff574",
+      "startFrame": 191,
+      "endFrame": 921,
+      "process": "架口小窗扩展接管，料箱演示随后作为平行过程；再次接同一个盖板，看到接触、位置变化和再次靠近。",
+      "visualRoles": [
+        {
+          "role": "rack",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 rack",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 110000,
+              "endMs": 112000
+            }
+          ]
+        },
+        {
+          "role": "bin",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 bin",
+          "assetIds": [
+            "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+              "startMs": 14000,
+              "endMs": 16367
+            }
+          ]
+        },
+        {
+          "role": "reach",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 reach",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 36300,
+              "endMs": 39467
+            }
+          ]
+        },
+        {
+          "role": "partmove",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 partmove",
+          "assetIds": [
+            "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+              "startMs": 17900,
+              "endMs": 20767
+            }
+          ]
+        },
+        {
+          "role": "retarget",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 retarget",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 82000,
+              "endMs": 85067
+            }
+          ]
+        },
+        {
+          "role": "reseat",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 reseat",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 89700,
+              "endMs": 92000
+            }
+          ]
+        },
+        {
+          "role": "xyz",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 xyz",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 117000,
+              "endMs": 121700
+            }
+          ]
+        },
+        {
+          "role": "workcell",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 workcell",
+          "assetIds": [
+            "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+              "startMs": 5200,
+              "endMs": 9067
+            }
+          ]
+        },
+        {
+          "role": "rackApproach",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 rackApproach",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 109100,
+              "endMs": 111900
+            }
+          ]
+        },
+        {
+          "role": "parallelTray",
+          "referenceFunction": "蓝架开口与手中盖板",
+          "usage": "本场真实画面 parallelTray",
+          "assetIds": [
+            "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+              "startMs": 14800,
+              "endMs": 17700
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "rack"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-2",
+            "title": "零件与接触",
+            "startFrame": 191,
+            "endFrame": 921,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "蓝架开口与手中盖板",
+          "primarySubject": "蓝架开口与手中盖板",
+          "supportingSubjects": [
+            "bin",
+            "reach",
+            "partmove",
+            "retarget",
+            "reseat",
+            "xyz",
+            "workcell",
+            "rackApproach",
+            "parallelTray"
+          ],
+          "textAndGraphics": "料箱、格口、机械手和盖板；‘看见变位／重新找准／再次对位’",
+          "ending": "架口小窗扩展接管，料箱演示随后作为平行过程；再次接同一个盖板，看到接触、位置变化和再次靠近。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-2",
+            "purpose": "零件与接触",
+            "subjects": [
+              "rack",
+              "bin",
+              "reach",
+              "partmove",
+              "retarget",
+              "reseat",
+              "xyz",
+              "workcell",
+              "rackApproach",
+              "parallelTray"
+            ],
+            "action": "架口小窗扩展接管，料箱演示随后作为平行过程；再次接同一个盖板，看到接触、位置变化和再次靠近。",
+            "retainedElements": [
+              "料箱、格口、机械手和盖板；‘看见变位／重新找准／再次对位’"
+            ],
+            "transition": "架口小窗扩展接管，料箱演示随后作为平行过程；再次接同一个盖板，看到接触、位置变化和再次靠近。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "蓝架开口与手中盖板",
+          "料箱、格口、机械手和盖板；‘看见变位／重新找准／再次对位’"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "架口小窗扩展接管，料箱演示随后作为平行过程；再次接同一个盖板，看到接触、位置变化和再次靠近。",
+            "料箱、格口、机械手和盖板；‘看见变位／重新找准／再次对位’"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    },
+    {
+      "title": "连续完成的概率",
+      "sceneId": "scene_70ba64cf-1ba7-4f33-bdde-af97ed704567",
+      "startFrame": 921,
+      "endFrame": 1362,
+      "process": "原速动作持续，小幅换位露出数据区，从单次百分比到100次计数，再停在全部成功的概率。",
+      "visualRoles": [
+        {
+          "role": "handoff",
+          "referenceFunction": "Digit 料箱交接动作",
+          "usage": "本场真实画面 handoff",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 12400,
+              "endMs": 16733
+            }
+          ]
+        },
+        {
+          "role": "repeatOne",
+          "referenceFunction": "Digit 料箱交接动作",
+          "usage": "本场真实画面 repeatOne",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 17800,
+              "endMs": 21133
+            }
+          ]
+        },
+        {
+          "role": "repeatTwo",
+          "referenceFunction": "Digit 料箱交接动作",
+          "usage": "本场真实画面 repeatTwo",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 23000,
+              "endMs": 26100
+            }
+          ]
+        },
+        {
+          "role": "repeatThree",
+          "referenceFunction": "Digit 料箱交接动作",
+          "usage": "本场真实画面 repeatThree",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 17400,
+              "endMs": 21333
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "handoff"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-3",
+            "title": "连续完成的概率",
+            "startFrame": 921,
+            "endFrame": 1362,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "Digit 料箱交接动作",
+          "primarySubject": "Digit 料箱交接动作",
+          "supportingSubjects": [
+            "repeatOne",
+            "repeatTwo",
+            "repeatThree"
+          ],
+          "textAndGraphics": "假设每次成功率99%，各次互不影响；0.99¹⁰⁰约36.6%",
+          "ending": "原速动作持续，小幅换位露出数据区，从单次百分比到100次计数，再停在全部成功的概率。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-3",
+            "purpose": "连续完成的概率",
+            "subjects": [
+              "handoff",
+              "repeatOne",
+              "repeatTwo",
+              "repeatThree"
+            ],
+            "action": "原速动作持续，小幅换位露出数据区，从单次百分比到100次计数，再停在全部成功的概率。",
+            "retainedElements": [
+              "假设每次成功率99%，各次互不影响；0.99¹⁰⁰约36.6%"
+            ],
+            "transition": "原速动作持续，小幅换位露出数据区，从单次百分比到100次计数，再停在全部成功的概率。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "Digit 料箱交接动作",
+          "假设每次成功率99%，各次互不影响；0.99¹⁰⁰约36.6%"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "原速动作持续，小幅换位露出数据区，从单次百分比到100次计数，再停在全部成功的概率。",
+            "假设每次成功率99%，各次互不影响；0.99¹⁰⁰约36.6%"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    },
+    {
+      "title": "从异常到停等",
+      "sceneId": "scene_7a0abb81-a39a-44ce-8d0e-45c471785986",
+      "startFrame": 1362,
+      "endFrame": 1815,
+      "process": "夹爪回撤后实际重新对位，另一路物流线对应条件分支；先保住工作点再扩展到周围工位。",
+      "visualRoles": [
+        {
+          "role": "self",
+          "referenceFunction": "Atlas 黑盖板与物流线",
+          "usage": "本场真实画面 self",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 84900,
+              "endMs": 88767
+            }
+          ]
+        },
+        {
+          "role": "conveyor",
+          "referenceFunction": "Atlas 黑盖板与物流线",
+          "usage": "本场真实画面 conveyor",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 23500,
+              "endMs": 28067
+            }
+          ]
+        },
+        {
+          "role": "shift",
+          "referenceFunction": "Atlas 黑盖板与物流线",
+          "usage": "本场真实画面 shift",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 124000,
+              "endMs": 127533
+            }
+          ]
+        },
+        {
+          "role": "line",
+          "referenceFunction": "Atlas 黑盖板与物流线",
+          "usage": "本场真实画面 line",
+          "assetIds": [
+            "asset_dc861ba0-510f-43b9-925b-7e2b50347078"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+              "startMs": 33700,
+              "endMs": 36833
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "self"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-4",
+            "title": "从异常到停等",
+            "startFrame": 1362,
+            "endFrame": 1815,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "Atlas 黑盖板与物流线",
+          "primarySubject": "Atlas 黑盖板与物流线",
+          "supportingSubjects": [
+            "conveyor",
+            "shift",
+            "line"
+          ],
+          "textAndGraphics": "‘可自动恢复 → 继续／需要人工 → 下游等待’；场面只表达条件",
+          "ending": "夹爪回撤后实际重新对位，另一路物流线对应条件分支；先保住工作点再扩展到周围工位。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-4",
+            "purpose": "从异常到停等",
+            "subjects": [
+              "self",
+              "conveyor",
+              "shift",
+              "line"
+            ],
+            "action": "夹爪回撤后实际重新对位，另一路物流线对应条件分支；先保住工作点再扩展到周围工位。",
+            "retainedElements": [
+              "‘可自动恢复 → 继续／需要人工 → 下游等待’；场面只表达条件"
+            ],
+            "transition": "夹爪回撤后实际重新对位，另一路物流线对应条件分支；先保住工作点再扩展到周围工位。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "Atlas 黑盖板与物流线",
+          "‘可自动恢复 → 继续／需要人工 → 下游等待’；场面只表达条件"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "夹爪回撤后实际重新对位，另一路物流线对应条件分支；先保住工作点再扩展到周围工位。",
+            "‘可自动恢复 → 继续／需要人工 → 下游等待’；场面只表达条件"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    },
+    {
+      "title": "固定路径和可移动工位",
+      "sceneId": "scene_ced25320-6f67-41f7-86b5-d87eb2b650cd",
+      "startFrame": 1815,
+      "endFrame": 2515,
+      "process": "黄臂围栏先落定，来料和固定接位在动作中可见；黄色治具小窗从固定工位同轴放大，再用独立的人形工作面接管。",
+      "visualRoles": [
+        {
+          "role": "arm",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 arm",
+          "assetIds": [
+            "asset_dc861ba0-510f-43b9-925b-7e2b50347078"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+              "startMs": 8600,
+              "endMs": 11067
+            }
+          ]
+        },
+        {
+          "role": "station",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 station",
+          "assetIds": [
+            "asset_dc861ba0-510f-43b9-925b-7e2b50347078"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+              "startMs": 28700,
+              "endMs": 34267
+            }
+          ]
+        },
+        {
+          "role": "repeatArm",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 repeatArm",
+          "assetIds": [
+            "asset_dc861ba0-510f-43b9-925b-7e2b50347078"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+              "startMs": 42000,
+              "endMs": 46533
+            }
+          ]
+        },
+        {
+          "role": "humanSpace",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 humanSpace",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 13100,
+              "endMs": 16533
+            }
+          ]
+        },
+        {
+          "role": "humanTool",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 humanTool",
+          "assetIds": [
+            "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+              "startMs": 500,
+              "endMs": 3733
+            }
+          ]
+        },
+        {
+          "role": "humanMove",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 humanMove",
+          "assetIds": [
+            "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+              "startMs": 5900,
+              "endMs": 10000
+            }
+          ]
+        },
+        {
+          "role": "fixedToFlexible",
+          "referenceFunction": "FANUC 工盘和 Figure 黄治具",
+          "usage": "本场真实画面 fixedToFlexible",
+          "assetIds": [
+            "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+              "startMs": 3100,
+              "endMs": 6967
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "arm"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-5",
+            "title": "固定路径和可移动工位",
+            "startFrame": 1815,
+            "endFrame": 2515,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "FANUC 工盘和 Figure 黄治具",
+          "primarySubject": "FANUC 工盘和 Figure 黄治具",
+          "supportingSubjects": [
+            "station",
+            "repeatArm",
+            "humanSpace",
+            "humanTool",
+            "humanMove",
+            "fixedToFlexible"
+          ],
+          "textAndGraphics": "黄臂和围栏始终可辨；‘来料位置固定／接位固定／动作可重复’",
+          "ending": "黄臂围栏先落定，来料和固定接位在动作中可见；黄色治具小窗从固定工位同轴放大，再用独立的人形工作面接管。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-5",
+            "purpose": "固定路径和可移动工位",
+            "subjects": [
+              "arm",
+              "station",
+              "repeatArm",
+              "humanSpace",
+              "humanTool",
+              "humanMove",
+              "fixedToFlexible"
+            ],
+            "action": "黄臂围栏先落定，来料和固定接位在动作中可见；黄色治具小窗从固定工位同轴放大，再用独立的人形工作面接管。",
+            "retainedElements": [
+              "黄臂和围栏始终可辨；‘来料位置固定／接位固定／动作可重复’"
+            ],
+            "transition": "黄臂围栏先落定，来料和固定接位在动作中可见；黄色治具小窗从固定工位同轴放大，再用独立的人形工作面接管。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "FANUC 工盘和 Figure 黄治具",
+          "黄臂和围栏始终可辨；‘来料位置固定／接位固定／动作可重复’"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "黄臂围栏先落定，来料和固定接位在动作中可见；黄色治具小窗从固定工位同轴放大，再用独立的人形工作面接管。",
+            "黄臂和围栏始终可辨；‘来料位置固定／接位固定／动作可重复’"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    },
+    {
+      "title": "真实仓库",
+      "sceneId": "scene_a1ee6e56-1124-4287-9e3c-a600bb9adf1a",
+      "startFrame": 2515,
+      "endFrame": 2993,
+      "process": "让搬运和转身在同一个空间持续；数字等到任务看明白再建立，在清楚的背景区停留；箱沿引出训练场回望。",
+      "visualRoles": [
+        {
+          "role": "digitEntry",
+          "referenceFunction": "GXO 围栏内的 Digit 与蓝料箱",
+          "usage": "本场真实画面 digitEntry",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 11000,
+              "endMs": 13733
+            }
+          ]
+        },
+        {
+          "role": "digitCarry",
+          "referenceFunction": "GXO 围栏内的 Digit 与蓝料箱",
+          "usage": "本场真实画面 digitCarry",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 17900,
+              "endMs": 22400
+            }
+          ]
+        },
+        {
+          "role": "warehouse",
+          "referenceFunction": "GXO 围栏内的 Digit 与蓝料箱",
+          "usage": "本场真实画面 warehouse",
+          "assetIds": [
+            "asset_5fc75727-4681-44ed-a07e-fd16602c9154"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_5fc75727-4681-44ed-a07e-fd16602c9154",
+              "startMs": 1100,
+              "endMs": 4233
+            }
+          ]
+        },
+        {
+          "role": "digitPlace",
+          "referenceFunction": "GXO 围栏内的 Digit 与蓝料箱",
+          "usage": "本场真实画面 digitPlace",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 21800,
+              "endMs": 24667
+            }
+          ]
+        },
+        {
+          "role": "digitExit",
+          "referenceFunction": "GXO 围栏内的 Digit 与蓝料箱",
+          "usage": "本场真实画面 digitExit",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 28800,
+              "endMs": 31500
+            }
+          ]
+        },
+        {
+          "role": "backToGround",
+          "referenceFunction": "GXO 围栏内的 Digit 与蓝料箱",
+          "usage": "本场真实画面 backToGround",
+          "assetIds": [
+            "asset_00f3d441-8a21-4538-b788-4d4615591eb6"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+              "startMs": 71100,
+              "endMs": 74367
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "digitEntry"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-6",
+            "title": "真实仓库",
+            "startFrame": 2515,
+            "endFrame": 2993,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "GXO 围栏内的 Digit 与蓝料箱",
+          "primarySubject": "GXO 围栏内的 Digit 与蓝料箱",
+          "supportingSubjects": [
+            "digitCarry",
+            "warehouse",
+            "digitPlace",
+            "digitExit",
+            "backToGround"
+          ],
+          "textAndGraphics": "‘Digit · 仓库搬运／10万+／累计搬运料箱’",
+          "ending": "让搬运和转身在同一个空间持续；数字等到任务看明白再建立，在清楚的背景区停留；箱沿引出训练场回望。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-6",
+            "purpose": "真实仓库",
+            "subjects": [
+              "digitEntry",
+              "digitCarry",
+              "warehouse",
+              "digitPlace",
+              "digitExit",
+              "backToGround"
+            ],
+            "action": "让搬运和转身在同一个空间持续；数字等到任务看明白再建立，在清楚的背景区停留；箱沿引出训练场回望。",
+            "retainedElements": [
+              "‘Digit · 仓库搬运／10万+／累计搬运料箱’"
+            ],
+            "transition": "让搬运和转身在同一个空间持续；数字等到任务看明白再建立，在清楚的背景区停留；箱沿引出训练场回望。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "GXO 围栏内的 Digit 与蓝料箱",
+          "‘Digit · 仓库搬运／10万+／累计搬运料箱’"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "让搬运和转身在同一个空间持续；数字等到任务看明白再建立，在清楚的背景区停留；箱沿引出训练场回望。",
+            "‘Digit · 仓库搬运／10万+／累计搬运料箱’"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    },
+    {
+      "title": "下一件",
+      "sceneId": "scene_d0f14d93-8e93-4382-a2cb-a03e6161e13d",
+      "startFrame": 2993,
+      "endFrame": 3372,
+      "process": "仓储小画面先让观众认出训练场，再由侧视机位落脚接管；工作台、夹爪、下一件逐渐替换训练空间，最后留下交接动作。",
+      "visualRoles": [
+        {
+          "role": "altFlip",
+          "referenceFunction": "比赛落脚、部件落点和料箱交接",
+          "usage": "本场真实画面 altFlip",
+          "assetIds": [
+            "asset_00f3d441-8a21-4538-b788-4d4615591eb6"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+              "startMs": 70700,
+              "endMs": 74700
+            }
+          ]
+        },
+        {
+          "role": "again",
+          "referenceFunction": "比赛落脚、部件落点和料箱交接",
+          "usage": "本场真实画面 again",
+          "assetIds": [
+            "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+              "startMs": 13200,
+              "endMs": 16133
+            }
+          ]
+        },
+        {
+          "role": "handle",
+          "referenceFunction": "比赛落脚、部件落点和料箱交接",
+          "usage": "本场真实画面 handle",
+          "assetIds": [
+            "asset_424082a2-3e3e-44be-bc9f-6293540ff980"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+              "startMs": 83900,
+              "endMs": 86933
+            }
+          ]
+        },
+        {
+          "role": "next",
+          "referenceFunction": "比赛落脚、部件落点和料箱交接",
+          "usage": "本场真实画面 next",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 15000,
+              "endMs": 17667
+            }
+          ]
+        },
+        {
+          "role": "backToGround",
+          "referenceFunction": "比赛落脚、部件落点和料箱交接",
+          "usage": "本场真实画面 backToGround",
+          "assetIds": [
+            "asset_00f3d441-8a21-4538-b788-4d4615591eb6"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+              "startMs": 71100,
+              "endMs": 74367
+            }
+          ]
+        },
+        {
+          "role": "nextTote",
+          "referenceFunction": "比赛落脚、部件落点和料箱交接",
+          "usage": "本场真实画面 nextTote",
+          "assetIds": [
+            "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41"
+          ],
+          "sourceRanges": [
+            {
+              "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+              "startMs": 14500,
+              "endMs": 17967
+            }
+          ]
+        }
+      ],
+      "status": "pending",
+      "references": [],
+      "resourceIds": [],
+      "visualPlan": {
+        "primaryRoles": [
+          "altFlip"
+        ],
+        "units": [
+          {
+            "id": "robot0143-scene-7",
+            "title": "下一件",
+            "startFrame": 2993,
+            "endFrame": 3372,
+            "mode": "full_reference"
+          }
+        ],
+        "composition": {
+          "opening": "比赛落脚、部件落点和料箱交接",
+          "primarySubject": "比赛落脚、部件落点和料箱交接",
+          "supportingSubjects": [
+            "again",
+            "handle",
+            "next",
+            "backToGround",
+            "nextTote"
+          ],
+          "textAndGraphics": "侧景落脚、蓝架和蓝箱；‘下一件’",
+          "ending": "仓储小画面先让观众认出训练场，再由侧视机位落脚接管；工作台、夹爪、下一件逐渐替换训练空间，最后留下交接动作。"
+        },
+        "sequence": [
+          {
+            "unitId": "robot0143-scene-7",
+            "purpose": "下一件",
+            "subjects": [
+              "altFlip",
+              "again",
+              "handle",
+              "next",
+              "backToGround",
+              "nextTote"
+            ],
+            "action": "仓储小画面先让观众认出训练场，再由侧视机位落脚接管；工作台、夹爪、下一件逐渐替换训练空间，最后留下交接动作。",
+            "retainedElements": [
+              "侧景落脚、蓝架和蓝箱；‘下一件’"
+            ],
+            "transition": "仓储小画面先让观众认出训练场，再由侧视机位落脚接管；工作台、夹爪、下一件逐渐替换训练空间，最后留下交接动作。"
+          }
+        ],
+        "researchLayers": [],
+        "referenceMappings": [],
+        "attentionPath": [
+          "比赛落脚、部件落点和料箱交接",
+          "侧景落脚、蓝架和蓝箱；‘下一件’"
+        ],
+        "odBoundaries": {
+          "locked": [
+            "仓储小画面先让观众认出训练场，再由侧视机位落脚接管；工作台、夹爪、下一件逐渐替换训练空间，最后留下交接动作。",
+            "侧景落脚、蓝架和蓝箱；‘下一件’"
+          ],
+          "adjustable": [
+            "依真实旁白停顿微调曲线和画面重叠"
+          ],
+          "escalation": "更改关键源动作、数字含义或主要连续关系需回导演稿"
+        }
+      }
+    }
+  ]
+}

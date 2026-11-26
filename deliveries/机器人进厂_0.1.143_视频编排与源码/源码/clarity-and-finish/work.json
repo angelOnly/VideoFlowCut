@@ -1,0 +1,281 @@
+{
+  "name": "机器人进厂的每一天",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "durationInFrames": 3372,
+  "compositing": "opaque",
+  "creativeBrief": "以机器人原始实拍为主，透过落脚、触点、对位、重复和料箱交接组织七场。动作中的字幕与旁白由项目合成。",
+  "fontBindings": {
+    "body": "noto-sans-sc-bold",
+    "display": "smiley-sans-oblique"
+  },
+  "videoBindings": {
+    "launch": {
+      "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+      "sourceStartMs": 7100,
+      "sourceEndMs": 13400,
+      "startFrame": 0,
+      "endFrame": 189
+    },
+    "land": {
+      "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+      "sourceStartMs": 13400,
+      "sourceEndMs": 13467,
+      "startFrame": 189,
+      "endFrame": 191
+    },
+    "rack": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 110000,
+      "sourceEndMs": 112000,
+      "startFrame": 191,
+      "endFrame": 251
+    },
+    "bin": {
+      "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+      "sourceStartMs": 14000,
+      "sourceEndMs": 16367,
+      "startFrame": 251,
+      "endFrame": 322
+    },
+    "reach": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 36300,
+      "sourceEndMs": 39467,
+      "startFrame": 322,
+      "endFrame": 417
+    },
+    "partmove": {
+      "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+      "sourceStartMs": 17900,
+      "sourceEndMs": 20767,
+      "startFrame": 417,
+      "endFrame": 503
+    },
+    "retarget": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 82000,
+      "sourceEndMs": 85067,
+      "startFrame": 503,
+      "endFrame": 595
+    },
+    "reseat": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 89700,
+      "sourceEndMs": 92000,
+      "startFrame": 595,
+      "endFrame": 664
+    },
+    "xyz": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 117000,
+      "sourceEndMs": 121700,
+      "startFrame": 664,
+      "endFrame": 805
+    },
+    "workcell": {
+      "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+      "sourceStartMs": 5200,
+      "sourceEndMs": 9067,
+      "startFrame": 805,
+      "endFrame": 921
+    },
+    "handoff": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 12400,
+      "sourceEndMs": 16733,
+      "startFrame": 921,
+      "endFrame": 1051
+    },
+    "repeatOne": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 17800,
+      "sourceEndMs": 21133,
+      "startFrame": 1051,
+      "endFrame": 1151
+    },
+    "repeatTwo": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 23000,
+      "sourceEndMs": 26100,
+      "startFrame": 1151,
+      "endFrame": 1244
+    },
+    "repeatThree": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 17400,
+      "sourceEndMs": 21333,
+      "startFrame": 1244,
+      "endFrame": 1362
+    },
+    "self": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 84900,
+      "sourceEndMs": 88767,
+      "startFrame": 1362,
+      "endFrame": 1478
+    },
+    "conveyor": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 23500,
+      "sourceEndMs": 28067,
+      "startFrame": 1478,
+      "endFrame": 1615
+    },
+    "shift": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 124000,
+      "sourceEndMs": 127533,
+      "startFrame": 1615,
+      "endFrame": 1721
+    },
+    "line": {
+      "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+      "sourceStartMs": 33700,
+      "sourceEndMs": 36833,
+      "startFrame": 1721,
+      "endFrame": 1815
+    },
+    "arm": {
+      "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+      "sourceStartMs": 8600,
+      "sourceEndMs": 11067,
+      "startFrame": 1815,
+      "endFrame": 1889
+    },
+    "station": {
+      "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+      "sourceStartMs": 28700,
+      "sourceEndMs": 34267,
+      "startFrame": 1889,
+      "endFrame": 2056
+    },
+    "repeatArm": {
+      "assetId": "asset_dc861ba0-510f-43b9-925b-7e2b50347078",
+      "sourceStartMs": 42000,
+      "sourceEndMs": 46533,
+      "startFrame": 2056,
+      "endFrame": 2192
+    },
+    "humanSpace": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 13100,
+      "sourceEndMs": 16533,
+      "startFrame": 2192,
+      "endFrame": 2295
+    },
+    "humanTool": {
+      "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+      "sourceStartMs": 500,
+      "sourceEndMs": 3733,
+      "startFrame": 2295,
+      "endFrame": 2392
+    },
+    "humanMove": {
+      "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+      "sourceStartMs": 5900,
+      "sourceEndMs": 10000,
+      "startFrame": 2392,
+      "endFrame": 2515
+    },
+    "digitEntry": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 11000,
+      "sourceEndMs": 13733,
+      "startFrame": 2515,
+      "endFrame": 2597
+    },
+    "digitCarry": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 17900,
+      "sourceEndMs": 22400,
+      "startFrame": 2597,
+      "endFrame": 2732
+    },
+    "warehouse": {
+      "assetId": "asset_5fc75727-4681-44ed-a07e-fd16602c9154",
+      "sourceStartMs": 1100,
+      "sourceEndMs": 4233,
+      "startFrame": 2732,
+      "endFrame": 2826
+    },
+    "digitPlace": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 21800,
+      "sourceEndMs": 24667,
+      "startFrame": 2826,
+      "endFrame": 2912
+    },
+    "digitExit": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 28800,
+      "sourceEndMs": 32300,
+      "startFrame": 2912,
+      "endFrame": 3017
+    },
+    "altFlip": {
+      "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+      "sourceStartMs": 73633,
+      "sourceEndMs": 76833,
+      "startFrame": 3017,
+      "endFrame": 3113
+    },
+    "again": {
+      "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+      "sourceStartMs": 13200,
+      "sourceEndMs": 16133,
+      "startFrame": 3113,
+      "endFrame": 3201
+    },
+    "handle": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 83900,
+      "sourceEndMs": 88667,
+      "startFrame": 3201,
+      "endFrame": 3344
+    },
+    "next": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 17033,
+      "sourceEndMs": 17966,
+      "startFrame": 3344,
+      "endFrame": 3372
+    },
+    "rackApproach": {
+      "assetId": "asset_424082a2-3e3e-44be-bc9f-6293540ff980",
+      "sourceStartMs": 109100,
+      "sourceEndMs": 111900,
+      "startFrame": 167,
+      "endFrame": 251
+    },
+    "parallelTray": {
+      "assetId": "asset_10f3f3f3-1356-40b5-ab3b-e20dc26a0b83",
+      "sourceStartMs": 14800,
+      "sourceEndMs": 17700,
+      "startFrame": 461,
+      "endFrame": 548
+    },
+    "fixedToFlexible": {
+      "assetId": "asset_a98fcd5d-5b2f-4fbf-be22-d021d6ee1419",
+      "sourceStartMs": 3100,
+      "sourceEndMs": 6967,
+      "startFrame": 2131,
+      "endFrame": 2247
+    },
+    "backToGround": {
+      "assetId": "asset_00f3d441-8a21-4538-b788-4d4615591eb6",
+      "sourceStartMs": 71100,
+      "sourceEndMs": 73633,
+      "startFrame": 2941,
+      "endFrame": 3017
+    },
+    "nextTote": {
+      "assetId": "asset_273cedaa-fd3e-4b82-b637-e674bd6c0d41",
+      "sourceStartMs": 14500,
+      "sourceEndMs": 17033,
+      "startFrame": 3268,
+      "endFrame": 3344
+    }
+  }
+}

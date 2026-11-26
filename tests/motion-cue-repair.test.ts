@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createApplication } from "@videocut/application";
-import { evaluateQuality, requiresEditorialReview } from "@videocut/quality";
+import { evaluateQuality } from "@videocut/quality";
 import { motionFixture } from "./fixtures/managed-motion.js";
 
 
@@ -38,7 +38,6 @@ test("退役安全区规则与旧测量数据不产生阻断或提醒，也不�
     assert.equal(cue.spatialAnchor, "full_frame");
     const baseline = evaluateQuality(snapshot, f.revision());
     assert.ok(baseline.technical.some(entry => entry.code === "EFFECT_SEMANTIC_ANCHOR_REQUIRED" && entry.level === "blocking"));
-    assert.equal(requiresEditorialReview(baseline, "delivery"), false);
     // 模拟历史 JSON：已退役的附加数据不要求迁移或补测，也不能改变输出门禁。
     Object.assign(snapshot.assets.find(entry => entry.id === f.asset.id)!.motion!, {
       visibility: { method: "png_alpha_bbox_v1", alphaThreshold: 1, frames: [{ x: 0, y: 0, width: 320, height: 320 }] }

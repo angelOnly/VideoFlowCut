@@ -213,12 +213,19 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   server.registerTool("register_motion_work", {
     title: "登记固定动画源码作品",
     description: "校验并固定源码、资源、时钟和引擎，真实初始化取得事件，登记 workId；不捕帧、不编码、不创建视频素材。work 与 frozen_work 二选一。图片用 data-vfc-image-slot，视频用有稳定 id 的 data-vfc-video-slot；字体通过 fontBindings 固定发行原件，视频按完整作品根时钟静音执行。可提供已明确采用目标 on_success；采用冲突保留作品，读回冲突后重新确认。",
-    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160), work: motionSubmissionSchema.optional(), frozen_work: z.object({ bundle_path: z.string().min(1), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict().optional(), on_success: motionOnSuccessSchema.optional() }
-  }, async ({ project_id, base_revision_id, idempotency_key, work, frozen_work, on_success }) => { try {
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160), work: motionSubmissionSchema.optional(), production_run_id: z.string().min(1).optional(), visual_author_assignment_id: z.string().min(1).optional(), visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), supersedes_job_id: z.string().min(1).optional(), frozen_work: z.object({ bundle_path: z.string().min(1), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict().optional(), on_success: motionOnSuccessSchema.optional() }
+  }, async ({ project_id, base_revision_id, idempotency_key, work, frozen_work, on_success, production_run_id, visual_author_assignment_id, visual_treatment_ids, supersedes_job_id }) => { try {
     const id = projectIdFrom(project_id);
     if (Boolean(work) === Boolean(frozen_work)) throw new Error("work 与 frozen_work 必须且只能提供一个");
     const loaded = frozen_work ? await readFrozenMotionWork(application.readProject(id).snapshot.project.rootPath, frozen_work.bundle_path, frozen_work.manifest_sha256) : undefined;
-    return result(motionJobReceipt(application.registerMotionWork({ projectId: id, baseRevision: base_revision_id, idempotencyKey: idempotency_key, work: loaded?.work ?? work!, inputBundle: loaded?.inputBundle, readyRanges: loaded?.readyRanges, onSuccess: on_success })));
+    const registration = { projectId: id, baseRevision: base_revision_id, idempotencyKey: idempotency_key,
+      work: loaded?.work ?? work!, inputBundle: loaded?.inputBundle, readyRanges: loaded?.readyRanges, onSuccess: on_success };
+    if (production_run_id || visual_author_assignment_id || visual_treatment_ids || supersedes_job_id) {
+      if (!production_run_id || !visual_author_assignment_id || !visual_treatment_ids) throw new Error("直接制作需要制作 Run、视觉作者分派和采用计划");
+      return result(motionJobReceipt(await application.registerVisualAuthorMotionWork({ ...registration, visualTreatmentIds: visual_treatment_ids,
+        productionOrigin: { method: "visual_author", runId: production_run_id, assignmentId: visual_author_assignment_id, supersedesJobId: supersedes_job_id } })));
+    }
+    return result(motionJobReceipt(application.registerMotionWork(registration)));
   } catch (error) { return failure(error); } });
   server.registerTool("submit_motion_work", {
     title: "按固定作品生成媒体",
@@ -241,6 +248,6 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("review_motion_work", {
     title: "记录作品动态审阅", description: "对照完整制作简报、采用参考与同版实际作品记录 outcome、note 和 evidence，creativeBrief 保存提交摘要。evidence 使用半开范围，work_proxy 使用作品局部帧，project_preview 和 workbench 使用项目全局帧。failed/inconclusive 可记录局部观察；passed 要求连续顺序覆盖完整作品并使用 continuous_video 或 audiovisual。审阅独立保存，不产生新 Revision，未观察范围如实记录。",
-    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), work_id: z.string(), definition_hash: z.string().regex(/^[a-f0-9]{64}$/u).optional(), asset_id: z.string().optional(), outcome: motionReviewFields.outcome, note: motionReviewFields.note, evidence: motionReviewFields.evidence }
-  }, async ({ project_id, base_revision_id, work_id, definition_hash, asset_id, outcome, evidence, note }) => { try { return result(commandReceipt(await application.reviewSourceMotionWork({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, workId: work_id, definitionHash: definition_hash, assetId: asset_id, outcome, evidence, note }), { assetId: asset_id, outcome }, true)); } catch (error) { return failure(error); } });
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), work_id: z.string(), production_run_id: z.string().min(1).optional(), visual_author_assignment_id: z.string().min(1).optional(), definition_hash: z.string().regex(/^[a-f0-9]{64}$/u).optional(), asset_id: z.string().optional(), outcome: motionReviewFields.outcome, note: motionReviewFields.note, evidence: motionReviewFields.evidence }
+  }, async ({ project_id, base_revision_id, work_id, definition_hash, asset_id, outcome, evidence, note, production_run_id, visual_author_assignment_id }) => { try { return result(commandReceipt(await application.reviewSourceMotionWork({ projectId: projectIdFrom(project_id), baseRevision: base_revision_id, workId: work_id, productionRunId: production_run_id, assignmentId: visual_author_assignment_id, definitionHash: definition_hash, assetId: asset_id, outcome, evidence, note }), { assetId: asset_id, outcome }, true)); } catch (error) { return failure(error); } });
 }

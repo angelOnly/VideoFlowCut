@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { EffectCue, FrozenMotionContinuation, ImpactReport, MotionContinuationResult, MotionOnSuccess, ProjectSnapshot } from "@videocut/contracts";
-import { motionRootRangeAtProjectRange, motionWorkForCue, motionWorkVersion, inspectEffectContentContract } from "@videocut/contracts";
+import { motionWorkForCue, motionWorkVersion, inspectEffectContentContract } from "@videocut/contracts";
 import { assertEffectCoverage, compileVisualComposition, createEffectCue, DomainError } from "@videocut/domain";
 import { assertEffectCueRange } from "./effect-cue-validation.js";
 import { bindEffectAudioEvent } from "./effect-audio-events.js";
@@ -12,14 +12,8 @@ export function frozenWorkForDelivery(snapshot: ProjectSnapshot, cue: EffectCue)
   if (cue.type !== "ManagedMotion" || cue.status !== "ready" || !cue.workDefinitionHash
     || !motionAuthoringInputsCurrent(snapshot, cue.authoringInputs)) return undefined;
   const work = motionWorkForCue(snapshot, cue);
-  if (!work?.author) return undefined;
-  const from = cue.sourceStartFrame ?? 0;
-  const root = motionRootRangeAtProjectRange(from, from + cue.endFrame - cue.startFrame, work.fps, snapshot.timeline.fps);
-  let covered = root.startFrame;
-  for (const range of [...work.readyRanges].sort((a, b) => a.startFrame - b.startFrame)) {
-    if (range.startFrame <= covered) covered = Math.max(covered, range.endFrame);
-  }
-  return covered >= root.endFrame ? { work, author: work.author } : undefined;
+  if (!work || !inspectEffectContentContract(cue, snapshot.assets, snapshot.timeline, snapshot.motionWorks).ready) return undefined;
+  return { work, author: work.author };
 }
 
 function canonical(value: unknown): unknown {

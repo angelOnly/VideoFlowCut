@@ -13,6 +13,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { motionBundleHash } from "../packages/edit-application/src/motion-input.js";
+import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
+import { runPreviewJob } from "../apps/render-worker/src/exporter.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { loadCreativeIndex, readCreativeCase } from "../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../references/motion-cases/skillry/tools/library-store.mjs";
@@ -22,12 +24,14 @@ import { completeResearchCoverage, directorBrief, researchPlan } from "./fixture
 import { productionUnitHandoffSchema, type ProductionUnitHandoffInput } from "../packages/contracts/src/production-unit-handoff.js";
 import type { ProductionUnitDraft, ProductionUnitHandoffEvent } from "@videocut/contracts";
 
-for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test({
+for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_adoption"] as const) test({
+  direct: "视觉作者独立登记固定作品并采用",
+  takeover: "OD 失败保留回执并由原视觉作者接管",
   general: "完整新制从零作品准备参考、自动送件并接回同一冻结作品",
   whole_film: "整片首版一次送出两场并将跨场阶段回件接入同一作品",
   zero_adoption: "全片研究完成但无有效主参考映射时拒绝正式组包"
 }[scenario], { timeout: 60_000 }, async () => {
-  const zeroAdoption = scenario === "zero_adoption", wholeFilm = scenario !== "general";
+  const zeroAdoption = scenario === "zero_adoption", wholeFilm = scenario === "whole_film" || zeroAdoption;
   const root = await mkdtemp(join(tmpdir(), "vfc-full-handoff-")), app = createApplication(root);
   const originalFetch = globalThis.fetch;
   let stopping = false;
@@ -57,7 +61,7 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     assert.throws(() => app.submitExport({ projectId, purpose: "delivery" }), { code: "EXPORT_AUTHORED_SCENES_INCOMPLETE" });
     assert.equal(app.submitExport({ projectId, purpose: "draft" }).kind, "export");
     const initial = await app.evaluateProductionCompletion({ projectId, runId: run.id, revision: rev(), completionScope: { kind: "project" } });
-    assert.ok(initial.coordinationIssues.some(issue => issue.code === "OD_COMMISSION_MISSING"));
+    assert.ok(initial.coordinationIssues.some(issue => issue.code === "MOTION_COVERAGE_MISSING"));
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign-authors", action: "add_assignment",
       assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "visual_design", "motion_research"],
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"],
@@ -310,6 +314,69 @@ for (const scenario of ["general", "whole_film", "zero_adoption"] as const) test
     const updateMaterials = (assetIds: string[]) => app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", visualTreatmentId: treatment.id,
       sceneId: scene.id, mode: "b_roll", intensity: "medium", primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: assetIds,
       adoptedDecisionRef: { productionRunId: run.id, decisionId: adoption.id } });
+    if (scenario === "direct" || scenario === "takeover") {
+      const failed = scenario === "takeover" ? await app.startMotionAuthoring({ ...request, baseRevision: rev() }) : undefined;
+      if (failed) {
+        app.updateJob(failed.id, { status: "failed", error: "隔离委托失败" });
+        const status = await app.readProductionStatus(projectId, { runId: run.id });
+        assert.equal(status.production?.status, "failed");
+        assert.ok(status.completion?.coordinationIssues.some(issue =>
+          issue.code === "MOTION_COMMISSION_UNFINISHED" && issue.assignmentId === "authors"));
+      }
+      const target = request.target;
+      assert.equal(target.action, "create_cue");
+      const work = { ...motionFixture, source: motionHtml('<img data-vfc-image-slot="subject">', "",
+        { width: 320, height: 320, fps: 25, durationInFrames: workLength }), fps: 25,
+        durationInFrames: workLength, imageBindings: { subject: asset.id } };
+      const registration = { project_id: projectId, base_revision_id: rev(), idempotency_key: "direct-work",
+        work, on_success: target, production_run_id: run.id, visual_treatment_ids: [treatment.id],
+        visual_author_assignment_id: "authors", ...(failed ? { supersedes_job_id: failed.id } : {}) };
+      const response = await mcpClient.callTool({ name: "register_motion_work", arguments: registration });
+      assert.notEqual(response.isError, true, JSON.stringify(response.content));
+      const jobId = JSON.parse((response.content as Array<{ text: string }>)[0]!.text).id;
+      if (scenario === "direct") {
+        const rendered = await runMotionJob(app, app.trackJob(jobId));
+        app.updateJob(jobId, { status: "succeeded", result: rendered });
+      } else app.completeSourceMotionWork(projectId, jobId);
+      const registered = app.readProject(projectId).snapshot.motionWorks![0]!;
+      const retry = await mcpClient.callTool({ name: "register_motion_work", arguments: registration });
+      assert.notEqual(retry.isError, true, JSON.stringify(retry.content));
+      assert.equal(JSON.parse((retry.content as Array<{ text: string }>)[0]!.text).id, jobId);
+      assert.equal(registered.productionOrigin?.assignmentId, "authors");
+      const status = await app.readProductionStatus(projectId, { runId: run.id });
+      assert.equal(status.production?.method, "visual_author");
+      assert.equal(status.production?.status, "ready", JSON.stringify(status.completion?.coordinationIssues));
+      assert.equal(status.production?.visualAuthorReview, "pending");
+      assert.equal(status.work.commissions?.length, failed ? 1 : 0);
+      if (scenario === "direct") {
+        const bake = app.submitMotionBake({ projectId, baseRevision: rev(), idempotencyKey: "bake-direct",
+          workId: registered.id, definitionHash: registered.definitionHash, outputIntent: "asset" });
+        const baked = await runMotionJob(app, bake);
+        app.updateJob(bake.id, { status: "succeeded", result: baked });
+        const preview = app.submitPreview({ projectId, revision: rev(), fromFrame: scene.startFrame, toFrame: scene.endFrame });
+        const rendered = await runPreviewJob(app, preview);
+        assert.equal(rendered.frameCount, workLength);
+        assert.match(String(rendered.sourceHash), /^[a-f0-9]{64}$/u);
+      }
+      const review = { projectId, baseRevision: rev(), workId: registered.id, definitionHash: registered.definitionHash,
+        productionRunId: run.id, assignmentId: "authors", outcome: "passed" as const,
+        note: "隔离测试声明：核验作品观察范围与视觉作者分派。",
+        evidence: { kind: "workbench" as const, observer: "/fixture/authors", startFrame: scene.startFrame, endFrame: scene.endFrame,
+          method: "continuous_video" as const } };
+      await assert.rejects(app.reviewSourceMotionWork({ ...review, evidence: { ...review.evidence, observer: "/fixture/creative" } }),
+        { code: "PRODUCTION_ASSIGNMENT_INVALID" });
+      await assert.rejects(app.reviewSourceMotionWork({ ...review, evidence: { ...review.evidence, method: "frames" } }),
+        { code: "MOTION_REVIEW_INCOMPLETE" });
+      await app.reviewSourceMotionWork(review);
+      assert.equal((await app.readProductionStatus(projectId, { runId: run.id })).production?.visualAuthorReview, "confirmed");
+      if (failed) {
+        assert.equal(app.trackJob(failed.id).status, "failed");
+        assert.ok(!status.completion?.completionBlockers.some(blocker => blocker.includes(failed.id)),
+          "接管已覆盖目标，旧委托只保留审计");
+      }
+      assert.equal(app.submitExport({ projectId, purpose: "delivery" }).kind, "export");
+      return;
+    }
     updateMaterials([]);
     const extraDelivery = await app.startMotionAuthoring({ ...request, baseRevision: rev(), idempotencyKey: "extra-delivery" });
     assert.ok(extraDelivery.id, "交付中包含其他资料时仍可开始制作");

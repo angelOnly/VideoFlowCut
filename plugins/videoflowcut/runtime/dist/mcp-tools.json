@@ -8891,6 +8891,26 @@
             ],
             "additionalProperties": false
           },
+          "production_run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "visual_author_assignment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "visual_treatment_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1
+          },
+          "supersedes_job_id": {
+            "type": "string",
+            "minLength": 1
+          },
           "frozen_work": {
             "type": "object",
             "properties": {
@@ -9250,6 +9270,14 @@
           },
           "work_id": {
             "type": "string"
+          },
+          "production_run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "visual_author_assignment_id": {
+            "type": "string",
+            "minLength": 1
           },
           "definition_hash": {
             "type": "string",
@@ -12135,6 +12163,10 @@
           },
           "delivery_review_required": {
             "type": "boolean"
+          },
+          "delivery_production_run_id": {
+            "type": "string",
+            "minLength": 1
           }
         },
         "required": [

@@ -1957,11 +1957,6 @@ export async function evaluateQualityWithBrowser(snapshot: ProjectSnapshot, revi
   return evaluateQuality(snapshot, revision, editorialReview, new Map(captions.map((caption, index) => [caption.id, measured[index]!])), reviews);
 }
 
-/** 兼容旧调用方：文件导出不再依赖辅助审阅，人工定稿绑定具体 Artifact。 */
-export function requiresEditorialReview(_report: QualityReport, _purpose: ExportPurpose): boolean {
-  return false;
-}
-
 export function canExport(report: QualityReport, purpose: ExportPurpose = "delivery"): boolean {
   return exportBlockingIssues(report, purpose).length === 0;
 }

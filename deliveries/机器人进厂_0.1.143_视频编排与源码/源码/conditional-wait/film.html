@@ -1,0 +1,178 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>后空翻之后</title><style>
+*{box-sizing:border-box}
+html,body{margin:0;background:#102a2c}
+#film{position:relative;isolation:isolate;width:1920px;height:1080px;overflow:hidden;background:#102a2c;color:#f4eddc;font-family:var(--vfc-font-body),sans-serif}
+.shot{position:absolute;display:none;overflow:hidden;background:#102a2c}
+.shot img{position:absolute;width:100%;height:100%;object-fit:cover}
+.shot.trim img{width:124%;height:124%;left:-12%;top:0}
+.shot.hand img{width:139%;height:139%;left:-30%;top:-5%}
+.shot.paper{outline:3px solid #90f0d3}
+.layer{position:absolute;display:none;pointer-events:none}
+#shade{inset:0;background:linear-gradient(90deg,rgba(14,35,37,.93),rgba(14,35,37,.45) 39%,transparent 73%)}
+#bracket{outline:3px solid #90f0d3;outline-offset:8px;box-shadow:0 0 0 1px #102a2c}
+#route{height:4px;background:#90f0d3;transform-origin:left top}
+#plain{font-weight:700;font-size:53px;line-height:1.2;border-left:5px solid #90f0d3;padding:13px 23px;background:#102a2ce8;white-space:pre}
+#metric{width:470px}
+#metric p{font-size:35px;line-height:1.35;margin:0 0 14px}
+#number{font-family:var(--vfc-font-display),sans-serif;font-size:154px;color:#90f0d3;line-height:1.06;letter-spacing:-8px;white-space:nowrap}
+#qualifier{margin-top:24px;font-size:31px;line-height:1.4}
+#ticks{display:grid;grid-template-columns:repeat(10,18px);gap:9px;margin-top:28px}
+#ticks i{width:18px;height:9px;background:#90f0d3;transform-origin:left}
+#branch{display:none;width:564px;font-size:41px;line-height:1.35}
+#branch div{border-left:4px solid #90f0d3;padding:14px 19px;margin:16px 0;background:#102a2cf2;white-space:pre}
+#branch div:nth-child(2){border-color:#f5bf80}
+#legal{display:none;position:absolute;bottom:126px;color:#f4eddc;background:#102a2c;font-size:26px;padding:8px 14px}
+</style></head><body><main id="film" data-composition-id="film" data-start="0" data-width="1920" data-height="1080" data-duration="112.4"><div id="shot-launch" class="shot "><img id="video-launch" data-vfc-video-slot="launch" alt=""></div>
+<div id="shot-land" class="shot "><img id="video-land" data-vfc-video-slot="land" alt=""></div>
+<div id="shot-rack" class="shot trim"><img id="video-rack" data-vfc-video-slot="rack" alt=""></div>
+<div id="shot-bin" class="shot "><img id="video-bin" data-vfc-video-slot="bin" alt=""></div>
+<div id="shot-reach" class="shot trim"><img id="video-reach" data-vfc-video-slot="reach" alt=""></div>
+<div id="shot-partmove" class="shot "><img id="video-partmove" data-vfc-video-slot="partmove" alt=""></div>
+<div id="shot-retarget" class="shot hand"><img id="video-retarget" data-vfc-video-slot="retarget" alt=""></div>
+<div id="shot-reseat" class="shot hand"><img id="video-reseat" data-vfc-video-slot="reseat" alt=""></div>
+<div id="shot-xyz" class="shot trim"><img id="video-xyz" data-vfc-video-slot="xyz" alt=""></div>
+<div id="shot-workcell" class="shot "><img id="video-workcell" data-vfc-video-slot="workcell" alt=""></div>
+<div id="shot-handoff" class="shot "><img id="video-handoff" data-vfc-video-slot="handoff" alt=""></div>
+<div id="shot-repeatOne" class="shot "><img id="video-repeatOne" data-vfc-video-slot="repeatOne" alt=""></div>
+<div id="shot-repeatTwo" class="shot "><img id="video-repeatTwo" data-vfc-video-slot="repeatTwo" alt=""></div>
+<div id="shot-repeatThree" class="shot "><img id="video-repeatThree" data-vfc-video-slot="repeatThree" alt=""></div>
+<div id="shot-self" class="shot hand"><img id="video-self" data-vfc-video-slot="self" alt=""></div>
+<div id="shot-conveyor" class="shot "><img id="video-conveyor" data-vfc-video-slot="conveyor" alt=""></div>
+<div id="shot-shift" class="shot trim"><img id="video-shift" data-vfc-video-slot="shift" alt=""></div>
+<div id="shot-line" class="shot "><img id="video-line" data-vfc-video-slot="line" alt=""></div>
+<div id="shot-arm" class="shot "><img id="video-arm" data-vfc-video-slot="arm" alt=""></div>
+<div id="shot-station" class="shot "><img id="video-station" data-vfc-video-slot="station" alt=""></div>
+<div id="shot-repeatArm" class="shot "><img id="video-repeatArm" data-vfc-video-slot="repeatArm" alt=""></div>
+<div id="shot-humanSpace" class="shot "><img id="video-humanSpace" data-vfc-video-slot="humanSpace" alt=""></div>
+<div id="shot-humanTool" class="shot "><img id="video-humanTool" data-vfc-video-slot="humanTool" alt=""></div>
+<div id="shot-humanMove" class="shot "><img id="video-humanMove" data-vfc-video-slot="humanMove" alt=""></div>
+<div id="shot-digitEntry" class="shot "><img id="video-digitEntry" data-vfc-video-slot="digitEntry" alt=""></div>
+<div id="shot-digitCarry" class="shot "><img id="video-digitCarry" data-vfc-video-slot="digitCarry" alt=""></div>
+<div id="shot-warehouse" class="shot "><img id="video-warehouse" data-vfc-video-slot="warehouse" alt=""></div>
+<div id="shot-digitPlace" class="shot "><img id="video-digitPlace" data-vfc-video-slot="digitPlace" alt=""></div>
+<div id="shot-digitExit" class="shot "><img id="video-digitExit" data-vfc-video-slot="digitExit" alt=""></div>
+<div id="shot-altFlip" class="shot "><img id="video-altFlip" data-vfc-video-slot="altFlip" alt=""></div>
+<div id="shot-again" class="shot "><img id="video-again" data-vfc-video-slot="again" alt=""></div>
+<div id="shot-handle" class="shot hand"><img id="video-handle" data-vfc-video-slot="handle" alt=""></div>
+<div id="shot-next" class="shot "><img id="video-next" data-vfc-video-slot="next" alt=""></div>
+<div id="shot-rackApproach" class="shot trim"><img id="video-rackApproach" data-vfc-video-slot="rackApproach" alt=""></div>
+<div id="shot-parallelTray" class="shot "><img id="video-parallelTray" data-vfc-video-slot="parallelTray" alt=""></div>
+<div id="shot-fixedToFlexible" class="shot "><img id="video-fixedToFlexible" data-vfc-video-slot="fixedToFlexible" alt=""></div>
+<div id="shot-backToGround" class="shot "><img id="video-backToGround" data-vfc-video-slot="backToGround" alt=""></div>
+<div id="shot-nextTote" class="shot "><img id="video-nextTote" data-vfc-video-slot="nextTote" alt=""></div>
+<div class="layer" id="shade"></div><div class="layer" id="route"></div><div class="layer" id="bracket"></div><div class="layer" id="plain"></div>
+<div class="layer" id="metric"><p id="topic"></p><div id="number"></div><div id="qualifier"></div><div id="ticks"></div></div>
+<div class="layer" id="branch"><div id="branchA"></div><div id="branchB"></div></div>
+<script>
+(() => {
+  const cuts = [{"name":"launch","start":0,"end":189,"crop":""},{"name":"land","start":189,"end":191,"crop":""},{"name":"rack","start":191,"end":251,"crop":"trim"},{"name":"bin","start":251,"end":322,"crop":""},{"name":"reach","start":322,"end":417,"crop":"trim"},{"name":"partmove","start":417,"end":503,"crop":""},{"name":"retarget","start":503,"end":595,"crop":"hand"},{"name":"reseat","start":595,"end":664,"crop":"hand"},{"name":"xyz","start":664,"end":805,"crop":"trim"},{"name":"workcell","start":805,"end":921,"crop":""},{"name":"handoff","start":921,"end":1051,"crop":""},{"name":"repeatOne","start":1051,"end":1151,"crop":""},{"name":"repeatTwo","start":1151,"end":1244,"crop":""},{"name":"repeatThree","start":1244,"end":1362,"crop":""},{"name":"self","start":1362,"end":1478,"crop":"hand"},{"name":"conveyor","start":1478,"end":1615,"crop":""},{"name":"shift","start":1615,"end":1721,"crop":"trim"},{"name":"line","start":1721,"end":1815,"crop":""},{"name":"arm","start":1815,"end":1889,"crop":""},{"name":"station","start":1889,"end":2056,"crop":""},{"name":"repeatArm","start":2056,"end":2192,"crop":""},{"name":"humanSpace","start":2192,"end":2295,"crop":""},{"name":"humanTool","start":2295,"end":2392,"crop":""},{"name":"humanMove","start":2392,"end":2515,"crop":""},{"name":"digitEntry","start":2515,"end":2597,"crop":""},{"name":"digitCarry","start":2597,"end":2732,"crop":""},{"name":"warehouse","start":2732,"end":2826,"crop":""},{"name":"digitPlace","start":2826,"end":2912,"crop":""},{"name":"digitExit","start":2912,"end":3017,"crop":""},{"name":"altFlip","start":3017,"end":3113,"crop":""},{"name":"again","start":3113,"end":3201,"crop":""},{"name":"handle","start":3201,"end":3344,"crop":"hand"},{"name":"next","start":3344,"end":3372,"crop":""}], extra = [{"name":"rackApproach","start":167,"end":251,"crop":"trim"},{"name":"parallelTray","start":461,"end":548,"crop":""},{"name":"fixedToFlexible","start":2131,"end":2247,"crop":""},{"name":"backToGround","start":2941,"end":3017,"crop":""},{"name":"nextTote","start":3268,"end":3344,"crop":""}], e = [0,76,191,322,417,664,921,1051,1244,1362,1615,1815,1889,2192,2515,2732,2993,3113,3372], fps = 30;
+  const $ = id => document.getElementById(id);
+  const items = [...cuts,...extra].map(s => ({ ...s, node: $("shot-" + s.name) }));
+  const layers = [...document.querySelectorAll(".layer")];
+  const ticks = Array.from({length:100}, () => document.createElement("i"));
+  $("ticks").append(...ticks);
+  const clock = { f:0 };
+  const full = [0,0,1920,1080];
+  const left = [72,172,1110,624];
+  const right = [638,122,1200,675];
+  const step = (a,b,x) => Math.max(0,Math.min(1,(x-a)/Math.max(1,b-a)));
+  const ease = x => x*x*(3-2*x);
+  const blend = (a,b,t) => a.map((v,i) => v+(b[i]-v)*t);
+  const box = (node,[x,y,w,h],z,alpha=1) => {
+    Object.assign(node.style,{display:"block",left:x+"px",top:y+"px",width:w+"px",height:h?h+"px":"auto",zIndex:z,opacity:alpha});
+  };
+  const words = (letter,x,y,alpha=1) => {
+    const node = $("plain"); node.textContent = letter; box(node,[x,y,0,0],12,alpha);
+    node.style.width = "max-content";
+  };
+  const line = (x,y,w,f) => box($("route"),[x,y,w*f,4],9);
+  const axis = (x,y,w,h,alpha) => box($("bracket"),[x,y,w,h],8,alpha);
+  const metric = (x,y,topic,amount,qualifier,filled,alpha=1) => {
+    $("topic").textContent = topic; $("number").textContent = amount; $("qualifier").textContent = qualifier;
+    box($("metric"),[x,y,490,0],10,alpha);
+    $("ticks").style.display = filled === null ? "none" : "grid";
+    if (filled !== null) ticks.forEach((node,i) => { node.style.opacity = i<filled ? ".95" : ".18"; });
+  };
+  const update = () => {
+    const f = Math.min(e.at(-1)-1,Math.max(0,Math.round(clock.f)));
+    const p = e.findIndex(x => x>f);
+    const rel = step(e[p-1],e[p],f);
+    const shot = items.find(s => s.start<=f && f<s.end);
+    items.forEach(s => { s.node.style.display = "none"; });
+    layers.forEach(node => { node.style.display = "none"; });
+    const at = (paragraph, fraction=0) => e[paragraph-1] + (e[paragraph]-e[paragraph-1])*fraction;
+    let viewport=full;
+    if (p===5) viewport=blend(full,left,ease(step(.18,.37,rel)));
+    if (p===7) viewport=blend(full,left,ease(step(.46,.94,rel)));
+    if (p===8 || p===9 || p===10) viewport=left;
+    if (p===9 && rel<.56) viewport=blend(left,[72,108,1110,624],ease(step(.06,.53,rel)));
+    if (p===9 && rel>=.56) viewport=blend([72,108,1110,624],left,ease(step(.56,.92,rel)));
+    if (p===11) viewport=blend(left,full,ease(step(.56,.98,rel)));
+    if (p===13) viewport=blend(full,right,ease(step(.14,.31,rel))*(1-ease(step(.82,.99,rel))));
+    if (p===15 || p===16) viewport=full;
+
+    box(shot.node,viewport,1);
+    shot.node.classList.toggle("paper",viewport[0]>8);
+    const insets = {
+      rackApproach: [[1040,688,580,326],full,at(2,.89),at(3,.26)],
+      parallelTray: [[1207,497,590,331],[1237,512,485,273],at(5,.23),at(5,.50)],
+      fixedToFlexible: [[91,620,487,274],full,at(13,.90),at(14,.14)],
+      backToGround: [[1180,603,589,331],full,at(16,.92),at(17,.20)],
+      nextTote: [[1245,591,588,331],full,at(18,.65),at(18,.89)]
+    };
+    for (const inset of items.slice(cuts.length)) {
+      if (inset.start>f || f>=inset.end) continue;
+      const [a,b,s,t] = insets[inset.name];
+      const t0 = ease(step(s,t,f));
+      const fade = inset.name === "parallelTray" ? 1-ease(step(at(5,.46),at(5,.53),f)) : 1;
+      box(inset.node,blend(a,b,t0),4,fade*ease(step(inset.start,inset.start+8,f)));
+      inset.node.classList.toggle("paper",t0<.96);
+    }
+    if (p===2 && rel>.65) line(1067,844,327,ease(step(.65,.95,rel)));
+    if (p===3 && rel<.34) line(610,729,443,1-ease(step(.17,.34,rel)));
+    if (p===4 && rel>.57) axis(935,378,425,303,ease(step(.57,.72,rel)));
+    if (p===5 && rel>=.29) {
+      if (rel<.48) words("看见变位",1237,335,ease(step(.29,.38,rel)));
+      else if (rel<.73) words("重新找准",1237,335);
+      else words("再次对位",1237,335);
+      line(1237,461,412,ease(step(.33,.91,rel)));
+    }
+    if (p===7 && rel>.72) line(1232,547,120,ease(step(.72,.98,rel)));
+    if (p===8) metric(1232,251,"假设每次成功率","99%","且各次结果互不影响",null,ease(step(0,1,rel/.16)));
+    if (p===9) {
+      const count = Math.min(100,Math.floor(ease(step(.04,.54,rel))*100));
+      if (rel<.56) metric(1232,228,"连续操作",String(count)+" 次","求全部成功的概率",count);
+      else metric(1232,228,"100 次全部成功","≈37%","0.99¹⁰⁰ ≈ 36.6% · 各次独立",null);
+    }
+    if (p===10) {
+      const a=$("branchA"), b=$("branchB");
+      a.textContent="可自动恢复  →  继续"; b.textContent="需要人工  →  下游可能等待";
+      box($("branch"),[1223,303,610,0],12);
+      a.style.opacity=ease(step(0,1,(rel-.09)/.13));
+      b.style.opacity=ease(step(0,1,(rel-.42)/.20));
+      line(1184,390,37,ease(step(0,1,(rel-.09)/.14)));
+    }
+    if (p===11 && rel<.62) {
+      words(rel<.28?"持续工作":rel<.48?"处理异常":"减少人工介入",1222,350);
+    }
+    if (p===13 && rel>.28 && rel<.85) {
+      words(rel<.51?"来料位置固定":rel<.68?"接位固定":"动作可重复",83,353);
+      line(88,484,472,ease(step(.27,.79,rel)));
+    }
+    if (p===15 && rel>.37) {
+      box($("shade"),full,5,.94*ease(step(0,1,(rel-.37)/.12)));
+      metric(92,255,"Digit · 仓库搬运","10 万+","累计搬运料箱",null,ease(step(0,1,(rel-.46)/.18)));
+    }
+    if (p===17 && rel>.70) line(1020,848,331,ease(step(.70,.91,rel)));
+    if (p===18 && rel>.81) words("下一件",116,365,ease(step(0,1,(rel-.81)/.15)));
+  };
+  const timeline = gsap.timeline({paused:true});
+  timeline.to(clock,{f:e.at(-1),duration:e.at(-1)/fps,ease:"none",onUpdate:update},0);
+  window.__timelines = {film:timeline};
+  window.getVfcMotionEvents = () => [
+    {id:"first-touchdown",meaning:"空翻落地",startFrame:Math.round(fps*3.55)},
+    {id:"reliability-read",meaning:"连续成功概率显示",startFrame:Math.ceil(e[8]+.56*(e[9]-e[8]))}
+  ];
+  update();
+})();
+</script></main></body></html>

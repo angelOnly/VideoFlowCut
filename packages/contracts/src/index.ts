@@ -332,6 +332,8 @@ export interface MotionReviewEvidence extends MotionReviewEvidenceInput {
 
 /** 审阅独立于创作快照，按不可变作品版本和真实证据解释。 */
 export interface MotionWorkReview {
+  productionRunId?: Id;
+  assignmentId?: Id;
   workId?: Id;
   assetId?: Id;
   version: string;
@@ -1648,6 +1650,8 @@ export interface EditorialReviewFinding {
   frameRange?: { startFrame: number; endFrame: number };
   revision?: number;
   recordedAt?: string;
+  artifactId?: Id;
+  deliveryProductionRunId?: Id;
   /** 参考迁移问题沿同一观察、采用和作品范围续修。 */
   referenceReview?: ReferenceReviewRef;
   referenceEvidenceId?: Id;
@@ -1848,6 +1852,7 @@ export interface ArtifactReviewObservation {
 }
 
 export interface ProductionCompletionEvaluation {
+  deliveryReview?: "pending" | "confirmed" | "needs_revision";
   runId: Id;
   revision: number;
   completionScope: ProductionCompletionScope;
@@ -1970,6 +1975,7 @@ export interface SkillExecutionReport {
   completionBlockers: string[];
   /** 本次完整制作是否需要对指定的交付文件验收。 */
   deliveryReviewRequired?: boolean;
+  deliveryProductionRunId?: Id;
   deliveryArtifactId?: Id;
   deliveryArtifactHistory?: Id[];
   createdAt: string;
