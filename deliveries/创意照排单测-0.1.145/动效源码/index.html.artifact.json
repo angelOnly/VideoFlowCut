@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "motion-source/execution-authority/index.html",
+  "entry": "motion-source/execution-authority/index.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-11-26T14:56:04.157Z",
+  "updatedAt": "2026-11-26T14:56:04.157Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

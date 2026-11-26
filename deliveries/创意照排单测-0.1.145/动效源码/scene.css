@@ -1,0 +1,26 @@
+@font-face{font-family:'Scene YaHei';src:local('Microsoft YaHei Bold'),local('Microsoft YaHei');font-weight:700;font-display:swap}
+:root{--pale:#fff5dc;--amber:#ffe090;--lime:#e2e970;--red:#d86850;--window:#eee7d7}
+*{box-sizing:border-box}html,body{margin:0;background:#080b0d;color:#fff;overflow:hidden}[hidden]{display:none!important}
+#stage{position:relative;width:1920px;height:1080px}
+#main{width:1920px;height:1080px;position:relative;isolation:isolate;overflow:hidden;background:#10181d;font-family:'Scene YaHei',sans-serif;font-weight:700;transform-origin:top left}
+.plate{position:absolute;inset:0;overflow:hidden;visibility:hidden}#desk-layer{visibility:visible;isolation:isolate}
+.plate video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#paper-motion{position:absolute;inset:0}#desk{transform-origin:930px 390px}#code{transform-origin:49% 39%}
+#screen-fill{position:absolute;inset:0}
+#screen-core{position:absolute;top:0;left:960px;width:512px;height:1080px;overflow:hidden;transform:translateX(-50%)}
+#screen-core video{width:608px;max-width:none;left:50%;transform:translateX(-50%)}
+#question-bed{background:linear-gradient(#1b252b3d,#1b252b3d),url('assets/desk-bg.jpg') center/cover no-repeat}
+.copy{position:absolute;z-index:2;width:max-content;line-height:1.05;white-space:nowrap;visibility:hidden;letter-spacing:-.035em;text-shadow:0 2px 8px #0c1117b3}
+.pale{color:var(--pale)}.amber{color:var(--amber);-webkit-text-stroke:2px #322519;paint-order:stroke fill}.lime{color:var(--lime)}
+.stamp{color:var(--red);line-height:1.04;border:4px solid #cc5944;padding:0 9px 3px;box-shadow:inset 0 0 0 1px #442722,0 1px 2px #261313;letter-spacing:-.065em;-webkit-text-stroke:1px #713a30;text-shadow:none;background:repeating-linear-gradient(112deg,#ad543416 0 1px,transparent 1px 4px)}
+#stamp-job{left:104px;top:192px;font-size:89px;transform:rotate(-8deg)}#stamp-control{left:220px;top:358px;font-size:78px;transform:rotate(5deg)}
+#paper-first{left:1410px;top:394px;font-size:77px}#paper-last{left:1350px;top:508px;font-size:92px}
+#more{left:104px;top:114px;font-size:122px}#work{left:1516px;top:128px;font-size:122px}
+#delegate{left:635px;top:75px;font-size:68px}#ai{left:928px;top:56px;font-size:91px}#authority{left:1240px;top:374px;font-size:123px}
+#question{left:123px;top:218px;font-size:116px;color:#fff9ed}#cannot{left:123px;top:448px;font-size:112px}
+#unasked,#do-it{top:592px;font-size:111px;letter-spacing:0}#unasked{left:123px}#do-it{left:345px}
+#even{left:127px;top:800px;font-size:43px;color:#ded6bf;letter-spacing:0}
+.window{position:absolute;visibility:hidden;overflow:hidden;margin:0;width:352px;height:198px;border:3px solid var(--window);border-radius:5px;background:#101719;box-shadow:0 3px 9px #03060850}.window img{display:block;width:100%;height:100%;object-fit:cover}
+body.player #stage{position:absolute;top:0;left:50%;height:calc(100vh - 56px);width:100vw;transform:translateX(-50%);display:grid;place-items:center}
+body.player #main{position:absolute;top:calc((100vh - 56px)/2);left:50%;transform:translate(-50%,-50%) scale(var(--preview-scale,1));transform-origin:center}
+#transport{position:fixed;bottom:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:16px;padding:0 20px;background:#141b21;font:14px 'Scene YaHei',sans-serif}#transport button{border:1px solid #59636a;background:#e2e970;color:#141b21;border-radius:4px;padding:7px 12px;cursor:pointer}#transport input{flex:1;accent-color:#e2e970}#transport output{font-variant-numeric:tabular-nums;min-width:96px}
