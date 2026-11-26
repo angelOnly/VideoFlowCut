@@ -1,5 +1,5 @@
 import { motionWorkForCue } from "@videocut/contracts";
-import type { ProductionCompletionScope, EditorialQualityReview, EditorialReviewEvidence, EditorialReviewFinding, EditorialReviewPass, ProjectSnapshot, QualityReport, SkillExecutionReport, ProductionAssignment, ExportArtifact } from "@videocut/contracts";
+import type { ProductionCompletionScope, EditorialQualityReview, EditorialReviewEvidence, EditorialReviewFinding, EditorialReviewPass, ProjectSnapshot, QualityReport, SkillExecutionReport, ProductionAssignment, ExportArtifact, ReferenceReviewRef } from "@videocut/contracts";
 import { avatarBindingMatches, compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
 import { motionRootSpanOnTimeline } from "../../contracts/src/frame-rate.js";
 
@@ -41,6 +41,31 @@ export function missingReviewRanges(ranges: Array<{ startFrame: number; endFrame
   }
   if (cursor < endFrame) missing.push({ startFrame: cursor, endFrame });
   return missing;
+}
+
+export type VisualReferenceTarget = { identity: ReferenceReviewRef; targetRange: { startFrame: number; endFrame: number } };
+
+/** 对已采用映射逐项核对同版连续观察；后来的存疑或问题会撤销对应范围的通过。 */
+export function visualReferenceReviewCoverage(targets: VisualReferenceTarget[], review: EditorialQualityReview | undefined,
+  revision: number, evidenceIds?: ReadonlySet<string>, requireCurrentRevision = true) {
+  const same = (a: ReferenceReviewRef, b: ReferenceReviewRef) => a.productionRunId === b.productionRunId && a.decisionId === b.decisionId
+    && a.sceneId === b.sceneId && a.referenceKind === b.referenceKind && a.referenceId === b.referenceId
+    && a.sourceSha256 === b.sourceSha256 && a.targetRole === b.targetRole && a.startMs === b.startMs && a.endMs === b.endMs;
+  return targets.map(target => {
+    const events = (review?.evidenceRecords ?? []).flatMap(entry => {
+      if ((requireCurrentRevision ? entry.revision !== revision : entry.revision > revision) || evidenceIds && !evidenceIds.has(entry.id)
+        || !["preview", "workbench", "artifact"].includes(entry.source ?? "preview")
+        || entry.method !== "continuous_video" && entry.method !== "audiovisual") return [];
+      const reference = entry.referenceReviews?.find(item => same(item, target.identity));
+      if (!reference || !reference.originalRelation?.trim() || !reference.actualImplementation?.trim() || !reference.difference?.trim()) return [];
+      const parts = review?.applicableEvidence
+        ? review.applicableEvidence.filter(part => part.evidenceId === entry.id && part.targetRevision === revision) : [entry];
+      return parts.map(part => ({ ...part, outcome: reference.outcome, recordedAt: entry.recordedAt }));
+    }).sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+    const confirmed = events.flatMap((event, index) => event.outcome === "confirmed"
+      ? missingReviewRanges(events.slice(index + 1).filter(later => later.outcome !== "confirmed"), event.startFrame, event.endFrame) : []);
+    return { ...target, missingRanges: missingReviewRanges(confirmed, target.targetRange.startFrame, target.targetRange.endFrame) };
+  });
 }
 
 export function reviewCoverage(review: EditorialQualityReview | undefined, revision: number, duration: number): NonNullable<QualityReport["editorial"]["coverage"]> {

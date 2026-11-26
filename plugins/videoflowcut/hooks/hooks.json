@@ -1,0 +1,39 @@
+{
+  "description": "完整解说制作在当前 Codex 回合内持续接回结果。",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "enable_production_continuation$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"import(process.env.PLUGIN_ROOT + '/hooks/production-continuation.mjs')\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"import(process.env.PLUGIN_ROOT + '/hooks/production-continuation.mjs')\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Interrupt": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"import(process.env.PLUGIN_ROOT + '/hooks/production-continuation.mjs')\"",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -45,6 +45,41 @@ const sceneReferences = scene => Array.isArray(scene.references) ? scene.referen
 // 与 OD 项目文件接口使用相同的文件名规则，保证清单路径就是实际送达路径。
 const odSafePath = path => path.split('/').map(part => part.replace(/\s+/g,'-').replace(/[^\p{L}\p{N}._-]/gu,'_').replace(/^\.+/,'_') || 'file').join('/');
 
+/** 冻结及再次接回均检查同一演出合同；这里只验证结构，不代替观看。 */
+export function performanceErrors(unit, visualRoles) {
+  const errors=[], fail=message=>errors.push(`视觉单元 ${unit.id} ${message}`);
+  const present=value=>typeof value==='string' && !!value.trim();
+  const performance=unit.performance;
+  if (!performance || typeof performance!=='object' || Array.isArray(performance)) return [`视觉单元 ${unit.id} 缺少动态演出设计`];
+  const roles=new Set(visualRoles.map(item=>item.role));
+  if (!['continuous_motion','quiet_observation','direct_cut'].includes(performance.mode)) fail('缺少有效的演出方式');
+  if (!present(performance.openingState)) fail('缺少入口状态');
+  if (!present(performance.primaryRole) || !roles.has(performance.primaryRole)) fail('的主要主体未登记');
+  for (const [label,values] of [['保持对象',performance.retainedRoles],['响应对象',performance.respondingRoles]]) {
+    if (!Array.isArray(values) || values.some(role=>!present(role) || !roles.has(role))) fail(`${label}须对应已登记的视觉角色`);
+  }
+  if (performance.handoffRole !== undefined && (!present(performance.handoffRole) || !roles.has(performance.handoffRole))) fail('的接管对象未登记');
+  if (performance.handoffTo !== undefined && (!present(performance.handoffRole) || !present(performance.handoffTo?.unitId) || !present(performance.handoffTo?.role))) fail('的跨单元接力缺少本单元对象或接收目标');
+  if (performance.stages !== undefined && !Array.isArray(performance.stages)) fail('动态阶段须为列表');
+  const stages=Array.isArray(performance.stages) ? performance.stages : [];
+  for (const stage of stages) {
+    if (!stage || !['entry','anticipation','build','key_moment','result','settle','exit'].includes(stage.phase)
+      || !Number.isSafeInteger(stage.startFrame) || !Number.isSafeInteger(stage.endFrame)
+      || stage.startFrame < unit.startFrame || stage.endFrame > unit.endFrame || stage.endFrame <= stage.startFrame
+      || !present(stage.action) || !Array.isArray(stage.visibleRoles)
+      || stage.visibleRoles.some(role=>!present(role) || !roles.has(role))) fail('的动态阶段、帧段、动作或可见角色无效');
+  }
+  if (performance.mode==='continuous_motion') {
+    const required=['entry','build','result','exit'];
+    const starts=required.map(phase=>stages.find(stage=>stage?.phase===phase)?.startFrame);
+    if (starts.some(value=>!Number.isSafeInteger(value))) fail('的连续演出缺少入口、发展、结果或出口');
+    else if (starts.some((value,index)=>index>0 && value<starts[index-1])) fail('的连续演出阶段顺序无效');
+  }
+  if (performance.mode==='quiet_observation' && !present(performance.quietPurpose)) fail('的安静观察缺少观看目的');
+  if (performance.mode==='direct_cut' && !present(performance.transitionPurpose)) fail('的直接剪接缺少接续目的');
+  return errors;
+}
+
 /** 结构化场面是导演稿的可核对摘录；检查字段和角色，不判断创意质量。 */
 function visualPlanErrors(plan, visualRoles, briefText) {
   const errors=[], excerpts=[];
@@ -66,6 +101,15 @@ function visualPlanErrors(plan, visualRoles, briefText) {
   if (plan.units !== undefined && (!Array.isArray(plan.units)
     || plan.units.some(unit => unit?.mode !== 'full_reference' && unit?.mode !== 'local_mechanism'))) fail('视觉单元需要有效的采用方式');
   const roles=new Set(visualRoles.map(role=>role.role));
+  for (const unit of Array.isArray(plan.units) ? plan.units : []) {
+    for (const error of performanceErrors(unit,visualRoles)) fail(error);
+    if (unit.performance) {
+      text(unit.performance.openingState,'演出入口状态');
+      for (const stage of Array.isArray(unit.performance.stages) ? unit.performance.stages : []) text(stage?.action,'演出阶段动作');
+      if (unit.performance.mode==='quiet_observation') text(unit.performance.quietPurpose,'安静观察目的');
+      if (unit.performance.mode==='direct_cut') text(unit.performance.transitionPurpose,'剪接目的');
+    }
+  }
   const primary=list(plan.primaryRoles,'主要角色',true);
   if (primary.some(role=>!roles.has(role))) fail('视觉计划主要角色必须对应场面视觉角色');
   const composition=plan.composition ?? {};
@@ -116,9 +160,20 @@ function lockedAuthorRequestErrors(plan, sceneId, briefText) {
   const request = extractAuthorRequest(briefText, [sceneId]);
   if (!request) return ['缺少本场发给 OD 的完整请求'];
   const locked = plan.odBoundaries?.locked;
-  if (!Array.isArray(locked)) return [];
-  return locked.filter(item => typeof item === 'string' && !request.text.includes(normalizeAuthorRequest(item)))
+  const errors = (Array.isArray(locked) ? locked : []).filter(item => typeof item === 'string' && !request.text.includes(normalizeAuthorRequest(item)))
     .map(item => '发给 OD 的场面请求缺少锁定视觉关系，请交视觉作者确认：' + item);
+  // 结构化演出不仅存入清单，还必须进入制作作者实际收到的正文。
+  const excerpts = plan.units.flatMap(unit => {
+    const performance=unit?.performance;
+    if (!performance) return [];
+    return [performance.openingState, ...(Array.isArray(performance.stages) ? performance.stages.map(stage=>stage?.action) : []),
+      performance.mode==='quiet_observation' ? performance.quietPurpose : undefined,
+      performance.mode==='direct_cut' ? performance.transitionPurpose : undefined];
+  });
+  for (const value of new Set(excerpts.filter(item=>typeof item==='string' && item.trim()))) {
+    if (!request.text.includes(normalizeAuthorRequest(value))) errors.push('发给 OD 的场面请求缺少动态演出：' + value);
+  }
+  return errors;
 }
 
 /** 把场面里的角色和范围绑定到本次实际交付文件，不把候选或缺失素材标成可制作。 */

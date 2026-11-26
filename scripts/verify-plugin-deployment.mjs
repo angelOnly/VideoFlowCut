@@ -21,8 +21,8 @@ export function assertRuntimeReady(report, releaseId) {
     `OD 未就绪（${report.openDesign?.status ?? "无状态"}），实际 ${report.openDesign?.releaseId ?? "未知"}，期望 ${releaseId}`);
 }
 
-export function assertProductionSmoke(authoring, preview, projectId, switchedAt, releaseId) {
-  for (const [job, kind] of [[authoring, "motion_authoring"], [preview, "preview"]]) {
+export function assertProductionSmoke(authoring, bake, preview, renderRevision, projectId, switchedAt, releaseId) {
+  for (const [job, kind] of [[authoring, "motion_authoring"], [bake, "motion_generation"], [preview, "preview"]]) {
     assert.ok(job.kind === kind && job.projectId === projectId && job.status === "succeeded"
       && Date.parse(job.createdAt) >= switchedAt, `${kind} 缺少切换后验收项目的成功任务`);
   }
@@ -31,14 +31,17 @@ export function assertProductionSmoke(authoring, preview, projectId, switchedAt,
   assert.ok(stage?.status === "succeeded" && receipt?.runId && receipt.frozenVersion && receipt.workId
     && receipt.ranges?.length && !["rejected", "needs_reconfirmation"].includes(receipt.status),
   "OD 制作缺少已接回的冻结阶段作品");
-  assert.equal(preview.result?.revision, receipt.revision, "预览须使用已接回阶段作品的 Revision");
+  assert.ok(bake.payload?.fixedWorkId === receipt.workId && bake.payload?.fixedDefinitionHash === receipt.definitionHash
+    && bake.result?.workId === receipt.workId && bake.result?.assetId, "派生媒体须来自接回的冻结作品");
+  assert.ok(Number.isInteger(renderRevision) && renderRevision >= receipt.revision && preview.result?.revision === renderRevision,
+    "预览须使用已登记该作品媒体的 Revision");
   assert.equal(preview.result.releaseId, releaseId, "预览须由本次发行的渲染 Worker 生成");
-  assert.ok(Date.parse(preview.createdAt) >= Date.parse(authoring.updatedAt)
+  assert.ok(Date.parse(bake.createdAt) >= Date.parse(authoring.updatedAt) && Date.parse(preview.createdAt) >= Date.parse(bake.updatedAt)
     && preview.result?.sourceHash && receipt.ranges.some(range =>
       preview.result.fromFrame >= range.startFrame && preview.result.toFrame <= range.endFrame
       && preview.result.toFrame > preview.result.fromFrame), "预览须覆盖已接回作品中的实际帧");
   return { runId: receipt.runId, frozenVersion: receipt.frozenVersion, workId: receipt.workId,
-    revision: receipt.revision, authoringJobId: authoring.id, previewJobId: preview.id };
+    revision: renderRevision, authoringJobId: authoring.id, bakeJobId: bake.id, previewJobId: preview.id };
 }
 
 export async function callDeploymentTool(client, name, args = {}) {
@@ -82,8 +85,8 @@ export async function verifyDeploymentTools(client, name, installedRoot) {
   return { tools: available.size };
 }
 
-export async function verifyDeploymentPreview(authoring, preview, projectId, switchedAt, releaseId) {
-  const production = assertProductionSmoke(authoring, preview, projectId, switchedAt, releaseId);
+export async function verifyDeploymentPreview(authoring, bake, preview, renderRevision, projectId, switchedAt, releaseId) {
+  const production = assertProductionSmoke(authoring, bake, preview, renderRevision, projectId, switchedAt, releaseId);
   assert.ok(typeof preview.result.path === "string" && isAbsolute(preview.result.path), "预览缺少本机交付路径");
   const hash = createHash("sha256");
   for await (const bytes of createReadStream(preview.result.path)) hash.update(bytes);

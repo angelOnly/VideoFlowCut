@@ -255,6 +255,7 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     const material = snapshot.assets.find(asset => asset.id === f.assetId)!;
     const units = ["开场", "承接", "比较", "结尾"].map((title, i) => ({
       id: `unit-${i}`, title, startFrame: i * 6, endFrame: (i + 1) * 6,
+      performance: { mode: "quiet_observation" as const, openingState: "主体建立", primaryRole: "主体", retainedRoles: [], respondingRoles: [], quietPurpose: "观察主体" },
       mode: "full_reference" as const, creativeDecisionId: creative.id, creativeDraftId: "draft", handoffReceiptId: "receipt-" + i,
       restage: { resourceId: `restage-${i}`, sourceMs: i === 3 ? 2600 : 1000, projectFrame: i * 6 + 2 }
     }));
@@ -292,6 +293,12 @@ test("同一受管场面逐单元校验完整创意或主机制，局部借用�
     });
     const inspect = () => visualReferenceUnitCoverage({ report, snapshot, manifest, scene, delivered, designs: [design] });
     assert.deepEqual(inspect().map(unit => unit.issues), [[], [], [], []]);
+    delivered.visualPlan!.units![0]!.performance!.handoffRole = "主体";
+    delivered.visualPlan!.units![0]!.performance!.handoffTo = { unitId: "unit-1", role: "不存在的角色" };
+    assert.ok(inspect()[0]!.issues.some(issue => issue.code === "VISUAL_UNIT_HANDOFF_TARGET_PENDING"));
+    delivered.visualPlan!.units![0]!.performance!.handoffTo = { unitId: "unit-1", role: "主体" };
+    assert.deepEqual(inspect()[0]!.issues, []);
+    delete delivered.visualPlan!.units![0]!.performance!.handoffTo;
     const restageImage = manifest.files[1]!;
     restageImage.mimeType = "text/markdown";
     assert.ok(inspect()[0]?.issues.some(issue => issue.code === "VISUAL_UNIT_RESTAGE_MISSING"));

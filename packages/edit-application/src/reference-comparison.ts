@@ -96,6 +96,7 @@ export async function readReferenceDecision(app: EditingApplication, report: Ski
           ...asset, name: snapshot.assets.find(item => item.id === asset.assetId)?.name
         })),
         preserveRelation: mapping.preserveRelation, treatment: mapping.treatment,
+        performance: (plan?.units ?? []).find(unit => unit.id === mapping.unitId)?.performance,
         sequence: (plan?.sequence ?? []).filter(step => !mapping.unitId || step.unitId === mapping.unitId),
         locked: plan?.odBoundaries?.locked ?? [], adjustable: plan?.odBoundaries?.adjustable ?? [] }];
     }));

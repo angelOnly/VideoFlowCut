@@ -66,3 +66,9 @@ deliveries/机器人进厂_制作档案/** -text
 deliveries/机器人进厂_制作档案/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
 deliveries/机器人进厂_制作档案/**/*.wav filter=lfs diff=lfs merge=lfs -text
 deliveries/robot-factory-v125-R85-编排资料/参考原片/134/video.mp4 filter=lfs diff=lfs merge=lfs -text
+
+# 0.1.145 影片编排交付保留源码字节，媒体与字体使用 Git LFS。
+deliveries/机器人进厂_0.1.145_编排源码与素材_R187/** -text
+deliveries/机器人进厂_0.1.145_编排源码与素材_R187/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进厂_0.1.145_编排源码与素材_R187/**/*.wav filter=lfs diff=lfs merge=lfs -text
+deliveries/机器人进厂_0.1.145_编排源码与素材_R187/**/*.otf filter=lfs diff=lfs merge=lfs -text

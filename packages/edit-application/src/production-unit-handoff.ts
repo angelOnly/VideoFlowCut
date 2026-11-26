@@ -7,6 +7,7 @@ import { DomainError } from "@videocut/domain";
 import type { ProductionUnitHandoffInput } from "../../contracts/src/production-unit-handoff.js";
 import { missingReviewRanges } from "../../quality-system/src/editorial-review.js";
 import type { ReferenceManifest, ReferenceScene } from "./opendesign-reference-package.mjs";
+import { performanceErrors } from "./opendesign-reference-package.mjs";
 import { visualScopeSceneIds } from "./visual-design-revisions.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
@@ -237,6 +238,17 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
       [{ code, scope: { kind: "frames", startFrame: unit.startFrame, endFrame: unit.endFrame }, state: "pending", assignmentId,
         relatedDecisionIds: state.draft ? [state.draft.creativeDecisionId] : [],
         relatedObjectIds: [scene.id], message: `「${scene.title} / ${unit.title}」${message}`, nextAction }];
+    const performanceIssues = performanceErrors(unit, delivered.visualRoles ?? []);
+    if (performanceIssues.length) return issue("VISUAL_UNIT_PERFORMANCE_PENDING", performanceIssues.join("；"), "交视觉作者补齐本单元动态演出");
+    const handoffTo = unit.performance?.handoffTo;
+    if (handoffTo) {
+      const next = (manifest.scenes ?? []).flatMap(item => item.visualPlan?.units ?? [])
+        .find(item => item.id === handoffTo.unitId && item.startFrame === unit.endFrame && item !== unit);
+      if (!next?.performance || ![next.performance.primaryRole, ...(next.performance.retainedRoles ?? []),
+        ...(next.performance.respondingRoles ?? []), ...(next.performance.stages ?? []).flatMap(stage => stage.visibleRoles)].includes(handoffTo.role)) {
+        return issue("VISUAL_UNIT_HANDOFF_TARGET_PENDING", `接管对象 ${unit.performance?.handoffRole} 在相邻单元缺少接收角色 ${handoffTo.role}`, "补齐相邻单元的同版接续设计");
+      }
+    }
     if (state.status === "waiting_for_draft") return issue("VISUAL_UNIT_HANDOFF_DRAFT_REQUIRED",
       state.gap ?? "尚未收到正式本片正文", "续接该场创意作者提交实际本片正文");
     if (state.status === "returned") return issue("VISUAL_UNIT_HANDOFF_RETURNED",
@@ -266,11 +278,14 @@ export function unitHandoffDeliveryIssues(report: SkillExecutionReport, snapshot
         && (!comparison || file.localDecode === "verified" && (draft.mode === "full_reference"
           ? /^video\//u.test(file.mimeType ?? "") : /^(image|video)\//u.test(file.mimeType ?? ""))));
     const sequence = plan?.sequence?.filter(step => step.unitId === unit.id) ?? [];
-    const roleNames = new Set(sequence.flatMap(step => step.subjects ?? []));
+    const roleNames = new Set([...sequence.flatMap(step => step.subjects ?? []), unit.performance?.primaryRole,
+      ...(unit.performance?.retainedRoles ?? []), ...(unit.performance?.respondingRoles ?? []), unit.performance?.handoffRole,
+      ...(unit.performance?.stages ?? []).flatMap(stage => stage.visibleRoles)].filter((role): role is string => !!role));
     const usedRoles = delivered.visualRoles?.filter(role => roleNames.has(role.role)) ?? [];
     const sources = usedRoles.flatMap(role => role.assets);
     const assetsMatch = (draft.mode !== "full_reference"
-      || usedRoles.some(role => plan?.primaryRoles?.includes(role.role) && role.assets.length > 0))
+      || usedRoles.some(role => role.role === unit.performance?.primaryRole && plan?.primaryRoles?.includes(role.role)
+        && role.assets.some(asset => draft.assets.some(source => source.assetId === asset.assetId))))
       && draft.assets.every(asset => sources.some(source => source.assetId === asset.assetId
         && source.sourceHash === asset.sourceHash
         && (!asset.sourceRange || source.sourceRanges.some(range =>

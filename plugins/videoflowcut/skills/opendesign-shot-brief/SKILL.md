@@ -151,6 +151,7 @@ description: 将视觉作者确认的整片导演稿、实际素材、参考用�
 - `sequence`：按观看顺序填写每步的 `purpose`、`subjects`、`action`、`retainedElements`、`transition`。
 - `attentionPath`：写清观众视觉重心怎样变化。
 - `referenceMappings`：写明研究决定、参考身份、原片范围、目标角色、处理方法、保留关系和本片目标帧范围。
+- `visualPlan.units.performance`：按冻结稿交清入口、主体及保持响应、接管、项目帧内的演出阶段或观察、剪接目的；确有跨单元接力时标明接收单元和角色。演出正文同样进入实际制作请求。
 - `odBoundaries.locked`：填写必须兑现的主体、构图、素材关系、关键运动和场面结果。
 - `odBoundaries.adjustable`：填写 OD 可以深化的坐标、曲线、遮罩、局部时序和实现参数。
 - `odBoundaries.escalation`：填写必须返回视觉作者确认的主要关系变化。

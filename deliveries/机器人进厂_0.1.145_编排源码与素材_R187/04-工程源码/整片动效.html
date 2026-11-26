@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}
+*{box-sizing:border-box}
+#root{position:relative;width:1920px;height:1080px;overflow:hidden}
+#stage{position:absolute;left:0;top:0;width:1280px;height:720px;transform:scale(1.5);transform-origin:0 0;font-family:var(--vfc-font-title);font-weight:700;color:white}
+.scene{position:absolute;inset:0;background:#111722;overflow:hidden;opacity:0}
+.frame{position:absolute;overflow:hidden}
+.frame img,.full{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fullframe{left:0;top:0;width:1280px;height:720px}
+.text{position:absolute;opacity:0;white-space:nowrap}
+.tag{position:absolute;left:30px;top:40px;padding:10px 15px;background:#000b;font-size:34px;opacity:0}
+.panel{position:absolute;background:#243244}
+.outline{position:absolute;border:4px solid #96cbff}
+.yellow{position:absolute;background:#ffd76e}
+.blue{position:absolute;background:#96cbff}
+.white{color:#fff}.pale{color:#c2ddff}.gold{color:#ffdf8a}
+</style>
+</head>
+<body>
+<main id="root" data-composition-id="robot-work" data-start="0" data-width="1920" data-height="1080" data-duration="112.375">
+<div id="stage">
+<section id="s1" class="scene"><img id="flipopen" class="full" data-vfc-video-slot="flip_open"></section>
+<section id="s2" class="scene">
+  <div id="electrictag" class="tag" style="left:30px;top:40px;font-size:30px;z-index:10">液压 Atlas → 电动 Atlas</div>
+  <div id="taskvid" class="frame fullframe"><img id="taskimg" data-vfc-video-slot="atlas_task"></div>
+  <div id="taskdiag" class="text" style="left:790px;top:90px;width:450px;height:370px">
+    <div style="font-size:34px;margin-left:10px">假设任务：取件 → 安装</div>
+    <div class="panel" style="left:0;top:100px;width:450px;height:270px">
+      <div class="outline" style="left:40px;top:110px;width:130px;height:90px"></div>
+      <div class="outline" style="left:280px;top:60px;width:130px;height:145px"></div>
+      <div class="outline" style="left:305px;top:115px;width:78px;height:43px"></div>
+      <div id="taskpart" class="yellow" style="left:80px;top:125px;width:46px;height:32px"></div>
+      <div style="position:absolute;left:90px;top:220px;font-size:28px">箱</div>
+      <div style="position:absolute;left:290px;top:220px;font-size:28px">装配位</div>
+    </div>
+  </div>
+  <div id="humanvid" class="frame fullframe"><img id="humanimg" data-vfc-video-slot="human_compare"></div>
+  <div id="robotvid" class="frame" style="left:650px;top:191px;width:600px;height:337.5px;opacity:0"><img id="robotimg" data-vfc-video-slot="atlas_compare"></div>
+  <div id="humanlabel" class="text" style="left:30px;top:145px;font-size:29px">人手</div>
+  <div id="robotlabel" class="text" style="left:650px;top:145px;font-size:29px">机器人</div>
+  <div id="posdiag" class="text" style="left:860px;top:150px;width:360px;height:360px">
+    <div style="font-size:25.6px;margin-left:8px">如果物件位置变化</div>
+    <div class="pale" style="font-size:20.8px;margin:6.4px 0 0 8px">物件移位，夹具重新对准</div>
+    <div class="panel" style="left:0;top:84px;width:360px;height:240px">
+      <div id="pospart" class="yellow" style="left:61.6px;top:120px;width:36.8px;height:25.6px"></div>
+      <div id="clamp" style="position:absolute;left:20px;top:64px;width:120px;height:65.6px">
+        <div class="blue" style="left:0;top:0;width:120px;height:9.6px"></div>
+        <div id="fingerl" class="blue" style="left:8px;top:0;width:9.6px;height:56px"></div>
+        <div id="fingerr" class="blue" style="left:102.4px;top:0;width:9.6px;height:56px"></div>
+      </div>
+      <div style="position:absolute;left:70.4px;top:180px;font-size:21.6px">A</div>
+      <div style="position:absolute;left:238.4px;top:180px;font-size:21.6px">B</div>
+    </div>
+    <div id="steplabel" class="text" style="left:8px;top:340px;font-size:20px"><span id="stepfind" style="opacity:0">发现</span><span id="steplocate" style="opacity:0"> · 定位</span><span id="stepadjust" style="opacity:0"> · 调整</span><span id="stepregrab" style="opacity:0"> · 重抓</span></div>
+  </div>
+</section>
+<section id="s3" class="scene">
+ <div id="varvid" class="frame fullframe"><img id="varimg" data-vfc-video-slot="atlas_variation"></div>
+ <div id="varhead" class="text pale" style="left:860px;top:155px;font-size:32px">应对变化需要</div>
+ <div id="var1" class="text" style="left:860px;top:220px;font-size:38px">观察</div>
+ <div id="var2" class="text" style="left:860px;top:280px;font-size:38px">判断</div>
+ <div id="var3" class="text" style="left:860px;top:340px;font-size:38px">动手处理</div>
+ <div id="once" class="tag">成功一次，不等于立即托付工位</div>
+</section>
+<section id="s4" class="scene">
+ <div id="probvid" class="frame fullframe">
+   <img id="probarm" data-vfc-video-slot="prob_arm"><img id="probatlas" data-vfc-video-slot="prob_atlas">
+ </div>
+ <div id="prob1" class="text" style="left:800px;top:75px;font-size:34px">假设：单次成功 99%</div>
+ <div id="prob2" class="text" style="left:800px;top:120px;font-size:33px">每次结果互不影响</div>
+ <div id="formula" class="text pale" style="left:800px;top:175px;font-size:25px">前 n 次全部成功的概率 = 0.99ⁿ</div>
+ <div id="graphgroup" class="text" style="left:800px;top:220px;width:420px;height:260px">
+   <div style="font-size:27px">理论概率曲线</div>
+   <div style="position:absolute;left:0;top:31px;font-size:20px">100%</div>
+   <div style="position:absolute;left:15px;top:210px;font-size:20px">0%</div>
+   <svg id="graph" width="340" height="190" viewBox="0 0 340 190" style="position:absolute;left:55px;top:40px;overflow:visible">
+    <path d="M0 0V188H335" fill="none" stroke="#cbd5e1" stroke-opacity=".75" stroke-width="2"/>
+    <defs><clipPath id="graphclip"><rect id="curveclip" x="0" y="-4" width="0" height="198"/></clipPath></defs>
+    <path id="curve" d="" fill="none" stroke="#8ecbff" stroke-width="4" clip-path="url(#graphclip)"/>
+    <circle id="dot25" cx="84" cy="42" r="5" fill="#ffdf8a" opacity="0"/>
+    <circle id="dot50" cx="168" cy="74" r="5" fill="#ffdf8a" opacity="0"/>
+    <circle id="dot100" cx="335" cy="119" r="6" fill="#ffdf8a" opacity="0"/>
+    <path id="guide25" d="M84 46V217H45V227" fill="none" stroke="#ffdf8a" stroke-width="1" stroke-opacity=".6" opacity="0"/>
+    <path id="guide50" d="M168 78V217H264V227" fill="none" stroke="#ffdf8a" stroke-width="1" stroke-opacity=".6" opacity="0"/>
+    <path id="guide" d="M335 125V188" fill="none" stroke="#ffdf8a" stroke-width="2" stroke-opacity=".65" opacity="0"/>
+   </svg>
+   <div style="position:absolute;left:55px;top:238px;font-size:22px">0</div>
+   <div style="position:absolute;left:330px;top:238px;font-size:22px">100 次</div>
+ </div>
+ <div id="n25" class="text gold" style="left:800px;top:491px;font-size:20px">前25次全成功：77.8%</div>
+ <div id="n50" class="text gold" style="left:1020px;top:491px;font-size:20px">前50次全成功：60.5%</div>
+ <div id="n100" class="text gold" style="left:800px;top:503px;font-size:41px">100 次全成功约 37%</div>
+ <div id="resp0" class="text pale" style="left:800px;top:100px;font-size:31px">失误可能怎样处理？</div>
+ <div id="resp1" class="text" style="left:800px;top:180px;font-size:34px">有些可以自动恢复</div>
+ <div id="resp2" class="text" style="left:800px;top:245px;font-size:34px">有些需要人工处理</div>
+ <div id="resp3" class="text gold" style="left:800px;top:355px;font-size:30px">频繁介入，后续可能等待</div>
+</section>
+<section id="s5" class="scene">
+ <div id="stabilityvid" class="frame fullframe"><img id="pov" data-vfc-video-slot="atlas_pov"></div><img id="car" class="full" data-vfc-video-slot="factory"><img id="arm" class="full" data-vfc-video-slot="fixed_arm">
+ <div id="factoryhead" class="text pale" style="left:810px;top:66px;font-size:30px">工厂要考虑</div><div id="stable" class="text" style="left:810px;top:130px;font-size:31px">能否长时间稳定工作？</div><div id="issues" class="text" style="left:810px;top:200px;font-size:31px">出了问题能否处理？</div><div id="people" class="text" style="left:810px;top:270px;font-size:31px">是否经常需要有人值守？</div>
+ <div id="fixed" class="tag">固定工位</div><div id="flow" class="tag">流程围绕任务设计</div>
+</section>
+<section id="s6" class="scene">
+ <img id="digit1" class="full" data-vfc-video-slot="digit_opportunity">
+ <div id="handview" class="frame" style="left:840px;top:70px;width:352px;height:198px;opacity:0;border:3px solid #c2ddff"><img data-vfc-video-slot="digit_hand_detail" id="digitHand" style="left:-50%;top:-70%;right:auto;bottom:auto;width:200%;height:200%;object-fit:cover"></div>
+ <div id="legview" class="frame" style="left:880px;top:350px;width:320px;height:180px;opacity:0;border:3px solid #c2ddff"><img data-vfc-video-slot="digit_leg_detail" id="digitLeg" style="left:-50%;top:-78%;right:auto;bottom:auto;width:200%;height:200%;object-fit:cover"></div>
+ <div id="digitback" style="position:absolute;inset:0;background:#111722;opacity:0"></div>
+ <div id="wideview" class="frame" style="left:850px;top:70px;width:352px;height:198px;opacity:0;border:3px solid #c2ddff"><img data-vfc-video-slot="digit_wide_detail" id="digitWide"></div>
+ <div id="opportunitySummary" class="text" style="left:230px;top:575px;width:820px;text-align:center;font-size:30px">有机会利用为人设计的环境</div>
+</section>
+<section id="s7" class="scene">
+ <div id="digit7vid" class="frame fullframe"><img id="digit2" data-vfc-video-slot="digit_a"></div>
+ <img id="digit3" class="full" data-vfc-video-slot="digit_b">
+ <div id="stathead" class="text" style="left:55px;top:165px;font-size:36px">Digit 在这一设施的累计搬运量</div>
+ <div id="statnum" class="text gold" style="left:55px;top:245px;font-size:66px">超过 10 万箱</div>
+ <div id="statline" class="text yellow" style="left:55px;top:338px;width:350px;height:4px"></div>
+</section>
+<section id="s8" class="scene">
+ <img id="flipout" class="full" data-vfc-video-slot="flip_out">
+ <img id="atlasout" class="full" data-vfc-video-slot="atlas_out">
+ <img id="digitend" class="full" data-vfc-video-slot="digit_end">
+ <div id="recapgroup" style="position:absolute;inset:0;background:#111722;opacity:0">
+  <div id="recapflip" class="frame" style="left:20px;top:210px;width:400px;height:225px;opacity:0;border:2px solid #c2ddff"><img id="flipRecap" data-vfc-video-slot="flip_recap"></div>
+  <div id="recapatlas" class="frame" style="left:440px;top:210px;width:400px;height:225px;opacity:0;border:2px solid #c2ddff"><img id="atlasRecap" data-vfc-video-slot="atlas_recap"></div>
+  <div id="recapdigit" class="frame fullframe"><img id="digitRecap" data-vfc-video-slot="digit_recap"></div>
+  
+  <div id="recaplabels" class="text" style="left:20px;top:165px;width:1240px;font-size:26px">
+   <div style="position:absolute;left:0;width:400px;text-align:center">后空翻</div>
+   <div style="position:absolute;left:420px;width:400px;text-align:center">工位操作</div>
+   <div style="position:absolute;left:840px;width:400px;text-align:center">料箱搬运</div>
+  </div>
+ </div>
+ <img id="atlasend" class="full" data-vfc-video-slot="atlas_end">
+</section>
+</div>
+</main>
+<script>
+const fps=24, tl=gsap.timeline({paused:true});
+const at=(f)=>f/fps;
+const show=(selector,start,end)=>{tl.set(selector,{opacity:1},at(start));tl.set(selector,{opacity:0},at(end));};
+tl.to({}, {duration:112.375,ease:"none"}, 0);
+show("#s1",0,153);show("#s2",153,531);show("#s3",531,841);show("#s4",841,1292);
+show("#electrictag",153,200);
+show("#s5",1292,1754);show("#s6",1754,2012);show("#s7",2012,2394);show("#s8",2394,2697);
+tl.to("#taskvid",{left:30,top:152,width:740,height:416.25,duration:12/24,ease:"none"},at(189));
+tl.to("#taskvid",{left:0,top:0,width:1280,height:720,duration:19/24,ease:"none"},at(292));
+show("#taskdiag",201,292);
+tl.to("#taskpart",{x:241,y:-4.5,duration:1.4,ease:"none"},at(209));
+tl.to("#humanvid",{left:30,top:191,width:600,height:337.5,duration:12/24,ease:"none"},at(390));
+tl.to("#robotvid",{opacity:1,duration:8/24,ease:"none"},at(390));
+// 两份不同现场与条件图并列，标签保持各自身份。
+tl.to("#humanvid",{left:20,top:225,width:384,height:216,duration:17/24,ease:"none"},at(423));
+tl.to("#robotvid",{left:445,top:225,width:384,height:216,duration:17/24,ease:"none"},at(423));
+tl.to("#humanlabel",{left:20,top:175,duration:17/24,ease:"none"},at(423));
+tl.to("#robotlabel",{left:445,top:175,duration:17/24,ease:"none"},at(423));
+tl.to("#humanvid",{opacity:0,duration:8/24,ease:"none"},at(494));
+tl.to("#robotvid",{left:30,top:152,width:740,height:416.25,duration:12/24,ease:"none"},at(502));
+tl.to("#robotvid",{left:0,top:0,width:1280,height:720,duration:7/24,ease:"none"},at(524));
+show("#humanlabel",403,494);show("#robotlabel",403,494);show("#posdiag",440,524);show("#steplabel",453,524);
+show("#stepfind",453,524);show("#steplocate",467,524);show("#stepadjust",494,524);show("#stepregrab",511,524);
+tl.to("#pospart",{x:168,duration:17/24,ease:"none"},at(448));
+tl.to("#clamp",{x:168,duration:16/24,ease:"none"},at(466));
+tl.to("#fingerl",{x:24,duration:10/24,ease:"none"},at(482));
+tl.to("#fingerr",{x:-24,duration:10/24,ease:"none"},at(482));
+tl.to("#varvid",{left:30,top:135,width:800,height:450,duration:19/24,ease:"none"},at(620));
+tl.to("#varvid",{left:0,top:0,width:1280,height:720,duration:19/24,ease:"none"},at(752));
+show("#varhead",639,752);show("#var1",681,752);show("#var2",695,752);show("#var3",711,752);show("#once",766,837);
+tl.to("#probvid",{left:30,top:152,width:740,height:416.25,duration:18/24,ease:"none"},at(889));
+tl.to("#probvid",{left:0,top:0,width:1280,height:720,duration:24/24,ease:"none"},at(1268));
+show("#prob1",907,1093);show("#prob2",916,1093);show("#formula",949,1093);show("#graphgroup",968,1093);
+const points=[];for(let i=0;i<=100;i++){points.push((i?"L":"M")+(3.35*i).toFixed(2)+" "+(188*(1-Math.pow(.99,i))).toFixed(2));}
+const curve=document.getElementById("curve");curve.setAttribute("d",points.join(" "));
+// 按横轴裁剪曲线，使 25、50、100 次节点与标注同帧到达。
+tl.to("#curveclip",{attr:{width:335},duration:59/24,ease:"none"},at(968));
+show("#dot25",983,1093);show("#dot50",998,1093);show("#dot100",1027,1093);show("#guide",1027,1093);
+show("#guide25",983,1027);show("#guide50",998,1027);
+show("#n25",983,1027);show("#n50",998,1027);show("#n100",1027,1093);
+show("#resp0",1099,1268);show("#resp1",1105,1268);show("#resp2",1160,1268);show("#resp3",1205,1268);
+// 同一工作画面持续，三个考量依次出现并保留。
+tl.to("#stabilityvid",{left:30,top:152,width:740,height:416.25,duration:18/24,ease:"none"},at(1305));
+show("#factoryhead",1323,1448);show("#stable",1323,1448);show("#issues",1374,1448);show("#people",1410,1448);
+show("#fixed",1460,1647);show("#flow",1663,1749);
+// 三个窗口全部绑定同一段 Digit 源时钟，避免动作在画内回跳。
+tl.fromTo("#handview",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(1802));
+tl.to("#handview",{left:0,top:0,width:1280,height:720,borderWidth:0,duration:16/24,ease:"none"},at(1820));
+tl.fromTo("#legview",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(1856));
+tl.to("#legview",{left:0,top:0,width:1280,height:720,borderWidth:0,duration:16/24,ease:"none"},at(1870));
+tl.set("#handview",{opacity:0},at(1892));
+tl.fromTo("#wideview",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(1900));
+tl.to("#wideview",{left:0,top:0,width:1280,height:720,borderWidth:0,duration:16/24,ease:"none"},at(1914));
+tl.set("#legview",{opacity:0},at(1930));
+tl.to("#digitback",{opacity:1,duration:12/24,ease:"none"},at(1944));
+tl.to("#wideview",{left:230,top:90,width:820,height:461.25,borderWidth:3,duration:18/24,ease:"none"},at(1950));
+show("#opportunitySummary",1968,2012);
+// 原仓库画面保持播放，统计表述独立呈现并保留来源口径。
+tl.to("#digit7vid",{left:790,top:165,width:448,height:252,duration:18/24,ease:"none"},at(2137));
+tl.fromTo("#stathead",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(2153));
+tl.fromTo("#statnum",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(2158));
+tl.fromTo("#statline",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(2165));
+tl.set(["#stathead","#statnum","#statline"],{opacity:0},at(2221));
+// 回看三个已见过的真实动作；三处来源独立，不代表同一事故。
+show("#recapgroup",2575,2630);
+tl.to("#recapdigit",{left:860,top:210,width:400,height:225,duration:10/24,ease:"none"},at(2575));
+tl.fromTo("#recapflip",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(2577));
+tl.fromTo("#recapatlas",{opacity:0},{opacity:1,duration:8/24,ease:"none"},at(2577));
+show("#recaplabels",2585,2630);
+window.__timelines=window.__timelines||{};window.__timelines["robot-work"]=tl;
+</script>
+</body>
+</html>

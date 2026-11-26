@@ -84,6 +84,10 @@ export function motionJobRecovery(job: JobRecord): Data | undefined {
   const runs = Object.values(object(job.result?.externalRuns)).filter(entry => object(entry).status !== "succeeded")
     .map(entry => pick(entry, ["runId", "status", "workflowId", "schemaVersion", "attemptJobId"]));
   const code = object(job.result?.diagnostic).code;
+  if (code === "BRIDGE_RUN_TIMEOUT") return {
+    action: "reconcile", tool: "reconcile_media_job", job_id: job.id, project_id: job.projectId, runs,
+    message: "本地等待已超时，请读取原 Bridge Run；外部仍在运行时继续其他工作。"
+  };
   if (job.status === "unknown" || code === "EXTERNAL_RUN_OUTCOME_UNKNOWN") return {
     action: "reconcile", job_id: job.id, project_id: job.projectId, runs,
     message: "外部提交结果未知，先核对原 Job 与已知 Run；不能换幂等键或重新提交。"

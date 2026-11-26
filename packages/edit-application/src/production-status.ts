@@ -2,9 +2,10 @@ import type { MotionAuthoringInput } from "../../contracts/src/motion-authoring.
 import { motionMediaForCue, motionWorkForCue } from "@videocut/contracts";
 import type { EditingApplication } from "./index.js";
 import type { MotionContinuationResult, ProductionCompletionScope } from "@videocut/contracts";
-import { assignmentScopesOverlap, evaluateProductionCoordination } from "./production-coordination.js";
+import { assignmentScopesOverlap, evaluateProductionCoordination, requiresWholeFilmReferenceAdoption, wholeFilmProductionScenes } from "./production-coordination.js";
 import { readReferenceDecision, referenceComparisonsForRevision } from "./reference-comparison.js";
 import { readUnitHandoffs, requiresVisualReferenceUnits } from "./production-unit-handoff.js";
+import { productionProgress } from "./production-progress.js";
 
 export type ProductionStatusContext = { runId?: string; completionScope?: ProductionCompletionScope;
   referenceDecisionId?: string; referenceArtifactId?: string };
@@ -36,6 +37,17 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
   const hasIssue = (...codes: string[]) => issues.some(issue => codes.includes(issue.code));
   const coveragePending = hasIssue("MOTION_TARGET_MISSING", "MOTION_INPUT_STALE", "MOTION_COVERAGE_MISSING", "MOTION_COMMISSION_UNFINISHED");
   const method = directJobs.length ? "visual_author" : commissions.length ? "opendesign" : undefined;
+  const directWholeFilm = run?.intent === "full_creation" && run.completionScope.kind === "project" && state.snapshot.project.profile === "visual_explainer"
+    ? await app.readDirectWholeFilmPreparation(projectId, run.id) : undefined;
+  const unitHandoffs = run && scope && (fullReferenceUnits || draftedSceneIds.size)
+    ? readUnitHandoffs(run, state.snapshot, (requiresWholeFilmReferenceAdoption(run, state.snapshot)
+      ? wholeFilmProductionScenes(state.snapshot) : state.snapshot.scenes).filter(scene =>
+      (fullReferenceUnits || draftedSceneIds.has(scene.id)) && assignmentScopesOverlap(state.snapshot, scope, { kind: "objects", objectIds: [scene.id] }))) : undefined;
+  const progress = run && scope && completion && directWholeFilm ? productionProgress({
+    snapshot: state.snapshot, revision: state.revision.number, run, scope, completion,
+    preparationIssues: preparationIssues ?? [], directWholeFilm, unitHandoffs: unitHandoffs ?? [], jobs,
+    productionJobs: [...directJobs, ...commissions], coveragePending
+  }) : undefined;
   return {
     projectId, revision: state.revision.number, generatedAt: new Date().toISOString(),
     ...(comparison ? { referenceComparisons: comparison.referenceComparisons } : {}),
@@ -43,6 +55,7 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
     ...(comparison && "authorRequest" in comparison ? { authorRequest: comparison.authorRequest } : {}),
     ...(comparisonArtifact ? { referenceArtifact: { id: comparisonArtifact.id, revision: comparisonArtifact.revision } } : {}),
     ...(completion ? { completion } : {}),
+    ...(progress ? { progress } : {}),
     ...(fullReferenceUnits ? { production: {
       method,
       status: !coveragePending
@@ -52,12 +65,9 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
         : coveragePending || hasIssue("VISUAL_AUTHOR_REVIEW_PENDING") ? "pending" : "confirmed",
       deliveryReview: completion?.deliveryReview ?? "pending"
     } } : {}),
-    ...(preparationIssues && scope ? { preparation: { revision: state.revision.number, scope, ready: preparationIssues.length === 0, issues: preparationIssues } } : {}),
-    ...(run && scope && (fullReferenceUnits || draftedSceneIds.size) ? {
-      unitHandoffs: readUnitHandoffs(run, state.snapshot, state.snapshot.scenes.filter(scene =>
-        (fullReferenceUnits || draftedSceneIds.has(scene.id))
-        && assignmentScopesOverlap(state.snapshot, scope, { kind: "objects", objectIds: [scene.id] })))
-    } : {}),
+    ...(preparationIssues && scope ? { preparation: { revision: state.revision.number, scope, ready: preparationIssues.length === 0, issues: preparationIssues,
+      ...(directWholeFilm ? { directWholeFilm } : {}) } } : {}),
+    ...(unitHandoffs ? { unitHandoffs } : {}),
     ...(run ? { responsibilityOptions: run.assignments.flatMap(assignment => assignment.responsibilities
       .filter((responsibility): responsibility is "creative_research" | "motion_research" | "visual_design" =>
         ["creative_research", "motion_research", "visual_design"].includes(responsibility))
@@ -76,6 +86,8 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
           productionOrigin: work?.productionOrigin, authoringInputs: cue.authoringInputs,
           inputBundle: job?.payload.inputBundle ?? null };
       }),
+      direct: directJobs.map(job => ({ jobId: job.id, idempotencyKey: job.idempotencyKey.replace(/^motion:/u, ""), status: job.status,
+        manifestSha256: job.payload.directManifestSha256, continuation: job.result?.continuation, error: job.error })),
       pending: jobs.filter(job => ["motion_generation", "motion_adoption", "motion_authoring"].includes(job.kind) &&
         (["queued", "running", "failed", "unknown"].includes(job.status) || (job.result?.continuation as MotionContinuationResult | undefined)?.status === "needs_reconfirmation"
           || (job.kind === "motion_authoring" && (job.result?.authoring as { status?: string } | undefined)?.status === "incomplete")))
@@ -84,6 +96,13 @@ export async function readProductionStatus(app: EditingApplication, projectId: s
           authoringInputs: job.payload.authoringInputs, authoring: job.result?.authoring,
           inputBundle: job.payload.inputBundle ?? null, error: job.error, execution: job.result?.execution }))
     },
+    // 顶层辅助镜头可能遮住正式主视觉；保留实际镜头，交视觉作者判断保留或撤下。
+    cutawayOverlaps: state.snapshot.cutaways.filter(cutaway => cutaway.status === "ready").flatMap(cutaway =>
+      state.snapshot.effectCues.filter(cue => cue.sceneId === cutaway.hostSceneId && cue.type === "ManagedMotion" && cue.status === "ready"
+        && cue.startFrame < cutaway.endFrame && cue.endFrame > cutaway.startFrame).map(cue => ({
+          cutawayId: cutaway.id, hostSceneId: cutaway.hostSceneId, cueId: cue.id, mode: cutaway.mode,
+          startFrame: Math.max(cutaway.startFrame, cue.startFrame), endFrame: Math.min(cutaway.endFrame, cue.endFrame)
+        }))),
     files: {
       previews: jobs.filter(job => job.kind === "preview").map(job => ({ jobId: job.id, status: job.status,
         revision: job.payload.revision, fromFrame: job.payload.fromFrame, toFrame: job.payload.toFrame,

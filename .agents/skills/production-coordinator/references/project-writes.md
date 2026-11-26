@@ -10,7 +10,9 @@
 
 异步 Job 的依赖和后续动作按实时接口执行。OD 阶段制作由主任务通过 `start_motion_authoring` 预先委托明确目标，连接器核对依赖、自动登记及采用可用范围，沿[生产入口](../../opendesign-video-production/SKILL.md#调用与续接)接回固定版本；无需逐步搬运。独立作品生成仍可使用已明确目标的 `on_success`。主任务消费回执，通过工作台检查结果，只有需要文件时才明确提交预览。相关依赖变化交原负责人处理，不只替换版本号。互不依赖的研究、设计和生成继续并行。
 
-完整无真人口播解说首版在导演采用后使用 `target: { action: "whole_film" }`，提交当前 Revision、ProductionRun、全部已采用的视觉计划 ID、制作项目和稳定幂等键。正文从同一份整片交付清单读取。用原 Job 的 `wait_motion_authoring` 回执接回各场实际可用帧段，跨场反馈使用该冻结版连续覆盖的项目帧范围。
+整片直接制作先读取 `read_production_status` 的 `preparation.directWholeFilm`，按其缺口续接原负责人。以当前 Revision、Run、视觉作者分派、清单摘要、完整源码和稳定幂等键提交 `register_visual_author_motion_work` 的 `whole_film` 目标。通过 `track_job` 读取固定作品和各场接回结果；结果未知时按 Run 和幂等键读取原 Job。若返回采用冲突，保留固定作品和回执，将具体场面交回原作者核对，不换键盲目重提。
+
+完整无真人口播解说选择 OD 制作首版时，在导演采用后使用 `start_motion_authoring` 的 `target: { action: "whole_film" }`，提交当前 Revision、ProductionRun、全部已采用的视觉计划 ID、制作项目和稳定幂等键。正文从同一份整片交付清单读取。用原 Job 的 `wait_motion_authoring` 回执接回各场实际可用帧段，跨场反馈使用该冻结版连续覆盖的项目帧范围。
 
 写后读回对象与 ImpactReport，核对改变、重算、stale、冲突和需要重做的范围；不能只看 success。取得对应版本的真实预览或声音后回原作者，跨段影响交导演。作品生成、独立作品观察、合成观察和整片交付是不同结论；技术检查与实际观看不可互相替代。明确参数的局部修改只核对受影响范围，不重跑整片创意。
 
@@ -35,6 +37,16 @@
 只有确认平台或服务自身 Bug 导致无法继续，才调用 `report_editing_blocker`，沿已有同根因工单补充证据；工单独立存储，不写入视频快照或新建视频 Revision，报障不授权自动修复。向用户说明问题并取得授权后才开展平台修复，修复结果交用户审核，部署按用户已授权范围执行，不能通过另建或委派修复任务绕过。项目操作使用已发布 MCP 或工作台持久化控件，平台修复沿根 AGENTS.md 的授权边界执行。其他无依赖工作继续；ComfyUI 的状态检查和指定启动方式沿根 AGENTS.md 的已有授权执行。
 
 需要新版修复时，获授权的修复任务在隔离项目、目录、端口和队列中验证，发行物放在 `plugins/videoflowcut/runtime/dist/`，不手改已安装缓存；未验证构建不称为已部署。正式部署后，原剪辑任务重新连接 MCP，核对 `read_runtime_release` 的 Runtime/MCP releaseId、API 与 Worker 健康，再读当前 Project/Revision并调用 `acknowledge_repair_deployment`。旧会话不能确认新版。候选验证和部署细节见 `docs/development/motion-runtime.md`，剪辑任务不读取该开发流程代替正式工具。
+
+### 参考辅助分析等待超时
+
+收到 `BRIDGE_RUN_TIMEOUT` 时，用 `track_jobs` 读取原 Job 的实际尝试，再从 `track_job` 取得诊断和恢复回执。记录原 Job、已知 Bridge Run ID、受影响场面和需要补的证据。调用 `reconcile_media_job` 读取原参考分析的外部状态。
+
+- 返回 `waiting` 时保留原身份并继续其他工作。可从实际原片和试摆取得所需证据时，交原作者继续核对。
+- 返回 `resuming` 时跟踪返回的 `resumedJobId`，接回原运行结果并核对参考来源、分析范围和实际覆盖。重复对账沿同一个恢复子任务。
+- 返回 `failed` 时按原任务错误恢复或调整参考研究。返回 `unknown` 时恢复连接后继续对账原运行。
+
+辅助分析的等待记录对应具体场面和证据缺口。逐场接收使用实际取得的观察及对照文件。抽帧、解码检查和模型抽样各自按实际方法登记。
 
 ## 按这次操作查对应资料
 
@@ -78,7 +90,7 @@ ProductionRun与SkillExecutionReport记录实际工作过程，不参与动画�
 
 接收观察写出实际看了什么与该证据能证明什么。完整迁移以同一次变化的原片时刻和本片帧位为准。依赖持续、遮挡或交叠的判断附可连续复看的区间。
 
-按 read_production_status 的 unitHandoffs 读同版 draft.id、draft.path、采用方式及接收回执。将正文和实际对照文件通过 prepare_motion_handoff 的 references 下的 files 以及场面 resourceIds 随包交付。在 visualPlan.units 填 mode、creativeDecisionId、creativeDraftId、handoffReceiptId 和 restage。restage 关联同一证据资源和接收帧，接件均注明原片毫秒。`full_reference` 使用覆盖单元的 `primary`，其他已采用参考使用 `support` 并标具体帧段。sequence 的 unitId 及 subjects 对应制作步骤和所用素材。
+按 read_production_status 的 unitHandoffs 读同版 draft.id、draft.path、采用方式及接收回执。将正文和实际对照文件通过 prepare_motion_handoff 的 references 下的 files 以及场面 resourceIds 随包交付。在 visualPlan.units 填 mode、creativeDecisionId、creativeDraftId、handoffReceiptId、restage 和 performance。restage 关联同一证据资源和接收帧，接件均注明原片毫秒。`full_reference` 使用覆盖单元的 `primary`，其他已采用参考使用 `support` 并标具体帧段。sequence 的 unitId 及 subjects 对应制作步骤和所用素材。performance 的模式、角色、阶段和跨单元接收按[动态演出交接](../../_shared/SCENE_DESIGN_HANDOFF.md#动态演出与制作包)填写，并在制作请求正文保留实际演出；不完整时交回视觉作者。
 
 冻结前逐个核对画面角色、正式资源文件、视频源范围与对应的本片制作帧。检查完整参考的对照视频先呈现同状态、再呈现连续过程，接件 observation 记录两个部分的时间及源、目标位置。只看过的候选留在研究中。图形角色可以没有视频绑定，实际要出镜的素材角色要对应自己的可用源段。
 

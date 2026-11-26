@@ -7586,7 +7586,7 @@
     {
       "name": "prepare_motion_handoff",
       "title": "准备场面制作交付",
-      "description": "固定当前导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场，写入对应场面 odBoundaries.locked 原文。完整解说新片每个 visualPlan.units 使用 full_reference，关联原稿、接件回执及可解码的同状态和连续过程对照视频；primary 覆盖单元，其他采用以 support 定位。创意或动效来源按对应集合登记，原稿和对照由 references 与场面 resourceIds 随包交付。sequence.unitId 关联连续演出，researchLayers 关联研究。返回冻结清单、就绪场面请求或按场缺口。",
+      "description": "固定当前导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场，写入对应场面 odBoundaries.locked 原文。每个主要单元的 performance 写入口、主体、保持与响应及接管；连续运动写项目帧内的入口、发展、结果、出口，安静观察或直接剪接说明目的。完整解说新片使用 full_reference，关联原稿、接件回执和可解码的同状态及连续过程对照视频；primary 覆盖单元，其他采用以 support 定位。sequence.unitId 关联演出，researchLayers 关联研究；缺项按场返回待补。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -7917,6 +7917,112 @@
                           "handoffReceiptId": {
                             "type": "string",
                             "minLength": 1
+                          },
+                          "performance": {
+                            "type": "object",
+                            "properties": {
+                              "mode": {
+                                "type": "string",
+                                "enum": [
+                                  "continuous_motion",
+                                  "quiet_observation",
+                                  "direct_cut"
+                                ]
+                              },
+                              "openingState": {
+                                "type": "string"
+                              },
+                              "primaryRole": {
+                                "type": "string"
+                              },
+                              "retainedRoles": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "respondingRoles": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "handoffRole": {
+                                "type": "string"
+                              },
+                              "handoffTo": {
+                                "type": "object",
+                                "properties": {
+                                  "unitId": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  },
+                                  "role": {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                },
+                                "required": [
+                                  "unitId",
+                                  "role"
+                                ],
+                                "additionalProperties": false,
+                                "description": "确有跨单元接力时填写相邻单元和接收角色"
+                              },
+                              "stages": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "phase": {
+                                      "type": "string",
+                                      "enum": [
+                                        "entry",
+                                        "anticipation",
+                                        "build",
+                                        "key_moment",
+                                        "result",
+                                        "settle",
+                                        "exit"
+                                      ]
+                                    },
+                                    "startFrame": {
+                                      "type": "integer",
+                                      "minimum": 0
+                                    },
+                                    "endFrame": {
+                                      "type": "integer",
+                                      "exclusiveMinimum": 0
+                                    },
+                                    "action": {
+                                      "type": "string"
+                                    },
+                                    "visibleRoles": {
+                                      "type": "array",
+                                      "items": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  },
+                                  "required": [
+                                    "phase",
+                                    "startFrame",
+                                    "endFrame",
+                                    "action",
+                                    "visibleRoles"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              },
+                              "quietPurpose": {
+                                "type": "string"
+                              },
+                              "transitionPurpose": {
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": false,
+                            "description": "本单元的完整演出和观看关系；缺项保留待补"
                           },
                           "restage": {
                             "type": "object",
@@ -8891,26 +8997,6 @@
             ],
             "additionalProperties": false
           },
-          "production_run_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "visual_author_assignment_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "visual_treatment_ids": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "minLength": 1
-            },
-            "minItems": 1
-          },
-          "supersedes_job_id": {
-            "type": "string",
-            "minLength": 1
-          },
           "frozen_work": {
             "type": "object",
             "properties": {
@@ -9093,6 +9179,461 @@
         "required": [
           "base_revision_id",
           "idempotency_key"
+        ],
+        "additionalProperties": false,
+        "$schema": "http://json-schema.org/draft-07/schema#"
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "register_visual_author_motion_work",
+      "title": "登记视觉作者直接制作的作品",
+      "description": "按本次制作任务和已采用清单登记视觉作者源码。整片目标自动读取各场计划和时间线，一次接回；局部目标需明确视觉计划及采用范围。返回原任务，使用 track_job 跟踪结果。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "project_id": {
+            "type": "string"
+          },
+          "base_revision_id": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 160
+          },
+          "production_run_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "visual_author_assignment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "work": {
+            "type": "object",
+            "properties": {
+              "compositing": {
+                "type": "string",
+                "enum": [
+                  "opaque",
+                  "alpha"
+                ],
+                "description": "正式画面用途，省略时保留透明；opaque 要求输出不透明"
+              },
+              "renderedAssetId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "description": "采用已登记且像素身份一致的正式作品媒体"
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "source": {
+                "type": "string",
+                "minLength": 20,
+                "maxLength": 2000000,
+                "description": "完整 HyperFrames 单页 HTML，CSS 和 JS 内联，固定运行库由平台提供"
+              },
+              "props": {
+                "type": "object",
+                "additionalProperties": {},
+                "default": {},
+                "description": "作者输入，assets 与 fonts 由平台注入"
+              },
+              "imageBindings": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 150
+                },
+                "propertyNames": {
+                  "pattern": "^[a-z][a-z0-9_]{0,39}$"
+                },
+                "default": {},
+                "description": "图片槽名到已就绪项目素材 ID 的映射"
+              },
+              "width": {
+                "type": "integer",
+                "minimum": 64,
+                "maximum": 1920,
+                "description": "画布宽度，64 至 1920 的偶数"
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 64,
+                "maximum": 1920,
+                "description": "画布高度，64 至 1920 的偶数"
+              },
+              "fps": {
+                "type": "integer",
+                "minimum": 15,
+                "maximum": 60,
+                "description": "作品整数帧率"
+              },
+              "durationInFrames": {
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 9007199254740991,
+                "description": "作品根时钟的完整帧数；平台有界取帧并连续渲染，不按30秒、900帧或累计像素帧要求作者拆件。"
+              },
+              "reference": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "observation": {
+                    "type": "object",
+                    "properties": {
+                      "layout": {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 1800
+                      },
+                      "motion": {
+                        "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                      },
+                      "rhythm": {
+                        "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                      },
+                      "adaptation": {
+                        "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                      },
+                      "evidence": {
+                        "$ref": "#/properties/work/properties/reference/properties/observation/properties/layout"
+                      }
+                    },
+                    "required": [
+                      "layout",
+                      "motion",
+                      "rhythm",
+                      "adaptation",
+                      "evidence"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "url",
+                  "observation"
+                ],
+                "additionalProperties": false
+              },
+              "sourceDisplayScopeId": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 150,
+                "description": "已授权的来源说明范围，省略时使用项目范围"
+              },
+              "previousAssetId": {
+                "type": "string",
+                "maxLength": 150
+              },
+              "creativeBrief": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 6000,
+                "description": "新作品的创作说明，完整编排指令由交付文件承载"
+              },
+              "videoBindings": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "assetId": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 150
+                    },
+                    "sourceStartMs": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "sourceEndMs": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "startFrame": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "endFrame": {
+                      "type": "integer",
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "decodeScale": {
+                      "type": "number",
+                      "exclusiveMinimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "required": [
+                    "assetId",
+                    "sourceStartMs",
+                    "sourceEndMs",
+                    "startFrame",
+                    "endFrame"
+                  ],
+                  "additionalProperties": false
+                },
+                "propertyNames": {
+                  "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
+                },
+                "description": "视频槽绑定素材 ID、源毫秒范围和作品根帧范围，正常速度且静音"
+              },
+              "fontBindings": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{0,79}$"
+                },
+                "propertyNames": {
+                  "pattern": "^[a-z][A-Za-z0-9_]{0,39}$"
+                },
+                "description": "字体槽名到已登记 fontId 的映射，最多 8 槽"
+              }
+            },
+            "required": [
+              "name",
+              "source",
+              "width",
+              "height",
+              "fps",
+              "durationInFrames"
+            ],
+            "additionalProperties": false
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "whole_film"
+                  },
+                  "manifest_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "action",
+                  "manifest_sha256"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "const": "range"
+                  },
+                  "visual_treatment_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
+                  "on_success": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "action": {
+                            "type": "string",
+                            "const": "create_cue"
+                          },
+                          "audioPolicy": {
+                            "type": "string",
+                            "const": "rebind_unchanged_events"
+                          },
+                          "sceneId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "layer": {
+                            "type": "string",
+                            "enum": [
+                              "rear",
+                              "actor",
+                              "front",
+                              "fullscreen"
+                            ]
+                          },
+                          "startFrame": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "endFrame": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "sourceStartFrame": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "sourceEndFrame": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0
+                          },
+                          "visualComposition": {
+                            "type": "object",
+                            "properties": {
+                              "role": {
+                                "type": "string",
+                                "const": "primary"
+                              },
+                              "replacesActorItemIds": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string",
+                                  "minLength": 1
+                                }
+                              }
+                            },
+                            "required": [
+                              "role",
+                              "replacesActorItemIds"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "coveredNarrativeBeatIds": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "maxItems": 64
+                          },
+                          "note": {
+                            "type": "string"
+                          },
+                          "narrativePurpose": {
+                            "type": "string",
+                            "maxLength": 800
+                          },
+                          "audienceTask": {
+                            "type": "string",
+                            "maxLength": 800
+                          }
+                        },
+                        "required": [
+                          "action",
+                          "audioPolicy",
+                          "sceneId",
+                          "layer",
+                          "startFrame",
+                          "endFrame",
+                          "sourceStartFrame",
+                          "sourceEndFrame"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "cueId": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "audioPolicy": {
+                            "type": "string",
+                            "const": "rebind_unchanged_events"
+                          },
+                          "action": {
+                            "type": "string",
+                            "const": "replace_cue"
+                          }
+                        },
+                        "required": [
+                          "cueId",
+                          "audioPolicy",
+                          "action"
+                        ],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "cueId": {
+                            "$ref": "#/properties/target/anyOf/1/properties/on_success/anyOf/1/properties/cueId"
+                          },
+                          "audioPolicy": {
+                            "$ref": "#/properties/target/anyOf/1/properties/on_success/anyOf/1/properties/audioPolicy"
+                          },
+                          "action": {
+                            "type": "string",
+                            "const": "replace_range"
+                          },
+                          "targetRange": {
+                            "type": "object",
+                            "properties": {
+                              "startFrame": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "endFrame": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0
+                              }
+                            },
+                            "required": [
+                              "startFrame",
+                              "endFrame"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "required": [
+                          "cueId",
+                          "audioPolicy",
+                          "action",
+                          "targetRange"
+                        ],
+                        "additionalProperties": false
+                      }
+                    ]
+                  },
+                  "supersedes_job_id": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "action",
+                  "visual_treatment_ids",
+                  "on_success"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "base_revision_id",
+          "idempotency_key",
+          "production_run_id",
+          "visual_author_assignment_id",
+          "work",
+          "target"
         ],
         "additionalProperties": false,
         "$schema": "http://json-schema.org/draft-07/schema#"
@@ -12610,7 +13151,7 @@
     {
       "name": "record_creative_decision",
       "title": "记录创作判断",
-      "description": "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。完整新制创意研究登记三层覆盖，covered 填实际研究与本片迁移，not_applicable 说明原因。有未完成层次或阻断问题时登记 pending；researched 应在实际观察、迁移和必要试摆后登记。写入成功仅表示记录已保存。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
+      "description": "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。完整新制创意研究登记三层覆盖，covered 填实际研究与本片迁移，not_applicable 说明原因。有未完成层次或阻断问题时登记 pending；完整参考的 researched 须在连续观看原片、定位关键中途、用本片实料试演并确认必须保留的关系后登记。写入成功仅表示记录已保存。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -13650,7 +14191,7 @@
     {
       "name": "submit_export",
       "title": "提交导出",
-      "description": "固定目标 Revision，按 draft 或 delivery 用途提交导出。完整新制正式交付先核对同版冻结制作回件及项目覆盖，再执行技术预检、渲染和最终文件校验。制作完成状态由 complete_production_run 与 read_production_status 读取，用户对具体文件的认可单独记录。",
+      "description": "固定目标 Revision，按 draft 或 delivery 用途提交导出。完整新制正式交付先核对同版冻结制作回件、主要参考连续对照、整片声画观察和必修问题，再执行预检与渲染。最终文件的独立审片及用户认可在导出后分别记录。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -14263,7 +14804,7 @@
     {
       "name": "read_production_status",
       "title": "读取实际制作状态",
-      "description": "读取项目制作状态和审阅覆盖。audio.intentCoverage 按当前声音意图列出已明确留白、未上轨、需重绑和已上轨。用 run_id 与 reference_decision_id 读取视觉设计候选或导演采用的参考对照；用 reference_artifact_id 读取成片导出修订的参考对照。",
+      "description": "读取项目制作状态和审阅覆盖。完整解说新片的 preparation.directWholeFilm 给出整片直接制作缺口和当前采用清单；work.direct 可按原幂等键查回直接制作任务。audio.intentCoverage 按当前声音意图列出已明确留白、未上轨、需重绑和已上轨。用 run_id 与 reference_decision_id 读取视觉设计候选或导演采用的参考对照；用 reference_artifact_id 读取成片导出修订的参考对照。",
       "inputSchema": {
         "type": "object",
         "properties": {

@@ -2747,10 +2747,11 @@ server.registerTool("start_production_run", {
 
 server.registerTool("update_production_run", {
   title: "更新制作职责与范围",
-  description: "登记分派、接替、任务目标和逐单元交接。record_unit_handoff 的 submit_draft 原样冻结作者提交的本片正文与素材绑定，完整解说主单元使用 full_reference 并绑定实际原片观察，独立局部机制使用 local_mechanism。视觉作者为完整迁移登记同状态及连续过程视频对照，存在具体缺口时退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
+  description: "登记分派、接替、任务目标和逐单元交接。watch_job 将原 Job、实际范围、是否必需和回件后的动作关联到当前 Run；完成接回后用 unwatch_job 解除等待。record_unit_handoff 的 submit_draft 原样冻结作者提交的本片正文与素材绑定，完整解说主单元使用 full_reference 并绑定实际原片观察，独立局部机制使用 local_mechanism。视觉作者为完整迁移登记同状态及连续过程视频对照，存在具体缺口时退回。使用当前审计版本和稳定操作编号，回读 unitHandoffs。",
   inputSchema: {
     project_id: z.string().optional(), run_id: z.string().min(1), expected_audit_version: z.number().int().positive(), operation_id: productionOperationIdSchema,
-    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact", "record_unit_handoff"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
+    action: z.enum(["update_scope", "add_assignment", "replace_assignment", "select_delivery_artifact", "record_unit_handoff", "watch_job", "unwatch_job"]), completion_scope: productionCompletionScopeSchema.optional(), reason: z.string().optional(), artifact_id: z.string().min(1).optional(),
+    job_id: z.string().min(1).optional(), job_scope: productionCompletionScopeSchema.optional(), required: z.boolean().optional(), next_action: z.string().min(1).optional(), assignment_id: z.string().min(1).optional(),
     handoff: productionUnitHandoffSchema.optional(),
     assignment: z.object({ assignment_id: z.string().min(1), agent_id: z.string().min(1),
       responsibilities: z.array(z.enum(["director", "narration", "asset_sourcing", "creative_research", "visual_design", "motion_research", "review"])).min(1),
@@ -2772,6 +2773,15 @@ server.registerTool("update_production_run", {
       if (!input.handoff) throw new DomainError("请交回具体单元的本片正文或视觉接件结果", "PRODUCTION_UNIT_HANDOFF_INVALID");
       return asText(await application.updateProductionRun({ ...base, action: input.action, handoff: input.handoff }));
     }
+    if (input.action === "watch_job") {
+      if (!input.job_id || !input.job_scope || input.required === undefined || !input.next_action) throw new DomainError("等待任务需要 Job、范围、是否必需和回件后的动作", "PRODUCTION_WATCH_INVALID");
+      return asText(await application.updateProductionRun({ ...base, action: input.action, jobId: input.job_id,
+        scope: applicationCompletionScope(input.job_scope), required: input.required, nextAction: input.next_action, assignmentId: input.assignment_id }));
+    }
+    if (input.action === "unwatch_job") {
+      if (!input.job_id) throw new DomainError("请选择等待的任务", "PRODUCTION_WATCH_INVALID");
+      return asText(await application.updateProductionRun({ ...base, action: input.action, jobId: input.job_id }));
+    }
     if (!input.assignment) throw new DomainError("分派信息缺失", "PRODUCTION_ASSIGNMENT_INVALID");
     const assignment = input.assignment;
     return asText(await application.updateProductionRun({ ...base, action: input.action, assignment: { assignmentId: assignment.assignment_id,
@@ -2782,7 +2792,7 @@ server.registerTool("update_production_run", {
 
 server.registerTool("record_creative_decision", {
   title: "记录创作判断",
-  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。完整新制创意研究登记三层覆盖，covered 填实际研究与本片迁移，not_applicable 说明原因。有未完成层次或阻断问题时登记 pending；researched 应在实际观察、迁移和必要试摆后登记。写入成功仅表示记录已保存。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
+  description: "持久化作者判断、真实分派、输入版本和上游决定。observed_relation 写原片实见，decision 和 rationale 写选片用途和理由；主参考改为局部借用时，以新决定的 input_decision_ids 关联原决定并说明取舍。完整新制创意研究登记三层覆盖，covered 填实际研究与本片迁移，not_applicable 说明原因。有未完成层次或阻断问题时登记 pending；完整参考的 researched 须在连续观看原片、定位关键中途、用本片实料试演并确认必须保留的关系后登记。写入成功仅表示记录已保存。正式采用须引用固定交付及视觉设计。research_references.source_sha256 使用读卡结果顶层资料库指纹。记录后由主任务转交。完整解说新片正式采用覆盖全片的导演稿时，引用同版视觉设计和冻结清单。每个主要视觉单元都要有覆盖其帧段的完整主参考；实际采用的辅助机制、原片区间和保持关系映射到同一版研究决定。前期研究、局部接件和候选设计可按其实际范围登记。",
   inputSchema: {
     project_id: z.string().optional(),
     run_id: z.string().min(1),
@@ -3002,7 +3012,8 @@ server.registerTool("read_quality_report", {
     const projectId = projectIdFrom(project_id);
     const state = application.readProject(projectId);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
-    return asText(await evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews));
+    const quality = await evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews);
+    return asText(await application.addDeliveryQualityIssues(projectId, state.revision.number, quality, editorialReview));
   } catch (error) { return asError(error); }
 });
 
@@ -3062,10 +3073,11 @@ server.registerTool("inspect_composed_frames", {
 
 server.registerTool("submit_export", {
   title: "提交导出",
-  description: "固定目标 Revision，按 draft 或 delivery 用途提交导出。完整新制正式交付先核对同版冻结制作回件及项目覆盖，再执行技术预检、渲染和最终文件校验。制作完成状态由 complete_production_run 与 read_production_status 读取，用户对具体文件的认可单独记录。",
+  description: "固定目标 Revision，按 draft 或 delivery 用途提交导出。完整新制正式交付先核对同版冻结制作回件、主要参考连续对照、整片声画观察和必修问题，再执行预检与渲染。最终文件的独立审片及用户认可在导出后分别记录。",
   inputSchema: { project_id: z.string().optional(), revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotency_key: z.string().optional(), preflight_job_id: z.string().optional() }
 }, async ({ project_id, revision, purpose, idempotency_key, preflight_job_id }) => {
-  try { return asText(application.submitExport({ projectId: projectIdFrom(project_id), revision, purpose, idempotencyKey: idempotency_key, preflightJobId: preflight_job_id })); } catch (error) { return asError(error); }
+  try { const projectId = projectIdFrom(project_id); if ((purpose ?? "delivery") === "delivery") await application.assertDeliveryQuality(projectId, revision);
+    return asText(application.submitExport({ projectId, revision, purpose, idempotencyKey: idempotency_key, preflightJobId: preflight_job_id })); } catch (error) { return asError(error); }
 });
 
 server.registerTool("run_render_preflight", {
@@ -3159,7 +3171,7 @@ server.registerTool("read_job_diagnostics", {
 } catch (error) { return asError(error); } });
 
 server.registerTool("read_production_status", {
-  title: "读取实际制作状态", description: "读取项目制作状态和审阅覆盖。audio.intentCoverage 按当前声音意图列出已明确留白、未上轨、需重绑和已上轨。用 run_id 与 reference_decision_id 读取视觉设计候选或导演采用的参考对照；用 reference_artifact_id 读取成片导出修订的参考对照。",
+  title: "读取实际制作状态", description: "读取项目制作状态和审阅覆盖。完整解说新片的 progress 列出可推进事项和已登记的等待任务，preparation.directWholeFilm 给出整片直接制作缺口和当前采用清单；cutawayOverlaps 标出与受管主视觉重叠、需视觉作者判断的辅助镜头。work.direct 可按原幂等键查回直接制作任务。audio.intentCoverage 按当前声音意图列出已明确留白、未上轨、需重绑和已上轨。用 run_id 与 reference_decision_id 读取视觉设计候选或导演采用的参考对照；用 reference_artifact_id 读取成片导出修订的参考对照。",
   inputSchema: { project_id: z.string().optional(), run_id: z.string().min(1).optional(), completion_scope: productionCompletionScopeSchema.optional(),
     reference_decision_id: z.string().min(1).optional(), reference_artifact_id: z.string().min(1).optional() }, annotations: { readOnlyHint: true }
 }, async ({ project_id, run_id, completion_scope, reference_decision_id, reference_artifact_id }) => {
@@ -3169,6 +3181,25 @@ server.registerTool("read_production_status", {
     const context = { runId: run_id, completionScope: completion_scope ? applicationCompletionScope(completion_scope) : undefined,
       referenceDecisionId: reference_decision_id, referenceArtifactId: reference_artifact_id };
     return asText(await application.readProductionStatus(projectIdFrom(project_id), context));
+  } catch (error) { return asError(error); }
+});
+
+server.registerTool("enable_production_continuation", {
+  title: "启用完整成片的回合内续办",
+  description: "为当前明确要求交付的完整解说制作提供收尾检查。需要受信任的插件 Stop 钩子；程序终止或宿主重启后的自动唤醒尚未接入。",
+  inputSchema: { project_id: z.string().min(1), run_id: z.string().min(1) }
+}, async ({ project_id, run_id }) => {
+  try {
+    const report = await application.readSkillExecutionReport({ projectId: project_id, runId: run_id });
+    const project = application.readProject(project_id);
+    if (report.intent !== "full_creation" || report.completionScope.kind !== "project" || project.snapshot.project.profile !== "visual_explainer"
+      || !report.deliveryReviewRequired || ["completed", "abandoned"].includes(report.status)) {
+      throw new DomainError("回合内续办需要进行中的整片解说制作任务", "PRODUCTION_CONTINUATION_INVALID");
+    }
+    const origin = process.env.VIDEOFLOWCUT_RUNTIME_ORIGIN;
+    if (!origin) throw new DomainError("当前 MCP 没有已连接的 Runtime 地址", "PRODUCTION_CONTINUATION_RUNTIME_MISSING");
+    return asText({ projectId: project_id, runId: run_id, runtimeOrigin: origin, revision: project.revision.number,
+      message: "请确认插件钩子已受信任；当前机制覆盖本次回合，宿主重启后的自动唤醒尚未接入。" });
   } catch (error) { return asError(error); }
 });
 

@@ -37,6 +37,16 @@ const referenceMappingSchema = z.object({ referenceId: z.string().min(1).describ
   targetRole: z.string().min(1), treatment: z.string().min(1), preserveRelation: z.string().optional().describe("需要保留的原参考关系"),
   targetRange: z.object({ startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive() }).strict().optional()
     .describe("ready 场面的采用参考必填场面内成片半开帧范围；pending 场面可暂缺") }).strict().partial();
+const performanceSchema = z.object({
+  mode: z.enum(["continuous_motion", "quiet_observation", "direct_cut"]),
+  openingState: z.string(), primaryRole: z.string(), retainedRoles: z.array(z.string()), respondingRoles: z.array(z.string()),
+  handoffRole: z.string().optional(),
+  handoffTo: z.object({ unitId: z.string().trim().min(1), role: z.string().trim().min(1) }).strict().optional()
+    .describe("确有跨单元接力时填写相邻单元和接收角色"),
+  stages: z.array(z.object({ phase: z.enum(["entry", "anticipation", "build", "key_moment", "result", "settle", "exit"]),
+    startFrame: z.number().int().nonnegative(), endFrame: z.number().int().positive(), action: z.string(), visibleRoles: z.array(z.string()) }).strict()).optional(),
+  quietPurpose: z.string().optional(), transitionPurpose: z.string().optional()
+}).strict().partial().describe("本单元的完整演出和观看关系；缺项保留待补");
 const handoffSceneSchema = z.object({
   sceneId: z.string().min(1), status: z.enum(["ready", "pending"]),
   references: z.array(z.object({ kind: z.enum(["creative", "motion"]), id: z.string().min(1), sourceSha256: z.string().min(1),
@@ -54,6 +64,7 @@ const handoffSceneSchema = z.object({
       creativeDecisionId: z.string().trim().min(1).optional(),
       creativeDraftId: z.string().trim().min(1).optional(),
       handoffReceiptId: z.string().trim().min(1).optional(),
+      performance: performanceSchema.optional(),
       restage: z.object({ resourceId: z.string().trim().min(1), sourceMs: z.number().finite().nonnegative().optional(),
         projectFrame: z.number().int().nonnegative() }).strict().optional()
         .describe("本片对照证据，填写原片毫秒和本片帧；完整迁移使用同状态及连续过程视频")
@@ -94,7 +105,7 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   } catch (error) { return failure(error); } });
   server.registerTool("prepare_motion_handoff", {
     title: "准备场面制作交付",
-    description: "固定当前导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场，写入对应场面 odBoundaries.locked 原文。完整解说新片每个 visualPlan.units 使用 full_reference，关联原稿、接件回执及可解码的同状态和连续过程对照视频；primary 覆盖单元，其他采用以 support 定位。创意或动效来源按对应集合登记，原稿和对照由 references 与场面 resourceIds 随包交付。sequence.unitId 关联连续演出，researchLayers 关联研究。返回冻结清单、就绪场面请求或按场缺口。",
+    description: "固定当前导演稿、时间资料、真实素材和采用参考。导演稿「发给 OD 的完整请求」先写共用要求，再用三级标题「场面 <实际SceneID>」分场，写入对应场面 odBoundaries.locked 原文。每个主要单元的 performance 写入口、主体、保持与响应及接管；连续运动写项目帧内的入口、发展、结果、出口，安静观察或直接剪接说明目的。完整解说新片使用 full_reference，关联原稿、接件回执和可解码的同状态及连续过程对照视频；primary 覆盖单元，其他采用以 support 定位。sequence.unitId 关联演出，researchLayers 关联研究；缺项按场返回待补。",
     inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(),
       production_run_id: z.string().min(1).optional().describe("完整解说新片正式组包须提供当前 Run，逐单元核对视觉接件回执"),
       brief_path: z.string().min(1),
@@ -213,19 +224,31 @@ export function registerMotionTools(server: McpServer, application: EditingAppli
   server.registerTool("register_motion_work", {
     title: "登记固定动画源码作品",
     description: "校验并固定源码、资源、时钟和引擎，真实初始化取得事件，登记 workId；不捕帧、不编码、不创建视频素材。work 与 frozen_work 二选一。图片用 data-vfc-image-slot，视频用有稳定 id 的 data-vfc-video-slot；字体通过 fontBindings 固定发行原件，视频按完整作品根时钟静音执行。可提供已明确采用目标 on_success；采用冲突保留作品，读回冲突后重新确认。",
-    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160), work: motionSubmissionSchema.optional(), production_run_id: z.string().min(1).optional(), visual_author_assignment_id: z.string().min(1).optional(), visual_treatment_ids: z.array(z.string().min(1)).min(1).optional(), supersedes_job_id: z.string().min(1).optional(), frozen_work: z.object({ bundle_path: z.string().min(1), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict().optional(), on_success: motionOnSuccessSchema.optional() }
-  }, async ({ project_id, base_revision_id, idempotency_key, work, frozen_work, on_success, production_run_id, visual_author_assignment_id, visual_treatment_ids, supersedes_job_id }) => { try {
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160), work: motionSubmissionSchema.optional(), frozen_work: z.object({ bundle_path: z.string().min(1), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict().optional(), on_success: motionOnSuccessSchema.optional() }
+  }, async ({ project_id, base_revision_id, idempotency_key, work, frozen_work, on_success }) => { try {
     const id = projectIdFrom(project_id);
     if (Boolean(work) === Boolean(frozen_work)) throw new Error("work 与 frozen_work 必须且只能提供一个");
     const loaded = frozen_work ? await readFrozenMotionWork(application.readProject(id).snapshot.project.rootPath, frozen_work.bundle_path, frozen_work.manifest_sha256) : undefined;
     const registration = { projectId: id, baseRevision: base_revision_id, idempotencyKey: idempotency_key,
       work: loaded?.work ?? work!, inputBundle: loaded?.inputBundle, readyRanges: loaded?.readyRanges, onSuccess: on_success };
-    if (production_run_id || visual_author_assignment_id || visual_treatment_ids || supersedes_job_id) {
-      if (!production_run_id || !visual_author_assignment_id || !visual_treatment_ids) throw new Error("直接制作需要制作 Run、视觉作者分派和采用计划");
-      return result(motionJobReceipt(await application.registerVisualAuthorMotionWork({ ...registration, visualTreatmentIds: visual_treatment_ids,
-        productionOrigin: { method: "visual_author", runId: production_run_id, assignmentId: visual_author_assignment_id, supersedesJobId: supersedes_job_id } })));
-    }
     return result(motionJobReceipt(application.registerMotionWork(registration)));
+  } catch (error) { return failure(error); } });
+  server.registerTool("register_visual_author_motion_work", {
+    title: "登记视觉作者直接制作的作品",
+    description: "按本次制作任务和已采用清单登记视觉作者源码。整片目标自动读取各场计划和时间线，一次接回；局部目标需明确视觉计划及采用范围。返回原任务，使用 track_job 跟踪结果。",
+    inputSchema: { project_id: z.string().optional(), base_revision_id: z.number().int().positive(), idempotency_key: z.string().min(1).max(160),
+      production_run_id: z.string().min(1), visual_author_assignment_id: z.string().min(1), work: motionSubmissionSchema,
+      target: z.union([z.object({ action: z.literal("whole_film"), manifest_sha256: z.string().regex(/^[a-f0-9]{64}$/u) }).strict(),
+        z.object({ action: z.literal("range"), visual_treatment_ids: z.array(z.string().min(1)).min(1), on_success: motionOnSuccessSchema, supersedes_job_id: z.string().min(1).optional() }).strict()]) }
+  }, async ({ project_id, base_revision_id, idempotency_key, production_run_id, visual_author_assignment_id, work, target }) => { try {
+    const projectId = projectIdFrom(project_id);
+    const productionOrigin = { method: "visual_author" as const, runId: production_run_id, assignmentId: visual_author_assignment_id,
+      ...(target.action === "range" && target.supersedes_job_id ? { supersedesJobId: target.supersedes_job_id } : {}) };
+    const common = { projectId, baseRevision: base_revision_id, idempotencyKey: idempotency_key, work, productionOrigin };
+    const job = target.action === "whole_film"
+      ? await application.registerWholeFilmVisualAuthorMotionWork({ ...common, manifestSha256: target.manifest_sha256 })
+      : await application.registerVisualAuthorMotionWork({ ...common, visualTreatmentIds: target.visual_treatment_ids, onSuccess: target.on_success });
+    return result(motionJobReceipt(job));
   } catch (error) { return failure(error); } });
   server.registerTool("submit_motion_work", {
     title: "按固定作品生成媒体",

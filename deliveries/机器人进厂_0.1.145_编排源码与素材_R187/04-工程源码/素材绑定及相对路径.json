@@ -1,0 +1,199 @@
+{
+  "name": "机器人进厂整片试摆源码（待审）",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "durationInFrames": 2697,
+  "compositing": "opaque",
+  "fontBindings": {
+    "title": "noto-sans-sc-bold"
+  },
+  "imageBindings": {},
+  "videoBindings": {
+    "flip_open": {
+      "assetId": "asset_6f80cec9-d3ee-453d-8b40-87fdd0d43b84",
+      "sourceStartMs": 16500,
+      "sourceEndMs": 22875,
+      "startFrame": 0,
+      "endFrame": 153,
+      "localPath": "../06-素材视频/01-液压Atlas后空翻.mp4"
+    },
+    "atlas_task": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 283750,
+      "sourceEndMs": 291042,
+      "startFrame": 153,
+      "endFrame": 328,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "human_compare": {
+      "assetId": "asset_19d1af97-c3bf-40e9-b218-74d5354a3c89",
+      "sourceStartMs": 0,
+      "sourceEndMs": 7250,
+      "startFrame": 328,
+      "endFrame": 502,
+      "localPath": "../06-素材视频/06-人手取件.mp4"
+    },
+    "atlas_compare": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 277875,
+      "sourceEndMs": 283750,
+      "startFrame": 390,
+      "endFrame": 531,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "atlas_variation": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 175750,
+      "sourceEndMs": 188667,
+      "startFrame": 531,
+      "endFrame": 841,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "prob_arm": {
+      "assetId": "asset_4a324011-899e-45dd-90c9-8f8648fef2fd",
+      "sourceStartMs": 0,
+      "sourceEndMs": 5000,
+      "startFrame": 841,
+      "endFrame": 961,
+      "localPath": "../06-素材视频/05-固定机械臂.mp4"
+    },
+    "prob_atlas": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 273833,
+      "sourceEndMs": 287625,
+      "startFrame": 961,
+      "endFrame": 1292,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "atlas_pov": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 167250,
+      "sourceEndMs": 174083,
+      "startFrame": 1292,
+      "endFrame": 1456,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "factory": {
+      "assetId": "asset_a3432207-1e9e-442e-9c5c-89784937e14c",
+      "sourceStartMs": 0,
+      "sourceEndMs": 8375,
+      "startFrame": 1456,
+      "endFrame": 1657,
+      "localPath": "../06-素材视频/04-汽车工厂.mp4"
+    },
+    "fixed_arm": {
+      "assetId": "asset_4a324011-899e-45dd-90c9-8f8648fef2fd",
+      "sourceStartMs": 0,
+      "sourceEndMs": 4042,
+      "startFrame": 1657,
+      "endFrame": 1754,
+      "localPath": "../06-素材视频/05-固定机械臂.mp4"
+    },
+    "digit_opportunity": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 84000,
+      "sourceEndMs": 94750,
+      "startFrame": 1754,
+      "endFrame": 2012,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "digit_a": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 105500,
+      "sourceEndMs": 114208,
+      "startFrame": 2012,
+      "endFrame": 2221,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "digit_b": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 59000,
+      "sourceEndMs": 66208,
+      "startFrame": 2221,
+      "endFrame": 2394,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "flip_out": {
+      "assetId": "asset_6f80cec9-d3ee-453d-8b40-87fdd0d43b84",
+      "sourceStartMs": 19000,
+      "sourceEndMs": 23000,
+      "startFrame": 2394,
+      "endFrame": 2490,
+      "localPath": "../06-素材视频/01-液压Atlas后空翻.mp4"
+    },
+    "atlas_out": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 279000,
+      "sourceEndMs": 280875,
+      "startFrame": 2490,
+      "endFrame": 2535,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "digit_hand_detail": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 86000,
+      "sourceEndMs": 89750,
+      "startFrame": 1802,
+      "endFrame": 1892,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "digit_leg_detail": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 88250,
+      "sourceEndMs": 91333,
+      "startFrame": 1856,
+      "endFrame": 1930,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "digit_wide_detail": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 90083,
+      "sourceEndMs": 94750,
+      "startFrame": 1900,
+      "endFrame": 2012,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "digit_end": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 88208,
+      "sourceEndMs": 89875,
+      "startFrame": 2535,
+      "endFrame": 2575,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "flip_recap": {
+      "assetId": "asset_6f80cec9-d3ee-453d-8b40-87fdd0d43b84",
+      "sourceStartMs": 19000,
+      "sourceEndMs": 21292,
+      "startFrame": 2575,
+      "endFrame": 2630,
+      "localPath": "../06-素材视频/01-液压Atlas后空翻.mp4"
+    },
+    "atlas_recap": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 280875,
+      "sourceEndMs": 283167,
+      "startFrame": 2575,
+      "endFrame": 2630,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    },
+    "digit_recap": {
+      "assetId": "asset_fef268de-8d24-40f3-b44a-ff1574f4c57c",
+      "sourceStartMs": 89875,
+      "sourceEndMs": 92167,
+      "startFrame": 2575,
+      "endFrame": 2630,
+      "localPath": "../06-素材视频/02-Digit仓库.mp4"
+    },
+    "atlas_end": {
+      "assetId": "asset_1dbce460-6421-4b6d-9d8e-293b6da60448",
+      "sourceStartMs": 284833,
+      "sourceEndMs": 287625,
+      "startFrame": 2630,
+      "endFrame": 2697,
+      "localPath": "../06-素材视频/03-电动Atlas工位.mp4"
+    }
+  },
+  "creativeBrief": "以真实机器与工位为主体，取件为假设图示，概率为独立假设计算；八场草稿，待导演与参考连续对照，普通字幕与原旁白由外部时间线提供。"
+}

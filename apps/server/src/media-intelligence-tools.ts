@@ -4,6 +4,7 @@ import type { EditingApplication } from "@videocut/application";
 import { z } from "zod";
 import { analysisInputSchema, factSchema, regionSchema, searchQuerySchema, timeRangeSchema } from "../../../packages/media-intelligence/src/index.js";
 import { projectMotionJob } from "./motion-library-output.js";
+import { reconcileMediaJob } from "./reconcile-media-job.js";
 
 const inspectSchema = z.object({ assetId: z.string().min(1).optional(), candidateId: z.string().min(1).optional(), exportArtifactId: z.string().min(1).optional(), previewJobId: z.string().min(1).optional(), range: timeRangeSchema.optional(), region: regionSchema.optional(), offset: z.number().int().nonnegative().default(0), limit: z.number().int().min(1).max(100).default(40) }).strict();
 const correctionSchema = z.object({ observationId: z.string().min(1), facts: z.array(factSchema).max(100), unknowns: z.array(z.string().max(1000)).max(100), reason: z.string().trim().min(8).max(3000), author: z.string().trim().min(1).max(120), baseRevision: z.number().int().positive().optional() }).strict();
@@ -26,6 +27,9 @@ export function registerMediaIntelligenceTools(server: McpServer, app: EditingAp
   });
   server.registerTool("retry_media_job", { title: "恢复素材分析任务", description: "恢复明确失败或已取消的素材分析、检索或选音任务，保留外部运行检查点；已知 run ID 继续读取，未知提交不重放。", inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1) } }, async ({ project_id, job_id }) => {
     try { return result(projectMotionJob(app.intelligence.retry(projectIdFrom(project_id), job_id))); } catch (error) { return failure(error); }
+  });
+  server.registerTool("reconcile_media_job", { title: "对账参考分析超时", description: "读取等待超时的原参考分析及其 Bridge Run。原运行仍在排队或运行时保留原任务，成功后创建幂等恢复任务接回结果，明确失败时返回原因。", inputSchema: { project_id: z.string().optional(), job_id: z.string().min(1) } }, async ({ project_id, job_id }) => {
+    try { return result(await reconcileMediaJob(app, projectIdFrom(project_id), job_id)); } catch (error) { return failure(error); }
   });
 }
 

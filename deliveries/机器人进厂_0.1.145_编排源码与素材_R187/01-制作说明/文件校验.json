@@ -1,0 +1,44 @@
+{
+  "assets": [
+    {
+      "file": "06-素材视频/01-液压Atlas后空翻.mp4",
+      "sha256": "c3846e840f2ca859284547bb0233f83e0dd03c62097c8032b186ea7bf1f0b98b",
+      "matchesOriginal": true
+    },
+    {
+      "file": "06-素材视频/02-Digit仓库.mp4",
+      "sha256": "d740a1eeefa3e6b065e662b69f3c2209d4379b8dfe5d4060d079043d9cc001e3",
+      "matchesOriginal": true
+    },
+    {
+      "file": "06-素材视频/03-电动Atlas工位.mp4",
+      "sha256": "478f618538226e7f087bf72626cc7364038b9ac6bf3da4d670c124b598808a70",
+      "matchesOriginal": true
+    },
+    {
+      "file": "06-素材视频/04-汽车工厂.mp4",
+      "sha256": "773cba4e18d9bda0bdcb64175b732085e4ef2b7808adf40981566b887e58db0e",
+      "matchesOriginal": true
+    },
+    {
+      "file": "06-素材视频/05-固定机械臂.mp4",
+      "sha256": "e1f2a8684b7a05eb7150408935f68b45348c8909faa7804e39597b07f1478b36",
+      "matchesOriginal": true
+    },
+    {
+      "file": "06-素材视频/06-人手取件.mp4",
+      "sha256": "ce06f8246324f82ea8c39c2e0694adaec047fcc332f8ce0a74eef9f0d1e510ae",
+      "matchesOriginal": true
+    }
+  ],
+  "source": {
+    "path": "04-工程源码/整片动效.html",
+    "sha256": "edb66404b2f8853da24df2d3f3ec9339c84d2451f8064f121f5880478823446f",
+    "matchesOriginal": true
+  },
+  "video": {
+    "path": "05-成片与声音/机器人进厂-完整横屏解说.mp4",
+    "sha256": "835d6c384baa90e09f249f828dcbb27b5fc20747fc93cd9e0ae4d53b63123732",
+    "matchesOriginal": true
+  }
+}

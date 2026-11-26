@@ -420,6 +420,33 @@ test("问题跨 Run、Revision 保留，只有当前范围复核才能关闭且�
   } finally { await f.dispose(); }
 });
 
+test("完整新制的必修问题在新版本重新复查后关闭", async () => {
+  const f = await fixture();
+  try {
+    const run = await f.app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId: f.projectId,
+      baseRevision: f.base.revision, intent: "full_creation", completionScope: { kind: "project" }, loadedSkills: ["quality-verification"] });
+    const request = { projectId: f.projectId, runId: run.id, revision: f.base.revision, passes: ["mute_visual"] as EditorialReviewPass[],
+      previewEvidence: [] as string[], findings: [] };
+    const initial = await f.app.recordEditorialQualityReview({ ...request, operationId: "full-finding", previewEvidence: ["发现问题"],
+      findings: [{ pass: "mute_visual", severity: "major", category: "motion", summary: "主体丢失", evidence: "观察", impact: "接管不成立",
+        objectId: f.state.snapshot.scenes[0]!.id, frameRange: { startFrame: 5, endFrame: 10 } }] });
+    const findingId = initial.editorialReview!.findings[0]!.id;
+    const observe = { source: "workbench" as const, observer: "测试审阅者", pass: "mute_visual" as const,
+      method: "continuous_video" as const, startFrame: 4, endFrame: 11, observation: "测试声明已复查接管" };
+    const checked = await f.app.recordEditorialQualityReview({ ...request, operationId: "full-observation", observations: [observe] });
+    await f.app.recordEditorialQualityReview({ ...request, operationId: "full-resolution",
+      resolutions: [{ findingId, evidenceIds: [checked.editorialReview!.evidenceRecords!.at(-1)!.id], note: "本版已复查" }] });
+    assert.equal(openEditorialFindings(await f.app.readEditorialQualityReview(request)).length, 0);
+    const next = f.app.updateStory({ projectId: f.projectId, baseRevision: request.revision, title: "新版本" });
+    const current = { ...request, revision: next.revision.number };
+    assert.equal(openEditorialFindings(await f.app.readEditorialQualityReview(current))[0]?.id, findingId);
+    const rechecked = await f.app.recordEditorialQualityReview({ ...current, operationId: "full-observation-new", observations: [observe] });
+    await f.app.recordEditorialQualityReview({ ...current, operationId: "full-resolution-new",
+      resolutions: [{ findingId, evidenceIds: [rechecked.editorialReview!.evidenceRecords!.at(-1)!.id], note: "新版本已复查" }] });
+    assert.equal(openEditorialFindings(await f.app.readEditorialQualityReview(current)).length, 0);
+  } finally { await f.dispose(); }
+});
+
 test("共用长 Scene 不会把一个效果误算为每拍都实现，stale 计划不会算成主动留白", async () => {
   const f = await fixture();
   try {

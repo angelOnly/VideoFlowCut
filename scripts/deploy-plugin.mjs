@@ -274,9 +274,9 @@ async function main() {
       await save();
       step = "验收项目制作及预览";
       console.log("运行本次独立验收项目的制作及渲染。");
-      const { authoring, preview, projectId } = await runDeploymentSmoke(vfc, clients.get("open_design"), receipt, save);
+      const { authoring, bake, preview, renderRevision, projectId } = await runDeploymentSmoke(vfc, clients.get("open_design"), receipt, save);
       step = "回件与文件摘要校验";
-      receipt.checks.production = await verifyDeploymentPreview(authoring, preview, projectId, Date.parse(receipt.switchedAt), receipt.releaseId);
+      receipt.checks.production = await verifyDeploymentPreview(authoring, bake, preview, renderRevision, projectId, Date.parse(receipt.switchedAt), receipt.releaseId);
       assertRuntimeReady(await callDeploymentTool(vfc, "read_runtime_release"), receipt.releaseId);
       receipt.success = true;
       await save();

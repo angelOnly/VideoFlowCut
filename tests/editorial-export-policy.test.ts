@@ -70,6 +70,24 @@ test("质量、预检、Worker 用途一致；无 AI 审阅可导出，人工定
     assert.equal(app.readExportArtifact({ projectId, artifactId }).revision, artifact.revision);
     const later = await runExportJob(app, app.submitExport({ projectId, purpose: "delivery" }), renderer);
     assert.equal(app.readExportArtifact({ projectId, artifactId: String(later.artifactId) }).approval, undefined);
+    const fullRun = await app.startProductionRun({ operationId: globalThis.crypto.randomUUID(), projectId, baseRevision: changed.revision.number,
+      intent: "full_creation", completionScope: { kind: "project" }, loadedSkills: ["production-coordinator"] });
+    assert.equal(fullRun.deliveryReviewRequired, true);
+    const completion = await app.evaluateProductionCompletion({ projectId, runId: fullRun.id, revision: changed.revision.number, completionScope: { kind: "project" } });
+    assert.ok(completion.completionBlockers.some(blocker => blocker.includes("尚未选择本次验收的交付文件")));
+    const qualityResponse = await server.app.inject({ method: "GET", url: `/api/projects/${projectId}/quality?revision=${changed.revision.number}` });
+    assert.equal(qualityResponse.statusCode, 200, qualityResponse.body);
+    const gatedQuality = qualityResponse.json();
+    assert.equal(gatedQuality.exportReadiness.delivery.allowed, false);
+    assert.ok(gatedQuality.deliveryQualityIssues.some((issue: { code: string }) => issue.code === "DELIVERY_AV_REVIEW_PENDING"));
+    assert.ok(gatedQuality.issues.some((issue: { code: string }) => issue.code === "DELIVERY_AV_REVIEW_PENDING"));
+    const blocked = await server.app.inject({ method: "POST", url: `/api/projects/${projectId}/export`, payload: { purpose: "delivery" } });
+    assert.notEqual(blocked.statusCode, 202);
+    assert.match(blocked.body, /EXPORT_EDITORIAL_BLOCKED/u);
+    const deliveryCheck = await runRenderPreflight(app, projectId, changed.revision.number, "delivery");
+    assert.ok(deliveryCheck.checks.some(check => check.code === "QUALITY_DELIVERY_AV_REVIEW_PENDING"));
+    const draftCheck = await runRenderPreflight(app, projectId, changed.revision.number, "draft");
+    assert.ok(!draftCheck.checks.some(check => check.code.startsWith("QUALITY_DELIVERY_")));
     await writeFile(join(project.snapshot.project.rootPath, artifact.relativePath), "tampered");
     await assert.rejects(app.approveExportArtifact({ projectId, artifactId, fileHash: artifact.fileHash, confirmedByUser: true }), { code: "EXPORT_ARTIFACT_CHANGED" });
     await rm(file);

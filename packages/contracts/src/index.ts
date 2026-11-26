@@ -1627,7 +1627,7 @@ export interface QualityIssue {
   /** 保留人工判断来源，不冒充自动检测。 */
   editorialFindingId?: Id;
   editorialSeverity?: EditorialReviewSeverity;
-  /** 仅用于技术阻挡；缺省同时适用于两种导出用途。 */
+  /** 限定受影响的导出用途；缺省同时适用于两种用途。 */
   blockingPurposes?: ExportPurpose[];
 }
 
@@ -1746,7 +1746,9 @@ export interface QualityReport {
   generatedAt: string;
   /** 可由代码确定的结构与媒体规则。 */
   technical: QualityIssue[];
-  /** 生成文件的条件独立于辅助审阅状态。 */
+  /** 完整新制在导出前对当前版本的作品观察及未关闭问题进行检查。 */
+  deliveryQualityIssues?: QualityIssue[];
+  /** 草稿与正式交付分别计算准入；完整新制的交付包含真实审阅条件。 */
   exportReadiness: Record<ExportPurpose, { allowed: boolean; blockers: QualityIssue[] }>;
   /** 由 Skill + 真实预览补充的编辑判断；未评审时保持空数组而不是伪造通过。 */
   editorial: {
@@ -1947,6 +1949,8 @@ export type ProductionUnitHandoffEvent =
  */
 export interface SkillExecutionReport {
   unitHandoffs?: ProductionUnitHandoffEvent[];
+  /** 明确登记本次制作等待的原任务及范围；任务状态始终从 Job 读取。 */
+  watchedJobs?: Array<{ jobId: Id; scope: ProductionCompletionScope; required: boolean; nextAction: string; assignmentId?: Id }>;
   completionScope: ProductionCompletionScope;
   intent: ProductionIntent;
   assignments: ProductionAssignment[];

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import type { JobRecord, CreativeDecision, EditorialQualityReview, ProductionAssignment, ProductionCompletionScope, ProductionCoordinationIssue, MotionWorkReview, ProjectSnapshot, SkillExecutionReport, VisualResponsibility, VisualTreatment } from "@videocut/contracts";
-import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges, openEditorialFindings } from "../../quality-system/src/editorial-review.js";
+import { cueCoversBeat, hasVisualTreatmentImplementation, missingReviewRanges, openEditorialFindings, visualReferenceReviewCoverage } from "../../quality-system/src/editorial-review.js";
 import { compileVisualComposition, effectBeatRanges, rangesOverlap, resolveCompositionReachability } from "@videocut/domain";
 import { motionRootRangeAtProjectRange, motionWorkForCue } from "@videocut/contracts";
 import type { MotionAuthoringInput } from "../../contracts/src/motion-authoring.js";
@@ -14,6 +14,13 @@ import { editorialResolutionRange } from "./editorial-range.js";
 import { requiresVisualReferenceUnits, unitHandoffDeliveryIssues } from "./production-unit-handoff.js";
 
 type Scene = ProjectSnapshot["scenes"][number];
+
+/** 整片制作由主场承接；Cutaway 的独立播放场景归其主场使用。 */
+export function wholeFilmProductionScenes(snapshot: ProjectSnapshot): Scene[] {
+  const cutawaySceneIds = new Set(snapshot.cutaways.map(cutaway => cutaway.cutawaySceneId));
+  return snapshot.scenes.filter(scene => !cutawaySceneIds.has(scene.id))
+    .sort((first, second) => first.startFrame - second.startFrame);
+}
 
 /** 实拍事件主导的新片使用实际剪辑判断；明确视觉重做仍走完整视觉设计。 */
 export function requiresFullVisualCoordination(report: SkillExecutionReport, snapshot: ProjectSnapshot): boolean {
@@ -30,7 +37,8 @@ export function productionMotionIssues(report: SkillExecutionReport, snapshot: P
     const request = job.payload.input as MotionAuthoringInput;
     return request.productionRunId === report.id ? [{ job, project: request.openDesignRequest.project }] : [];
   });
-  const scenes = snapshot.scenes.filter(scene => coversScene(snapshot, scope, scene)
+  const productionScenes = requiresWholeFilmReferenceAdoption(report, snapshot) ? wholeFilmProductionScenes(snapshot) : snapshot.scenes;
+  const scenes = productionScenes.filter(scene => coversScene(snapshot, scope, scene)
     || snapshot.visualTreatments.some(treatment => (treatment.sceneId === scene.id
       || !treatment.sceneId && !!treatment.narrativeBeatId && scene.narrativeBeatIds.includes(treatment.narrativeBeatId))
       && coversScene(snapshot, scope, scene, treatment)));
@@ -567,6 +575,7 @@ export async function evaluateProductionCoordination(input: {
   snapshot: ProjectSnapshot;
   scope: ProductionCompletionScope;
   review?: EditorialQualityReview;
+  revision?: number;
   referenceEvidenceIds?: ReadonlySet<string>;
   readRevision: (revision: number) => ProjectSnapshot;
   /** 制作前只检查当前目标，成片实现及作品审阅留到最终收口。 */
@@ -602,17 +611,30 @@ export async function evaluateProductionCoordination(input: {
     issues.push({ code, scope: target, assignmentId: assignment?.assignmentId, relatedDecisionIds: decisions,
       relatedObjectIds: scene ? [scene.id] : [], state, message, nextAction });
   };
-  const scenes = snapshot.scenes.filter(scene => coversScene(snapshot, scope, scene)
+  const productionScenes = requiresWholeFilmReferenceAdoption(report, snapshot) ? wholeFilmProductionScenes(snapshot) : snapshot.scenes;
+  const scenes = productionScenes.filter(scene => coversScene(snapshot, scope, scene)
     || snapshot.visualTreatments.some(treatment => treatment.sceneId === scene.id && coversScene(snapshot, scope, scene, treatment)));
-  const narrativeScenes = snapshot.scenes.filter(scene => scene.narrativeBeatIds.length);
-  // 整片检查按有正文的场面汇总，片尾停驻和单场试做不单独要求素材。
-  const mainScenes = narrativeScenes.length ? narrativeScenes : snapshot.scenes;
+  const mainScenes = productionScenes;
   const { targetRange: range, targetBeatIds } = input;
   const wholeFilm = scope.kind === "project" || (input.phase === "authoring" && !!range && mainScenes.every(scene =>
     scenes.includes(scene) && range.startFrame <= scene.startFrame && range.endFrame >= scene.endFrame
     && (!targetBeatIds || scene.narrativeBeatIds.every(id => targetBeatIds.includes(id)))));
   const checkPrimaryMaterial = wholeFilm && report.intent === "full_creation" && report.completionScope.kind === "project"
     && snapshot.project.profile === "visual_explainer" && !input.captionTextOnly && !input.continuingAuthoring;
+  if (checkPrimaryMaterial && input.phase === "authoring") {
+    for (const beat of snapshot.story.beats) {
+      if (beat.sceneIds.some(id => mainScenes.some(scene => scene.id === id))) continue;
+      const beatScope: ProductionCompletionScope = { kind: "beats", beatIds: [beat.id] };
+      const director = [...report.assignments].reverse().find(assignment => assignment.responsibilities.includes("director")
+        && assignmentScopesOverlap(snapshot, assignment.scope, beatScope)
+        && !report.assignments.some(other => other.supersedesAssignmentId === assignment.assignmentId
+          && other.responsibilities.includes("director") && assignmentScopesOverlap(snapshot, other.scope, beatScope)));
+      issues.push({ code: "STORY_BEAT_SCENE_MISSING", scope: beatScope,
+        relatedDecisionIds: [], relatedObjectIds: [beat.id], state: "missing",
+        assignmentId: director?.assignmentId,
+        message: `叙事段「${beat.title}」尚未关联主场`, nextAction: "由导演确认对应场面并更新 Story" });
+    }
+  }
   const primaryMaterialByScene = new Map<string, { roles: Set<string>; hasMaterial: boolean; assignment?: ProductionAssignment }>();
   const targets: Array<Scene | undefined> = scenes.length ? scenes : [undefined];
   for (const scene of targets) {
@@ -803,25 +825,15 @@ export async function evaluateProductionCoordination(input: {
                 startFrame: Math.max(range.startFrame, scene.startFrame, mapping.targetRange?.startFrame ?? scene.startFrame),
                 endFrame: Math.min(range.endFrame, scene.endFrame, mapping.targetRange?.endFrame ?? scene.endFrame)
               })).filter(range => range.startFrame < range.endFrame);
-              const evidence = (review?.evidenceRecords ?? []).filter(item =>
-                (!input.referenceEvidenceIds || input.referenceEvidenceIds.has(item.id))
-                && (item.source === "workbench" || item.source === "artifact")
-                && (item.method === "continuous_video" || item.method === "audiovisual")
-                && (item.referenceReviews?.some(ref => ref.productionRunId === report.id && ref.decisionId === adoption.id
-                  && sameReferenceReview(ref, targetReference))));
-              const events = evidence.flatMap(item => (review?.applicableEvidence ?? []).filter(part => part.evidenceId === item.id)
-                .map(part => ({ ...part, recordedAt: item.recordedAt,
-                  outcome: item.referenceReviews!.find(ref => ref.productionRunId === report.id && ref.decisionId === adoption.id
-                    && sameReferenceReview(ref, targetReference))?.outcome })))
-                .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
-              // 后来的待核或问题观察覆盖旧通过；未关闭的问题由返修待办承接。
-              const confirmed = events.flatMap((event, index) => event.outcome === "confirmed"
-                ? missingReviewRanges(events.slice(index + 1).filter(later => later.outcome !== "confirmed"), event.startFrame, event.endFrame) : []);
+              const unobserved = visualReferenceReviewCoverage(targetRanges.map(targetRange => ({ identity: targetReference, targetRange })),
+                review, input.revision ?? review?.applicableEvidence?.[0]?.targetRevision ?? review?.revision ?? report.baseRevision,
+                input.referenceEvidenceIds, requiresVisualReferenceUnits(report, snapshot)).flatMap(item => item.missingRanges);
+              // 已登记必修问题由返修待办承接，避免为同一范围重复派发观察任务。
               const open = openEditorialFindings(review).filter(finding => finding.referenceReview && sameReferenceReview(finding.referenceReview, targetReference))
                 .map(finding => finding.revision !== undefined && review?.revision !== undefined && finding.revision !== review.revision
                   ? editorialResolutionRange(finding, input.readRevision(finding.revision), snapshot)
                   : finding.frameRange ?? { startFrame: scene.startFrame, endFrame: scene.endFrame });
-              const missing = targetRanges.flatMap(range => missingReviewRanges([...confirmed, ...open], range.startFrame, range.endFrame));
+              const missing = unobserved.flatMap(range => missingReviewRanges(open, range.startFrame, range.endFrame));
               for (const gap of missing) {
                 add("REFERENCE_REVIEW_PENDING", scene, "pending", `参考 ${reference.id} 的 ${mapping.targetRole} 尚无覆盖 ${gap.startFrame}–${gap.endFrame} 的对照观察`,
                   "续接原参考作者和视觉作者，对照原片及成片后记录实际结果",

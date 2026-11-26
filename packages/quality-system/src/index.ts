@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { managedMotionReviewOutcome, EFFECT_QUALITY_RULES, inspectEffectContentContract, sourceAudioTimeOrigin, type EditorialQualityReview, type ExportPurpose, type ProjectSnapshot, type QualityIssue, type QualityReport } from "@videocut/contracts";
 import { avatarBindingMatches, compileVisualComposition, primaryVisualRanges, uncoveredVisualRanges, assertProjectGraphValid, DomainError, millisecondsToFrames, resolveCompositionReachability, sourceAudioTimingWithinRange, sourceAudioAlignmentOwnerMatches, sourceCaptionDisplayTextIsValid } from "@videocut/domain";
 import { exportBlockingIssues } from "./export-policy.js";
-export { exportBlockingIssues } from "./export-policy.js";
+export { exportBlockingIssues, exportDeliveryBlockingIssues } from "./export-policy.js";
 import { layoutCaptionConservatively, type CaptionLayoutInput, type CaptionLayoutResult } from "../../remotion-runtime/src/caption-layout.js";
 import { measureCaptionLayouts } from "./caption-measurement.js";
 import { missingReviewRanges, openEditorialFindings, productionReconciliation, reviewCoverage } from "./editorial-review.js";
@@ -1904,7 +1904,7 @@ export function evaluateQuality(snapshot: ProjectSnapshot, revision: number, edi
     coverage,
     openFindings
   };
-  // 历史问题与严重程度保留，不能把未审阅伪造成通过，也不阻挡文件产出。
+  // 汇总历史问题并保留严重程度；交付用途按任务范围另行判定是否阻断。
   for (const { category, entry } of pendingPerception) {
     const pending = withStableQualityIssueId(revision, entry);
     editorial[category].push(pending);

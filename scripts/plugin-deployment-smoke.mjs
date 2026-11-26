@@ -12,8 +12,8 @@ async function prepareSmoke(vfc, od, receipt, checkpoint) {
   const title = `插件部署验收 ${receipt.id}`;
   if (!smoke.odProjectId) {
     const project = await callDeploymentTool(od, "create_project", { id: `vfc-deploy-${receipt.id}`, name: title });
-    assert.ok(project.id, "缺少画面项目 ID");
-    smoke.odProjectId = project.id;
+    assert.ok(project.project?.id, "缺少画面项目 ID");
+    smoke.odProjectId = project.project.id;
     await checkpoint();
   }
   if (!smoke.projectId) {
@@ -100,10 +100,33 @@ export async function runDeploymentSmoke(vfc, od, receipt, checkpoint, { timeout
   const frozen = authoringState?.receipts?.at(-1);
   const range = frozen?.ranges?.[0];
   assert.ok(authoringState?.status === "succeeded" && frozen?.frozenVersion && frozen.workId
-    && Number.isInteger(frozen.revision) && range?.endFrame > range?.startFrame, "制作未接回可预览的冻结阶段作品");
+    && frozen.definitionHash && frozen.cueId && Number.isInteger(frozen.revision)
+    && range?.endFrame > range?.startFrame, "制作未接回可预览的冻结阶段作品");
+  // 接回源码不等于生成可供合成使用的派生媒体。
+  if (!smoke.bakeJobId) {
+    const current = await callDeploymentTool(vfc, "read_project", { project_id: smoke.projectId });
+    const submitted = await callDeploymentTool(vfc, "submit_motion_work", {
+      project_id: smoke.projectId, base_revision_id: current.revision.number,
+      work_id: frozen.workId, definition_hash: frozen.definitionHash, output_intent: "asset",
+      idempotency_key: `deploy-bake-${receipt.id}`
+    });
+    smoke.bakeJobId = submitted.id;
+    assert.ok(smoke.bakeJobId, "缺少作品媒体 Job ID");
+    await checkpoint();
+  }
+  const bake = await waitForJob(vfc, smoke.bakeJobId, Date.now() + timeoutMs, pause);
+  if (!smoke.renderRevision) {
+    const current = await callDeploymentTool(vfc, "read_project", { project_id: smoke.projectId });
+    assert.ok(bake.result?.assetId && bake.result.workId === frozen.workId
+      && current.snapshot.assets.some(asset => asset.id === bake.result.assetId && asset.motion?.workId === frozen.workId
+        && asset.motion?.definitionHash === frozen.definitionHash)
+      && current.snapshot.effectCues.some(cue => cue.id === frozen.cueId && cue.workId === frozen.workId), "作品媒体未绑定到同一冻结作品");
+    smoke.renderRevision = current.revision.number;
+    await checkpoint();
+  }
   if (!smoke.previewJobId) {
     const preview = await callDeploymentTool(vfc, "render_preview_range", {
-      project_id: smoke.projectId, revision: frozen.revision,
+      project_id: smoke.projectId, revision: smoke.renderRevision,
       from_frame: range.startFrame, to_frame: Math.min(range.endFrame, range.startFrame + 12),
       idempotency_key: `deploy-preview-${receipt.id}`
     });
@@ -112,5 +135,5 @@ export async function runDeploymentSmoke(vfc, od, receipt, checkpoint, { timeout
     await checkpoint();
   }
   const preview = await waitForJob(vfc, smoke.previewJobId, Date.now() + timeoutMs, pause);
-  return { authoring, preview, projectId: smoke.projectId };
+  return { authoring, bake, preview, renderRevision: smoke.renderRevision, projectId: smoke.projectId };
 }

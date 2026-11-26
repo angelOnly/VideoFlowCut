@@ -22,7 +22,8 @@ export interface ReferenceScene {
     primaryRoles?: string[];
     units?: Array<{ id: string; title: string; startFrame: number; endFrame: number; creativeDecisionId?: string;
       mode: import("../../contracts/src/production-unit-handoff.js").ProductionUnitMode;
-      creativeDraftId?: string; handoffReceiptId?: string; restage?: { resourceId: string; sourceMs?: number; projectFrame: number } }>;
+      creativeDraftId?: string; handoffReceiptId?: string; restage?: { resourceId: string; sourceMs?: number; projectFrame: number };
+      performance?: VisualUnitPerformance }>;
     researchLayers?: Array<{ level: "overallVisual" | "sceneComposition" | "motionMechanisms"; researchDecisionId: string; designExcerpt: string }>;
     referenceMappings?: Array<{ unitId?: string; use?: "primary" | "support"; referenceId?: string; referenceKind?: "creative" | "motion"; researchDecisionId?: string; startMs?: number; endMs?: number; targetRole?: string; treatment?: string; preserveRelation?: string; targetRange?: { startFrame: number; endFrame: number } }>;
     composition?: { opening?: string; primarySubject?: string; supportingSubjects?: string[];
@@ -32,6 +33,16 @@ export interface ReferenceScene {
     odBoundaries?: { locked?: string[]; adjustable?: string[]; escalation?: string };
   };
 }
+
+export interface VisualUnitPerformance {
+  mode?: "continuous_motion" | "quiet_observation" | "direct_cut";
+  openingState?: string; primaryRole?: string; retainedRoles?: string[]; respondingRoles?: string[]; handoffRole?: string;
+  handoffTo?: { unitId: string; role: string };
+  stages?: Array<{ phase: "entry" | "anticipation" | "build" | "key_moment" | "result" | "settle" | "exit";
+    startFrame: number; endFrame: number; action: string; visibleRoles: string[] }>;
+  quietPurpose?: string; transitionPurpose?: string;
+}
+export function performanceErrors(unit: NonNullable<NonNullable<ReferenceScene["visualPlan"]>["units"]>[number], roles: Array<{ role: string }>): string[];
 
 export function scopeReferenceManifest(manifest: ReferenceManifest, sceneIds: string[]): ReferenceManifest;
 export function assertVisualDesign(scenes: ReferenceScene[], briefText?: string): void;

@@ -296,7 +296,8 @@ export async function runRenderPreflight(application: EditingApplication, projec
   try { await verifyMotionFrameCaches(snapshot, probe); }
   catch (error) { addPreflightCheck(checks, "failed", "MOTION_CACHE_CORRUPT", error instanceof Error ? error.message : String(error)); }
   const review = await application.readEditorialQualityReview({ projectId, revision: revisionNumber });
-  const quality = await evaluateQualityWithBrowser(snapshot, revisionNumber, review, application.repository.readReviews(projectId));
+  const rawQuality = await evaluateQualityWithBrowser(snapshot, revisionNumber, review, application.repository.readReviews(projectId));
+  const quality = purpose === "delivery" ? await application.addDeliveryQualityIssues(projectId, revisionNumber, rawQuality, review) : rawQuality;
   for (const issue of exportBlockingIssues(quality, purpose)) {
     addPreflightCheck(checks, "failed", `QUALITY_${issue.code}`, issue.message, issue.objectId);
   }

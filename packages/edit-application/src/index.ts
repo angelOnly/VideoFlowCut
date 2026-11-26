@@ -2,7 +2,7 @@ import { readProductionStatus, type ProductionStatusContext } from "./production
 import { referenceComparisonsForRevision } from "./reference-comparison.js";
 import { readCreativeCase } from "../../../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../../../references/motion-cases/skillry/tools/library-store.mjs";
-import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, productionMotionIssues, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityAssignmentRanges, responsibilityDecisionRanges, visualReferenceUnitCoverage } from "./production-coordination.js";
+import { assignmentCoversObjects, assignmentCoversScope, assignmentScopesOverlap, evaluateProductionCoordination, productionMotionIssues, isCaptionTextOnlyChange, normalizeProductionScope, referenceResearchIssues, referenceResearchOwnerAccepted, researchComplete, missingResearchLayers, requiresFullVisualCoordination, requiresWholeFilmReferenceAdoption, responsibilityAssignmentRanges, responsibilityDecisionRanges, visualReferenceUnitCoverage, wholeFilmProductionScenes } from "./production-coordination.js";
 import { responsibilityReviewFindings, validateResponsibilityReviews } from "./responsibility-review.js";
 import { MotionAuthoringCoordinationError, ProductionReferenceResearchError } from "./motion-coordination-error.js";
 import { assertVisualDesign, readFrozenAuthorRequest, scopeReferenceManifest } from "./opendesign-reference-package.mjs";
@@ -53,7 +53,9 @@ import { applicableWorkbenchEvidence, evidenceHash, productionObservationRanges,
 import type { ProductionCompletionEvaluation } from "@videocut/contracts";
 import { validateMotionReviewEvidence, validateSourceMotionReviewEvidence } from "./motion-review.js";
 import type { MotionReviewEvidenceInput, MotionReviewOutcome } from "@videocut/contracts";
-import { completionReconciliationBlockers, deliveryReviewAssignment, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, requiresEditorialReview, reviewCoverage } from "../../quality-system/src/editorial-review.js";
+import { completionReconciliationBlockers, deliveryReviewAssignment, EDITORIAL_PASSES, evidenceSupportsPass, mergeEditorialReviews, missingReviewRanges, openEditorialFindings, requiresEditorialReview, reviewCoverage, visualReferenceReviewCoverage } from "../../quality-system/src/editorial-review.js";
+import { exportDeliveryBlockingIssues } from "../../quality-system/src/export-policy.js";
+import type { QualityReport } from "@videocut/contracts";
 import { boundMotionFontSchema, boundMotionImageSchema, boundMotionVideoSchema, motionSubmissionSchema, type MotionSubmission } from "../../motion-work/src/schema.js";
 import { bindMotionFonts } from "../../motion-work/src/fonts.js";
 import { motionPixelKey, motionHash, motionHashEngine, MOTION_ENGINE_VERSION, validateMotionSource } from "../../motion-work/src/compiler.js";
@@ -484,8 +486,9 @@ function assertReferenceResearch(report: SkillExecutionReport, snapshot: Project
   designs: CreativeDecision[], sceneIds: string[], adoptionOperationId?: string, treatment?: VisualTreatment,
   adoptedDesignsByScene?: ReadonlyMap<string, CreativeDecision[]>): void {
   const issues: import("@videocut/contracts").ProductionCoordinationIssue[] = [];
+  const mainScenes = wholeFilmProductionScenes(snapshot);
   const wholeFilm = !treatment && requiresWholeFilmReferenceAdoption(report, snapshot)
-    && snapshot.scenes.length === sceneIds.length && snapshot.scenes.every(scene => sceneIds.includes(scene.id));
+    && mainScenes.length === sceneIds.length && mainScenes.every(scene => sceneIds.includes(scene.id));
   if (wholeFilm && (manifest.projectId !== snapshot.project.id || manifest.selectedSceneIds?.length !== sceneIds.length
     || sceneIds.some(id => !manifest.selectedSceneIds?.includes(id)))) {
     throw new DomainError("整片采用须引用同一份覆盖全部场面的冻结交付清单", "PRODUCTION_ADOPTION_DELIVERY_INVALID");
@@ -1454,6 +1457,13 @@ export interface AssetSearchCandidateInput {
 }
 
 /** Editing Application 是唯一命令入口；HTTP、MCP 和 Worker 都委托这里。 */
+/** 根据场面计算整片同一根时钟的上轨目标。 */
+function wholeFilmSceneTargets(scenes: ProjectSnapshot["scenes"], rootStart = scenes[0]?.startFrame ?? 0): MotionAuthoringSceneTarget["target"][] {
+  return scenes.map(scene => ({ action: "create_cue", sceneId: scene.id, layer: "fullscreen", audioPolicy: "rebind_unchanged_events",
+    startFrame: scene.startFrame, endFrame: scene.endFrame,
+    sourceStartFrame: scene.startFrame - rootStart, sourceEndFrame: scene.endFrame - rootStart }));
+}
+
 export class EditingApplication {
   private readonly listeners = new Set<(event: AppEvent) => void>();
   private readonly productionAuditWrites = new Map<Id, Promise<void>>();
@@ -2387,7 +2397,14 @@ export class EditingApplication {
     review.evidenceRecords = validEvidence;
     review.applicableEvidence = applicableEvidence;
     const validIds = new Set(review.evidenceRecords.map((entry) => entry.id));
+    const requiresCurrentReview = reports.some(report => report.projectId === input.projectId && report.status !== "abandoned"
+      && report.baseRevision <= revision && report.completionScope.kind === "project" && requiresVisualReferenceUnits(report, targetSnapshot));
     review.resolutions = (review.resolutions ?? []).filter((entry) => {
+      // 完整新制的必修问题在当前版本重新关闭，不能用旧版复查替代。
+      const finding = review.findings.find(item => item.id === entry.findingId);
+      if (requiresCurrentReview && finding && ["major", "blocking"].includes(finding.severity)
+        && (entry.revision !== revision || entry.evidenceIds.some(id =>
+        review.evidenceRecords!.find(evidence => evidence.id === id)?.revision !== revision))) return false;
       if (!entry.evidenceIds.length || entry.evidenceIds.some(id => !validIds.has(id))) return false;
       const ranges = applicableEvidence.filter(part => entry.evidenceIds.includes(part.evidenceId));
       if (entry.scope === "caption_text") {
@@ -2468,7 +2485,8 @@ export class EditingApplication {
       baseRevision: input.baseRevision,
       intent: input.intent,
       completionScope: normalizeProductionScope(input.completionScope),
-      deliveryReviewRequired: input.deliveryReviewRequired || !!production || undefined,
+      deliveryReviewRequired: input.deliveryReviewRequired || !!production
+        || input.intent === "full_creation" && input.completionScope.kind === "project" && current.snapshot.project.profile !== "vlog" || undefined,
       ...(production && artifact ? { deliveryProductionRunId: production.id, deliveryArtifactId: artifact.id,
         deliveryArtifactHistory: [artifact.id] } : {}),
       assignments: [],
@@ -2496,6 +2514,8 @@ export class EditingApplication {
   async updateProductionRun(input: { projectId: Id; runId: Id; expectedAuditVersion: number; operationId: string } & (
     { action: "update_scope"; completionScope: ProductionCompletionScope; reason: string }
     | { action: "select_delivery_artifact"; artifactId: Id }
+    | { action: "watch_job"; jobId: Id; scope: ProductionCompletionScope; required: boolean; nextAction: string; assignmentId?: Id }
+    | { action: "unwatch_job"; jobId: Id }
     | { action: "add_assignment" | "replace_assignment"; assignment: Omit<ProductionAssignment, "operationId"> }
     | { action: "record_unit_handoff"; handoff: ProductionUnitHandoffInput })): Promise<SkillExecutionReport> {
     return this.withProductionAuditLock(input.projectId, async () => {
@@ -2522,6 +2542,22 @@ export class EditingApplication {
         report.deliveryArtifactId = artifact.id;
         report.deliveryArtifactHistory = [...new Set([...(report.deliveryArtifactHistory ?? []), artifact.id])];
         report.mcpCommands.push({ name: input.action, revision: artifact.revision, createdAt: now() });
+      } else if (input.action === "watch_job") {
+        const job = this.trackJob(input.jobId);
+        const snapshot = this.readProject(input.projectId).snapshot;
+        if (job.projectId !== input.projectId) throw new DomainError("等待的任务不属于当前项目", "JOB_PROJECT_MISMATCH");
+        this.assertProductionScope(snapshot, input.scope);
+        if (!assignmentCoversScope(snapshot, report.completionScope, input.scope) || !input.nextAction.trim()
+          || input.assignmentId && !report.assignments.some(assignment => assignment.assignmentId === input.assignmentId)) {
+          throw new DomainError("等待任务需要本次制作范围、回件后的动作和有效负责人", "PRODUCTION_WATCH_INVALID");
+        }
+        report.watchedJobs = [...(report.watchedJobs ?? []).filter(entry => entry.jobId !== input.jobId),
+          { jobId: input.jobId, scope: normalizeProductionScope(input.scope), required: input.required,
+            nextAction: input.nextAction.trim(), ...(input.assignmentId ? { assignmentId: input.assignmentId } : {}) }];
+        report.mcpCommands.push({ name: input.action, createdAt: now() });
+      } else if (input.action === "unwatch_job") {
+        report.watchedJobs = (report.watchedJobs ?? []).filter(entry => entry.jobId !== input.jobId);
+        report.mcpCommands.push({ name: input.action, createdAt: now() });
       } else if (input.action === "record_unit_handoff") {
         const handoff = productionUnitHandoffSchema.parse(input.handoff);
         const current = this.readProject(input.projectId).snapshot;
@@ -2712,7 +2748,10 @@ export class EditingApplication {
     if (input.phase === "visual_design" && input.deliveryRef) {
       const snapshot = this.readProject(input.projectId).snapshot;
       const scope = input.objectIds ?? [];
-      const scopeScenes = visualScopeSceneIds(snapshot, scope);
+      const resolvedScenes = visualScopeSceneIds(snapshot, scope);
+      const mainSceneIds = new Set(wholeFilmProductionScenes(snapshot).map(scene => scene.id));
+      const scopeScenes = requiresWholeFilmReferenceAdoption(report, snapshot) && scope.includes(snapshot.project.id)
+        ? resolvedScenes.filter(id => mainSceneIds.has(id)) : resolvedScenes;
       if (!scopeScenes.length || scope.some(id => visualScopeSceneIds(snapshot, [id]).length === 0)) {
         throw new DomainError("正式视觉设计需要明确的场面、内容或视觉计划范围", "VISUAL_REVISION_SCOPE_INVALID");
       }
@@ -3081,7 +3120,8 @@ export class EditingApplication {
     }
     let projectReview = await this.readEditorialQualityReview({ projectId: input.projectId, revision: finalRevision });
     let deliveryArtifact: ExportArtifact | undefined;
-    if (report.deliveryReviewRequired) {
+    const independentRequired = requiresEditorialReview(report) || requiresVisualReferenceUnits(report, target.snapshot) && scope.kind === "project";
+    if (report.deliveryReviewRequired || independentRequired) {
       if (!report.deliveryArtifactId) blockers.push("尚未选择本次验收的交付文件。");
       else {
         try {
@@ -3094,7 +3134,6 @@ export class EditingApplication {
         }
       }
     }
-    const independentRequired = requiresEditorialReview(report);
     const reviewProduction = report.deliveryProductionRunId ? await this.readSkillExecutionReport({
       projectId: input.projectId, runId: report.deliveryProductionRunId
     }) : undefined;
@@ -3143,7 +3182,7 @@ export class EditingApplication {
         evidenceId: entry.id, targetRevision: finalRevision, startFrame: entry.startFrame, endFrame: entry.endFrame }))] } : projectReview;
     const source = this.repository.getRevision(input.projectId, report.baseRevision).snapshot;
     const captionTextOnly = isCaptionTextOnlyChange(source, target.snapshot, scope);
-    const coordinationIssues = await evaluateProductionCoordination({ report, snapshot: target.snapshot, scope, review: coordinationReview, captionTextOnly,
+    const coordinationIssues = await evaluateProductionCoordination({ report, snapshot: target.snapshot, scope, revision: finalRevision, review: coordinationReview, captionTextOnly,
       referenceEvidenceIds: independentRequired && deliveryArtifact ? new Set(independentRecords.map(item => item.id)) : undefined,
       readRevision: revision => this.repository.getRevision(input.projectId, revision).snapshot });
     coordinationIssues.push(...productionMotionIssues(report, target.snapshot, scope, projectJobs,
@@ -3191,7 +3230,9 @@ export class EditingApplication {
     // 独立审阅使用本次实际选择的观察方式，不把只听声音升级成声画审阅。
     const reviewMethod = report.intent === "review_only" && !reviewProduction ? ownEvidence.find(entry => ranges.some(range => entry.startFrame < range.endFrame && entry.endFrame > range.startFrame))?.method : undefined;
     const method: ProductionCompletionEvaluation["observationGaps"][number]["method"] = reviewMethod ?? (captionTextOnly ? "frames" : audioOnly ? "audio" : hasAudio ? "audiovisual" : "continuous_video");
-    const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => (entry.source === "workbench" || entry.source === "artifact") && (entry.method === method
+    const currentOnly = requiresVisualReferenceUnits(report, target.snapshot) && scope.kind === "project";
+    const evidence = (projectReview?.evidenceRecords ?? []).filter(entry => (!currentOnly || entry.revision === finalRevision)
+      && (entry.source === "workbench" || entry.source === "artifact") && (entry.method === method
       || entry.method === "audiovisual" && (method === "audio" || method === "continuous_video" || method === "frames")
       || entry.method === "continuous_video" && method === "frames") && (report.intent !== "review_only" || ownEvidenceIds.has(entry.id)));
     const eligibleIds = new Set(evidence.map(entry => entry.id));
@@ -3304,7 +3345,7 @@ export class EditingApplication {
         question: "当前文件缺少独立审片作者的整片连续观察",
         nextAction: "续接选定文件的独立审片任务并登记实际观察", closesWhen: "登记独立作者对当前文件的整片观察" });
     }
-    if (report.deliveryReviewRequired && !deliveryArtifact) nextActions.push({ code: "DELIVERY_ARTIFACT_PENDING", scope, revision: finalRevision,
+    if ((report.deliveryReviewRequired || independentRequired) && !deliveryArtifact) nextActions.push({ code: "DELIVERY_ARTIFACT_PENDING", scope, revision: finalRevision,
       relatedRefs: [], question: "缺少有效交付文件", nextAction: "导出当前版本并选择本次交付文件", closesWhen: "选择哈希有效的当前版本文件" });
     const director = assignmentForScope("director", scope);
     for (const blocker of completionBlockers) {
@@ -3372,6 +3413,120 @@ export class EditingApplication {
 
   registerMotionWork(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; logicalWorkId?: Id; onSuccess?: MotionOnSuccess; readyRanges?: MotionWork["readyRanges"]; inputBundle?: Parameters<EditingApplication["submitManagedMotion"]>[0]["inputBundle"] }) {
     return this.submitManagedMotion({ ...input, outputIntent: "prepare" });
+  }
+
+  /** 开工检查从项目现有采用记录和时间线派生，不另存一份状态。 */
+  async readDirectWholeFilmPreparation(projectId: Id, runId: Id) {
+    const state = this.readProject(projectId);
+    const report = await this.readSkillExecutionReport({ projectId, runId });
+    const scenes = wholeFilmProductionScenes(state.snapshot);
+    const issues = await evaluateProductionCoordination({ report, snapshot: state.snapshot, scope: { kind: "project" }, phase: "authoring",
+      readRevision: revision => this.repository.getRevision(projectId, revision).snapshot });
+    const deliveries = new Map<string, NonNullable<CreativeDecision["deliveryRef"]>>();
+    for (const treatment of state.snapshot.visualTreatments) {
+      const ref = treatment.adoptedDecisionRef;
+      const decision = ref?.productionRunId === runId ? report.creativeDecisions.find(item => item.id === ref.decisionId && item.phase === "adoption") : undefined;
+      if (treatment.status === "ready" && decision?.deliveryRef) deliveries.set(decision.deliveryRef.manifestSha256, decision.deliveryRef);
+    }
+    const complete = [...deliveries.values()].filter(delivery => delivery.sceneIds.length === scenes.length && scenes.every(scene => delivery.sceneIds.includes(scene.id)));
+    if (report.intent !== "full_creation" || report.completionScope.kind !== "project" || state.snapshot.project.profile !== "visual_explainer"
+      || !scenes.length || scenes.some((scene, index) => index > 0 && scene.startFrame < scenes[index - 1].endFrame)) {
+      issues.push({ code: "DIRECT_WHOLE_FILM_RANGE_INVALID", scope: { kind: "project" }, relatedDecisionIds: [], relatedObjectIds: [], state: "missing",
+        message: "整片直接制作需要按顺序排列且不重叠的解说场面", nextAction: "由导演协调场面和时间线" });
+    }
+    if (complete.length !== 1) issues.push({ code: "DIRECT_WHOLE_FILM_DELIVERY_MISSING", scope: { kind: "project" }, relatedDecisionIds: [], relatedObjectIds: scenes.map(scene => scene.id), state: "missing",
+      message: "整片需要唯一一份覆盖全部场面的已采用清单", nextAction: "续接视觉作者和导演确认同版整片清单" });
+    if (complete.length === 1 && !issues.length) {
+      const manifestHash = complete[0].manifestSha256;
+      const manifests = new Map<string, ReferenceManifest>();
+      const decisions = new Map(report.creativeDecisions.map(decision => [decision.id, decision]));
+      const designs = new Map<Id, CreativeDecision[]>();
+      for (const target of wholeFilmSceneTargets(scenes, 0)) {
+        const scene = scenes.find(item => item.id === target.sceneId)!;
+        const ids = state.snapshot.visualTreatments.filter(treatment => {
+          const ref = treatment.adoptedDecisionRef;
+          const decision = ref?.productionRunId === runId ? report.creativeDecisions.find(item => item.id === ref.decisionId && item.phase === "adoption") : undefined;
+          return treatment.status === "ready" && decision?.deliveryRef?.manifestSha256 === manifestHash
+            && (treatment.sceneId === scene.id || !treatment.sceneId && treatment.narrativeBeatId && scene.narrativeBeatIds.includes(treatment.narrativeBeatId));
+        }).map(treatment => treatment.id);
+        try {
+          if (!ids.length) throw new DomainError("该场尚未采用同版画面方案", "ADOPTION_PENDING");
+          validateMotionContinuation(state.snapshot, target);
+          const inputs = await this.resolveMotionAuthoringInputs({ projectId, productionRunId: runId, visualTreatmentIds: ids, target }, state, manifests);
+          this.assertMotionAuthoringInputsCurrent(state.snapshot, scene.id, inputs, true, target);
+          designs.set(scene.id, inputs.flatMap(input => (decisions.get(input.adoptedDecisionRef.decisionId)?.inputDecisionIds ?? [])
+            .flatMap(id => { const design = decisions.get(id); return design?.phase === "visual_design" && sameVisualDelivery(design.deliveryRef, input.deliveryRef) ? [design] : []; })));
+        } catch (error) {
+          if (!(error instanceof DomainError)) throw error;
+          const assignment = report.assignments.find(item => item.responsibilities.includes(error.code === "ADOPTION_PENDING" ? "director" : "visual_design"));
+          issues.push({ code: error.code, scope: { kind: "objects", objectIds: [scene.id] }, relatedDecisionIds: [], relatedObjectIds: [scene.id],
+            assignmentId: assignment?.assignmentId, state: "missing", message: error.message, nextAction: "续接该场原负责人核对方案和清单" });
+        }
+      }
+      if (!issues.length) {
+        const manifest = manifests.get(manifestHash)!;
+        try { assertReferenceResearch(report, state.snapshot, manifest, [], scenes.map(scene => scene.id), undefined, undefined, designs); }
+        catch (error) {
+          if (!(error instanceof ProductionReferenceResearchError)) throw error;
+          issues.push(...error.issues);
+        }
+      }
+    }
+    return { revision: state.revision.number, ready: issues.length === 0, issues, delivery: complete[0] };
+  }
+
+  async registerWholeFilmVisualAuthorMotionWork(input: { projectId: Id; baseRevision: number; idempotencyKey: string;
+    work: MotionSubmission; productionOrigin: NonNullable<MotionWork["productionOrigin"]>; manifestSha256: string }) {
+    const existing = this.repository.listJobs(input.projectId).find(job => job.idempotencyKey === `motion:${input.idempotencyKey}`);
+    if (existing) {
+      if (existing.payload.requestedRevision !== input.baseRevision || JSON.stringify(existing.payload.productionOrigin) !== JSON.stringify(input.productionOrigin)
+        || existing.payload.directManifestSha256 !== input.manifestSha256
+        || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(motionSubmissionSchema.parse(input.work))) {
+        throw new DomainError("幂等键已用于不同整片制作输入", "MOTION_IDEMPOTENCY_CONFLICT");
+      }
+      return existing;
+    }
+    const preparation = await this.readDirectWholeFilmPreparation(input.projectId, input.productionOrigin.runId);
+    if (preparation.revision !== input.baseRevision) throw new RevisionConflictError(input.baseRevision, preparation.revision);
+    if (!preparation.ready) throw new MotionAuthoringCoordinationError(preparation.issues);
+    if (preparation.delivery?.manifestSha256 !== input.manifestSha256) throw new DomainError("当前采用的整片清单已变化", "MOTION_AUTHORING_DELIVERY_INVALID");
+    const state = this.readProject(input.projectId, input.baseRevision);
+    const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionOrigin.runId });
+    const assignment = report.assignments.find(item => item.assignmentId === input.productionOrigin.assignmentId);
+    const scenes = wholeFilmProductionScenes(state.snapshot);
+    if (!assignment || report.status === "completed" || report.status === "abandoned"
+      || scenes.some(scene => missingReviewRanges(responsibilityAssignmentRanges(state.snapshot, report, assignment, "visual_design"), scene.startFrame, scene.endFrame).length)) {
+      throw new DomainError("整片范围须属于当前视觉作者分派", "PRODUCTION_ASSIGNMENT_INVALID");
+    }
+    if (input.work.width !== state.snapshot.timeline.width || input.work.height !== state.snapshot.timeline.height
+      || input.work.fps !== state.snapshot.timeline.fps || input.work.durationInFrames !== Math.max(scenes.at(-1)!.endFrame, state.snapshot.timeline.durationInFrames)) {
+      throw new DomainError("整片源码画幅、帧率与时长须与项目一致", "MOTION_AUTHORING_WHOLE_FILM_INVALID");
+    }
+    const manifests = new Map<string, ReferenceManifest>();
+    const continuations: FrozenMotionContinuation[] = [];
+    for (const target of wholeFilmSceneTargets(scenes, 0)) {
+      const scene = scenes.find(item => item.id === target.sceneId)!;
+      validateMotionContinuation(state.snapshot, target);
+      const ids = state.snapshot.visualTreatments.filter(treatment => {
+        const ref = treatment.adoptedDecisionRef;
+        const decision = ref?.productionRunId === report.id ? report.creativeDecisions.find(item => item.id === ref.decisionId && item.phase === "adoption") : undefined;
+        return treatment.status === "ready" && decision?.deliveryRef?.manifestSha256 === input.manifestSha256
+          && (treatment.sceneId === scene.id || !treatment.sceneId && treatment.narrativeBeatId && scene.narrativeBeatIds.includes(treatment.narrativeBeatId));
+      }).map(treatment => treatment.id);
+      if (!ids.length) throw new MotionAuthoringCoordinationError([{ code: "ADOPTION_PENDING", scope: { kind: "objects", objectIds: [scene.id] },
+        relatedDecisionIds: [], relatedObjectIds: [scene.id], state: "missing", message: `场面 ${scene.title} 尚未采用画面方案`, nextAction: "续接主导演确认该场" }]);
+      const authoringInputs = await this.resolveMotionAuthoringInputs({ projectId: input.projectId, productionRunId: report.id, visualTreatmentIds: ids, target }, state, manifests);
+      this.assertMotionAuthoringInputsCurrent(state.snapshot, scene.id, authoringInputs, true, target);
+      continuations.push({ request: target, authoringInputs, targetDependencyHash: motionTargetDependencyHash(state.snapshot, target, ids) });
+    }
+    const manifest = manifests.get(input.manifestSha256);
+    if (!manifest || manifests.size !== 1) throw new DomainError("整片采用清单不一致", "MOTION_AUTHORING_DELIVERY_INVALID");
+    const decisions = new Map(report.creativeDecisions.map(decision => [decision.id, decision]));
+    const designs = new Map(continuations.map(entry => [(entry.request as Extract<MotionOnSuccess, { action: "create_cue" }>).sceneId,
+      (entry.authoringInputs ?? []).flatMap(authoring => (decisions.get(authoring.adoptedDecisionRef.decisionId)?.inputDecisionIds ?? [])
+        .flatMap(id => { const design = decisions.get(id); return design?.phase === "visual_design" && sameVisualDelivery(design.deliveryRef, authoring.deliveryRef) ? [design] : []; }))]));
+    assertReferenceResearch(report, state.snapshot, manifest, [], scenes.map(scene => scene.id), undefined, undefined, designs);
+    return this.submitManagedMotion({ ...input, outputIntent: "prepare", wholeFilmContinuations: continuations, directManifestSha256: input.manifestSha256 });
   }
 
   async registerVisualAuthorMotionWork(input: Parameters<EditingApplication["registerMotionWork"]>[0] & {
@@ -3632,18 +3787,13 @@ export class EditingApplication {
     const report = await this.readSkillExecutionReport({ projectId: input.projectId, runId: input.productionRunId });
     const wholeFilm = input.target.action === "whole_film";
     const initialWorkId = "motion_work_" + createHash("sha256").update(input.projectId + ":" + report.id).digest("hex");
-    const scenes = wholeFilm ? [...state.snapshot.scenes].sort((a, b) => a.startFrame - b.startFrame) : [];
+    const scenes = wholeFilm ? wholeFilmProductionScenes(state.snapshot) : [];
     if (wholeFilm && (report.intent !== "full_creation" || report.completionScope.kind !== "project"
       || state.snapshot.project.profile !== "visual_explainer" || input.openDesignRequest.continue_from_run_id
       || !scenes.length || scenes.some((scene, index) => index > 0 && scene.startFrame < scenes[index - 1]!.endFrame))) {
       throw new DomainError("整片首版需要完整解说新制任务和按顺序互不重叠的场面", "MOTION_AUTHORING_WHOLE_FILM_INVALID");
     }
-    const sceneTargets = scenes.map((scene): MotionAuthoringSceneTarget["target"] => ({
-      action: "create_cue", sceneId: scene.id, layer: "fullscreen", audioPolicy: "rebind_unchanged_events",
-      startFrame: scene.startFrame, endFrame: scene.endFrame,
-      // 全片阶段沿同一根时钟，场面源位置相对于首场入点。
-      sourceStartFrame: scene.startFrame - scenes[0]!.startFrame, sourceEndFrame: scene.endFrame - scenes[0]!.startFrame
-    }));
+    const sceneTargets = wholeFilmSceneTargets(scenes);
     const requestedTarget = input.target.action === "whole_film" ? sceneTargets[0]! : input.target;
     for (const target of wholeFilm ? sceneTargets : [requestedTarget]) validateMotionContinuation(state.snapshot, target);
     const requestedCue = requestedTarget.action === "create_cue" ? undefined : state.snapshot.effectCues.find(cue => cue.id === requestedTarget.cueId)!;
@@ -3835,11 +3985,12 @@ export class EditingApplication {
     if (existing) {
       if (JSON.stringify(existing.eventMap) !== JSON.stringify(work.eventMap)) throw new DomainError("同一固定作品的事件不确定", "MOTION_EVENT_NONDETERMINISTIC");
       if (current.snapshot.motionWorks?.find(entry => entry.id === work.id)?.definitionHash === work.definitionHash) {
-        if (job.payload.continuation && !job.result?.continuation) this.commitMotionAdoption(job, existing.id);
+        if ((job.payload.continuation || job.payload.wholeFilmContinuations) && !job.result?.continuation) this.commitMotionAdoption(job, existing.id);
         return existing;
       }
     }
     const continuation = job.payload.continuation as FrozenMotionContinuation | undefined;
+    const wholeFilmContinuations = job.payload.wholeFilmContinuations as FrozenMotionContinuation[] | undefined;
     const register = (snapshot: ProjectSnapshot, impact: ImpactReport) => {
       const works = snapshot.motionWorks ??= [], index = works.findIndex(entry => entry.id === work.id);
       if (index < 0) works.push(work);
@@ -3854,14 +4005,16 @@ export class EditingApplication {
       }
       impact.changed.push(work.id);
     };
-    const state = continuation ? this.repository.commitMotionResult({ projectId, jobId, mutate: (snapshot, impact) => {
-      register(snapshot, impact); return this.applyCurrentMotionAdoption(snapshot, impact, work.id, continuation, work.definitionHash);
+    const state = continuation || wholeFilmContinuations ? this.repository.commitMotionResult({ projectId, jobId, mutate: (snapshot, impact) => {
+      register(snapshot, impact);
+      return wholeFilmContinuations ? this.applyWholeFilmMotionAdoption(snapshot, impact, work.id, wholeFilmContinuations, work.definitionHash)
+        : this.applyCurrentMotionAdoption(snapshot, impact, work.id, continuation!, work.definitionHash);
     } }).state : this.repository.commit(projectId, current.revision.number, "登记固定源码作品", register);
     this.publish({ projectId, revision: state.revision.number, type: "revision" });
     return motionWorkVersion(state.snapshot.motionWorks, work.id, work.definitionHash)!;
   }
 
-  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; fixedWorkId?: Id; fixedDefinitionHash?: string; logicalWorkId?: Id; frameRange?: MotionFrameRange; outputIntent?: "prepare" | "proof" | "asset"; readyRanges?: MotionWork["readyRanges"]; proofJobId?: Id; onSuccess?: MotionOnSuccess; productionOrigin?: MotionWork["productionOrigin"]; authoringInputs?: MotionAuthoringTreatmentInput[]; inputBundle?: { bundlePath: string; bundleSha256: string; manifestSha256: string; source: { project: string; run_id: string; frozen_version: string } } }): JobRecord {
+  submitManagedMotion(input: { projectId: Id; baseRevision: number; idempotencyKey: string; work: MotionSubmission; fixedWorkId?: Id; fixedDefinitionHash?: string; logicalWorkId?: Id; frameRange?: MotionFrameRange; outputIntent?: "prepare" | "proof" | "asset"; readyRanges?: MotionWork["readyRanges"]; proofJobId?: Id; onSuccess?: MotionOnSuccess; productionOrigin?: MotionWork["productionOrigin"]; authoringInputs?: MotionAuthoringTreatmentInput[]; wholeFilmContinuations?: FrozenMotionContinuation[]; directManifestSha256?: string; inputBundle?: { bundlePath: string; bundleSha256: string; manifestSha256: string; source: { project: string; run_id: string; frozen_version: string } } }): JobRecord {
     const work = motionSubmissionSchema.parse(input.work);
     const frameRange = input.frameRange ? motionFrameRangeSchema.parse(input.frameRange) : undefined;
     const outputIntent = input.outputIntent ?? (frameRange ? "proof" : "asset");
@@ -3878,6 +4031,8 @@ export class EditingApplication {
     if (existing) {
       if (existing.payload.fixedWorkId !== input.fixedWorkId || existing.payload.fixedDefinitionHash !== input.fixedDefinitionHash || existing.payload.logicalWorkId !== input.logicalWorkId) throw new DomainError("幂等键已用于不同固定作品", "MOTION_IDEMPOTENCY_CONFLICT");
       if (JSON.stringify((existing.payload.continuation as FrozenMotionContinuation | undefined)?.request) !== JSON.stringify(onSuccess)) throw new DomainError("幂等键已用于不同采用指令", "MOTION_IDEMPOTENCY_CONFLICT");
+      if (JSON.stringify(existing.payload.wholeFilmContinuations) !== JSON.stringify(input.wholeFilmContinuations)
+        || existing.payload.directManifestSha256 !== input.directManifestSha256) throw new DomainError("幂等键已用于不同整片制作目标", "MOTION_IDEMPOTENCY_CONFLICT");
       if (existing.payload.requestedRevision !== input.baseRevision || (!input.fixedWorkId && JSON.stringify(existing.payload.productionOrigin) !== JSON.stringify(input.productionOrigin)) || JSON.stringify(existing.payload.inputBundle) !== JSON.stringify(input.inputBundle) || JSON.stringify(existing.payload.readyRanges) !== JSON.stringify(input.readyRanges)) throw new DomainError("幂等键已用于不同基准、可用范围或冻结来源", "MOTION_IDEMPOTENCY_CONFLICT");
       if (existing.kind !== "motion_generation" || motionHash(motionSubmissionSchema.parse(existing.payload.work)) !== motionHash(work) || JSON.stringify(existing.payload.frameRange) !== JSON.stringify(frameRange) || (existing.payload.outputIntent ?? (existing.payload.frameRange ? "proof" : "asset")) !== outputIntent || (existing.payload.reusableProof as { jobId?: string } | undefined)?.jobId !== input.proofJobId) throw new DomainError("幂等键已用于不同作品输入", "MOTION_IDEMPOTENCY_CONFLICT");
       return existing;
@@ -3948,7 +4103,7 @@ export class EditingApplication {
     const reusable = current.snapshot.assets.find(asset => asset.status === "ready" && asset.motion?.output && asset.motion.pixelKey === pixelKey
       && (!work.renderedAssetId || asset.id === work.renderedAssetId));
     if (work.renderedAssetId && (!reusable || outputIntent === "proof")) throw new DomainError("所引用媒体没有相同源码、绑定、字体、时钟、输出范围和编码身份，或当前提交为校样", "MOTION_RENDERED_ASSET_MISMATCH");
-    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, outputIntent, ...(input.fixedWorkId ? { fixedWorkId: input.fixedWorkId, fixedDefinitionHash: input.fixedDefinitionHash, sourceAuthor: fixedWork?.author } : {}), ...((fixedWork?.productionOrigin ?? input.productionOrigin) ? { productionOrigin: fixedWork?.productionOrigin ?? input.productionOrigin } : {}), ...(input.logicalWorkId ? { logicalWorkId: input.logicalWorkId } : {}), ...(input.readyRanges ? { readyRanges: input.readyRanges } : {}), ...(input.inputBundle ? { inputBundle: input.inputBundle } : {}), ...(continuation ? { continuation } : {}), ...(reusableProof ? { reusableProof } : {}), ...(reusable && outputIntent === "asset" ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
+    const job = this.repository.createJob({ projectId: input.projectId, kind: "motion_generation", payload: { work, version, pixelKey, outputIntent, ...(input.fixedWorkId ? { fixedWorkId: input.fixedWorkId, fixedDefinitionHash: input.fixedDefinitionHash, sourceAuthor: fixedWork?.author } : {}), ...((fixedWork?.productionOrigin ?? input.productionOrigin) ? { productionOrigin: fixedWork?.productionOrigin ?? input.productionOrigin } : {}), ...(input.logicalWorkId ? { logicalWorkId: input.logicalWorkId } : {}), ...(input.readyRanges ? { readyRanges: input.readyRanges } : {}), ...(input.inputBundle ? { inputBundle: input.inputBundle } : {}), ...(continuation ? { continuation } : {}), ...(input.wholeFilmContinuations ? { wholeFilmContinuations: input.wholeFilmContinuations, directManifestSha256: input.directManifestSha256 } : {}), ...(reusableProof ? { reusableProof } : {}), ...(reusable && outputIntent === "asset" ? { reusableAsset: reusable } : {}), ...(frameRange ? { frameRange } : {}), sourceDisplay, sourceDisplayWarnings, engineVersion: MOTION_ENGINE_VERSION, requestedRevision: input.baseRevision, boundImages, ...(boundVideos.length ? { boundVideos } : {}), ...(boundFonts.length ? { boundFonts } : {}) }, idempotencyKey: `motion:${input.idempotencyKey}` });
     this.publish({ projectId: input.projectId, revision: current.revision.number, type: "job" });
     return job;
   }
@@ -4041,8 +4196,24 @@ export class EditingApplication {
     return job;
   }
 
+  private applyWholeFilmMotionAdoption(snapshot: ProjectSnapshot, impact: ImpactReport, workId: Id,
+    continuations: FrozenMotionContinuation[], definitionHash?: string) {
+    // 在副本中核对所有场面，任何冲突都不将部分场面写入时间线。
+    const candidate = structuredClone(snapshot), changes = structuredClone(impact);
+    const segments: Array<{ cueId: Id; startFrame: number; endFrame: number }> = [];
+    for (const frozen of continuations) {
+      const result = this.applyCurrentMotionAdoption(candidate, changes, workId, frozen, definitionHash);
+      if (result.status !== "applied") return result;
+      segments.push(...result.cueSegments.segments);
+    }
+    Object.assign(snapshot, candidate);
+    Object.assign(impact, changes);
+    return { status: "applied" as const, workId, cueSegments: { segments } };
+  }
+
   private commitMotionAdoption(job: JobRecord, workId: Id) {
-    const frozen = job.payload.continuation as FrozenMotionContinuation;
+    const frozen = job.payload.continuation as FrozenMotionContinuation | undefined;
+    const wholeFilm = job.payload.wholeFilmContinuations as FrozenMotionContinuation[] | undefined;
     const committed = this.repository.commitMotionResult({ projectId: job.projectId, jobId: job.id,
       mutate: (snapshot, impact) => {
         const candidate = motionWorkVersion(snapshot.motionWorks, workId, job.kind === "motion_adoption" ? String(job.payload.definitionHash) : undefined);
@@ -4050,7 +4221,8 @@ export class EditingApplication {
           status: "needs_reconfirmation", workId, conflicts: [{ objectId: workId, reason: "待采用作品身份已改变，需要重新确认" }]
         };
         readMotionDefinition(snapshot.project.rootPath, candidate);
-        return this.applyCurrentMotionAdoption(snapshot, impact, workId, frozen, candidate.definitionHash);
+        return wholeFilm ? this.applyWholeFilmMotionAdoption(snapshot, impact, workId, wholeFilm, candidate.definitionHash)
+          : this.applyCurrentMotionAdoption(snapshot, impact, workId, frozen!, candidate.definitionHash);
       } });
     this.publish({ projectId: job.projectId, revision: committed.state.revision.number, type: "revision" });
     this.publish({ projectId: job.projectId, revision: committed.state.revision.number, type: "job" });
@@ -10479,6 +10651,47 @@ export class EditingApplication {
     });
     this.publish({ projectId: input.projectId, revision: state.revision.number, type: "job" });
     return job;
+  }
+
+  /** 读取同版冻结采用与已核验观察，供提交入口和渲染前再次检查。 */
+  async addDeliveryQualityIssues(projectId: Id, revision: number, quality: QualityReport, review?: EditorialQualityReview): Promise<QualityReport> {
+    const snapshot = this.repository.getRevision(projectId, revision).snapshot;
+    const directory = join(this.getProjectRoot(projectId), "reports");
+    const reports = (existsSync(directory) ? readdirSync(directory, { withFileTypes: true }) : [])
+      .filter(entry => entry.isFile() && /^production-run-production_run_[a-zA-Z0-9-]+\.json$/u.test(entry.name))
+      .map(entry => JSON.parse(readFileSync(join(directory, entry.name), "utf8")) as SkillExecutionReport)
+      .filter(report => report.projectId === projectId && report.baseRevision <= revision && report.status !== "abandoned");
+    if (!reports.some(report => report.completionScope.kind === "project" && requiresVisualReferenceUnits(report, snapshot))) return quality;
+    const actualReview = review ?? await this.readEditorialQualityReview({ projectId, revision });
+    const comparisons = await referenceComparisonsForRevision(this, snapshot, { startFrame: 0, endFrame: snapshot.timeline.durationInFrames }, "workbench");
+    const targets = comparisons.filter(item => item.use === "primary");
+    const mainScenes = wholeFilmProductionScenes(snapshot);
+    const referenceGaps = mainScenes.flatMap(scene => missingReviewRanges(targets.filter(item => item.identity.sceneId === scene.id)
+      .map(item => item.targetRange), scene.startFrame, scene.endFrame)
+      .map(gap => `「${scene.title}」${gap.startFrame}–${gap.endFrame} 帧缺少正式采用的主要参考映射。`));
+    for (const item of visualReferenceReviewCoverage(targets, actualReview, revision)) for (const gap of item.missingRanges) {
+      referenceGaps.push(`参考 ${item.identity.referenceId} 的 ${gap.startFrame}–${gap.endFrame} 帧缺少同版连续对照。`);
+    }
+    const duration = snapshot.timeline.durationInFrames;
+    const wholeFilmObserved = duration > 0 && (actualReview?.evidenceRecords ?? []).some(entry => entry.revision === revision
+      && entry.method === "audiovisual" && entry.startFrame === 0 && entry.endFrame === duration
+      && (!actualReview?.applicableEvidence || !missingReviewRanges(actualReview.applicableEvidence.filter(part =>
+        part.evidenceId === entry.id && part.targetRevision === revision), 0, duration).length));
+    const deliveryQualityIssues = exportDeliveryBlockingIssues(quality, { referenceGaps, wholeFilmObserved });
+    const blockers = exportBlockingIssues({ ...quality, deliveryQualityIssues }, "delivery");
+    const previousIds = new Set((quality.deliveryQualityIssues ?? []).map(issue => issue.id));
+    return { ...quality, deliveryQualityIssues, exportReadiness: { ...quality.exportReadiness,
+      delivery: { allowed: blockers.length === 0, blockers } }, requiredFixes: blockers,
+      issues: [...quality.issues.filter(issue => !previousIds.has(issue.id)), ...deliveryQualityIssues] };
+  }
+
+  async assertDeliveryQuality(projectId: Id, revision?: number): Promise<void> {
+    const state = this.readProject(projectId, revision);
+    const review = await this.readEditorialQualityReview({ projectId, revision: state.revision.number });
+    const quality = await evaluateQualityWithBrowser(state.snapshot, state.revision.number, review, state.reviews);
+    const checked = await this.addDeliveryQualityIssues(projectId, state.revision.number, quality, review);
+    const issues = checked.deliveryQualityIssues ?? [];
+    if (issues.length) throw new DomainError(`正式交付前仍需审核：${issues.map(issue => issue.message).join("、")}可先导出草稿。`, "EXPORT_EDITORIAL_BLOCKED");
   }
 
   /** 首次交付前从制作记录定位整片任务，即使还没有写入任何采用。 */

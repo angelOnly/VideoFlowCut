@@ -1,20 +1,23 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
+import { createServer, type Server } from "node:http";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import test from "node:test";
-import { runProcess } from "@videocut/speech";
+import { probeMedia, runProcess } from "@videocut/speech";
 import { createApplication } from "@videocut/application";
+import { evaluateQuality } from "@videocut/quality";
 import { processClaimedJob } from "@videocut/job-runtime";
 import { readRuntimeConfig } from "@videocut/project-overview";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { registerMotionTools } from "../apps/server/src/motion-tools.js";
 import { motionBundleHash } from "../packages/edit-application/src/motion-input.js";
 import { runMotionJob } from "../apps/render-worker/src/motion-job.js";
-import { runPreviewJob } from "../apps/render-worker/src/exporter.js";
+import { RevisionRenderer, runExportJob, runPreviewJob } from "../apps/render-worker/src/exporter.js";
 import { runMotionAuthoringJob } from "../apps/runtime/src/motion-authoring.js";
 import { loadCreativeIndex, readCreativeCase } from "../references/motion-cases/skillry/tools/creative-library.mjs";
 import { readLibraryMechanism } from "../references/motion-cases/skillry/tools/library-store.mjs";
@@ -22,28 +25,35 @@ import { motionFixture } from "./fixtures/managed-motion.js";
 import { motionHtml } from "./fixtures/hyperframes.js";
 import { completeResearchCoverage, directorBrief, researchPlan } from "./fixtures/visual-plan.mjs";
 import { productionUnitHandoffSchema, type ProductionUnitHandoffInput } from "../packages/contracts/src/production-unit-handoff.js";
-import type { ProductionUnitDraft, ProductionUnitHandoffEvent } from "@videocut/contracts";
+import type { EditorialQualityReview, ProductionUnitDraft, ProductionUnitHandoffEvent } from "@videocut/contracts";
 
-for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_adoption"] as const) test({
+for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_adoption", "direct_whole", "direct_whole_conflict"] as const) test({
   direct: "视觉作者独立登记固定作品并采用",
   takeover: "OD 失败保留回执并由原视觉作者接管",
   general: "完整新制从零作品准备参考、自动送件并接回同一冻结作品",
   whole_film: "整片首版一次送出两场并将跨场阶段回件接入同一作品",
-  zero_adoption: "全片研究完成但无有效主参考映射时拒绝正式组包"
+  zero_adoption: "全片研究完成但无有效主参考映射时拒绝正式组包",
+  direct_whole: "直接制作自动接回两场并复用原任务",
+  direct_whole_conflict: "整片制作期间改稿保留作品且不部分上轨"
 }[scenario], { timeout: 60_000 }, async () => {
-  const zeroAdoption = scenario === "zero_adoption", wholeFilm = scenario === "whole_film" || zeroAdoption;
+  const zeroAdoption = scenario === "zero_adoption", directWhole = scenario === "direct_whole" || scenario === "direct_whole_conflict";
+  const wholeFilm = scenario === "whole_film" || zeroAdoption || directWhole;
   const root = await mkdtemp(join(tmpdir(), "vfc-full-handoff-")), app = createApplication(root);
   const originalFetch = globalThis.fetch;
   let stopping = false;
   let worker: Promise<void> | undefined;
   let mcpClient: Client | undefined;
+  let runtimeServer: Server | undefined;
+  let returnedAuthoring: unknown;
   try {
     const projectId = app.createProject({ name: "完整新制隔离验证", ...(wholeFilm ? { profile: "visual_explainer" as const } : {}) }).snapshot.project.id;
     const rev = () => app.readProject(projectId).revision.number;
     app.repository.commit(projectId, rev(), "隔离画布", snapshot => Object.assign(snapshot.timeline, { width: 320, height: 320, fps: 25 }));
-    const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "真实素材场面", purpose: "验证交接", startFrame: 100, endFrame: 125 }).snapshot.scenes[0]!;
+    const firstFrame = directWhole ? 0 : 100;
+    const scene = app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene", title: "真实素材场面", purpose: "验证交接", startFrame: firstFrame, endFrame: firstFrame + 25 }).snapshot.scenes[0]!;
     const secondScene = wholeFilm ? app.createScene({ projectId, baseRevision: rev(), type: "ExplainerScene",
-      title: "第二场真实素材", purpose: "验证跨场接回", startFrame: 125, endFrame: 150 }).snapshot.scenes.at(-1) : undefined;
+      title: "第二场真实素材", purpose: "验证跨场接回", startFrame: firstFrame + 25, endFrame: firstFrame + 50 }).snapshot.scenes.at(-1) : undefined;
+    if (directWhole) app.repository.commit(projectId, rev(), "固定整片范围", snapshot => { snapshot.timeline.durationInFrames = 50; });
     const sceneIds = [scene.id, ...(secondScene ? [secondScene.id] : [])];
     const endFrame = secondScene?.endFrame ?? scene.endFrame;
     const workLength = endFrame - scene.startFrame;
@@ -54,6 +64,16 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
     const asset = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "真实主体", kind: "image", managedPath: assetRelative,
       sourceHash: createHash("sha256").update(imageBytes).digest("hex") }).asset;
     app.applyMediaAnalysis({ projectId, assetId: asset.id, metadata: { durationMs: 1000, width: 1, height: 1, hasAudio: false } });
+    if (wholeFilm) {
+      const videoPath = join(projectRoot, "assets", "source", "辅助镜头.mp4");
+      await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:s=64x64:r=25:d=1", "-c:v", "libx264", videoPath]);
+      const video = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "辅助镜头", kind: "video", managedPath: "assets/source/辅助镜头.mp4",
+        sourceHash: createHash("sha256").update(await readFile(videoPath)).digest("hex") }).asset;
+      app.applyMediaAnalysis({ projectId, assetId: video.id, metadata: await probeMedia(videoPath) });
+      for (const host of [scene, secondScene!]) app.manageCutaway({ projectId, baseRevision: rev(), action: "create", hostSceneId: host.id,
+        assetId: video.id, mode: "fullscreen", fit: "contain", audioMode: "mute_source_audio", purpose: "素材验证", audienceTask: "观察素材",
+        sourceStartFrame: 0, sourceEndFrame: 10, startFrame: host.startFrame, endFrame: host.startFrame + 10 });
+    }
     assert.equal(app.readProject(projectId).snapshot.motionWorks?.length ?? 0, 0);
 
     const run = await app.startProductionRun({ projectId, baseRevision: rev(), intent: "full_creation", completionScope: { kind: "project" },
@@ -62,6 +82,11 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
     assert.equal(app.submitExport({ projectId, purpose: "draft" }).kind, "export");
     const initial = await app.evaluateProductionCompletion({ projectId, runId: run.id, revision: rev(), completionScope: { kind: "project" } });
     assert.ok(initial.coordinationIssues.some(issue => issue.code === "MOTION_COVERAGE_MISSING"));
+    if (wholeFilm) {
+      const status = await app.readProductionStatus(projectId, { runId: run.id });
+      assert.equal(status.unitHandoffs?.length, 2, "辅助镜头不生成独立的正式交件单元");
+      assert.ok(!status.preparation?.directWholeFilm?.issues.some(issue => issue.code === "DIRECT_WHOLE_FILM_RANGE_INVALID"));
+    }
     await app.updateProductionRun({ projectId, runId: run.id, expectedAuditVersion: run.auditVersion, operationId: "assign-authors", action: "add_assignment",
       assignment: { assignmentId: "authors", agentId: "/fixture/authors", responsibilities: ["director", "narration", "asset_sourcing", "visual_design", "motion_research"],
         skillIds: ["production-director", "narration-writing", "visual-asset-sourcing", "creative-sequence-design", "visual-treatment-planning", "creative-reference-to-sequence", "motion-case-library"],
@@ -101,9 +126,9 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
     const motion = await record("motion_research", { researchOutcome: "researched",
       researchReferences: [{ ...motionSource, observedRelation: "旁层进入时，继续保持可辨的素材主体和原布局" }] });
     const brief = join(root, "brief.md"), timing = join(root, "timing.md");
-    const authorRequest = "让真实主体先占满画面，再退到小窗。\n\n保持主体与构图。保留主体与文字，接手比原片晚两拍，停稳后接续下一幅。";
+    const authorRequest = "主体建立，观察主体。让真实主体先占满画面，再退到小窗。\n\n保持主体与构图。保留主体与文字，接手比原片晚两拍，停稳后接续下一幅。";
     const sceneRequest = ["### 场面 " + scene.id + "\n" + authorRequest,
-      ...(secondScene ? ["### 场面 " + secondScene.id + "\n保持主体与构图。第二场沿真实素材入口接手，保持花字层次直到落点。"] : [])].join("\n\n");
+      ...(secondScene ? ["### 场面 " + secondScene.id + "\n主体建立，观察主体。保持主体与构图。第二场沿真实素材入口接手，保持花字层次直到落点。"] : [])].join("\n\n");
     const allScenes = [scene, ...(secondScene ? [secondScene] : [])];
     const forgedDraftPath = join(root, "creative.md"), imagePath = join(root, "restage.png"), restagePath = join(root, "restage.mp4");
     await writeFile(forgedDraftPath, "把素材和所有文字同时放上来。");
@@ -114,8 +139,28 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
     const mcpServer = new McpServer({ name: "range-test", version: "1.0.0" });
     registerMotionTools(mcpServer, app, () => projectId);
     mcpClient = new Client({ name: "range-test-client", version: "1.0.0" });
-    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-    await mcpServer.connect(serverTransport); await mcpClient.connect(clientTransport);
+    const candidateRelease = wholeFilm ? process.env.VFC_DIRECT_WHOLE_CANDIDATE : undefined;
+    if (candidateRelease) {
+      const manifest = JSON.parse(await readFile(join(candidateRelease, "manifest.json"), "utf8")) as { releaseId: string };
+      // 候选 MCP 在独立进程，使用隔离 HTTP 服务返回与内存测试相同的阶段回件。
+      runtimeServer = createServer((request, response) => {
+        if (!request.url?.startsWith(`/api/projects/${projectId}/motion-authoring/`) || !request.url.includes("/wait?")) {
+          response.writeHead(404).end(); return;
+        }
+        response.writeHead(200, { "content-type": "application/json", "x-videoflowcut-release-id": manifest.releaseId });
+        response.end(JSON.stringify({ authoring: returnedAuthoring }));
+      });
+      await new Promise<void>(resolveListen => runtimeServer!.listen(0, "127.0.0.1", resolveListen));
+      const address = runtimeServer.address();
+      assert.ok(address && typeof address !== "string");
+      await mcpClient.connect(new StdioClientTransport({ command: process.execPath, args: [join(candidateRelease, "mcp.cjs")], cwd: process.cwd(),
+        env: { ...process.env, VIDEOCUT_WORKSPACE: root, VIDEOFLOWCUT_REPO_ROOT: process.cwd(), VIDEOFLOWCUT_RUNTIME_DIST: candidateRelease,
+          VIDEOFLOWCUT_RELEASE_ID: manifest.releaseId, WEB_ORIGIN: `http://127.0.0.1:${address.port}`,
+          NODE_PATH: join(process.cwd(), "node_modules") } as Record<string, string>, stderr: "pipe" }));
+    } else {
+      const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+      await mcpServer.connect(serverTransport); await mcpClient.connect(clientTransport);
+    }
     const drafts = new Map<string, { draft: ProductionUnitDraft; receipt: string }>();
     const handoff = async (input: ProductionUnitHandoffInput, runId = run.id) => {
       const current = await app.readSkillExecutionReport({ projectId, runId });
@@ -201,6 +246,7 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
     const plan = researchPlan("主体", research.id, ["overallVisual", "sceneComposition"]);
     const scenePlans = allScenes.map(item => ({ ...plan,
       units: [{ id: item.id, title: item.title, startFrame: item.startFrame, endFrame: item.endFrame,
+        performance: { mode: "quiet_observation", openingState: "主体建立", primaryRole: "主体", retainedRoles: [], respondingRoles: [], quietPurpose: "观察主体" },
         mode: "full_reference", creativeDecisionId: research.id, creativeDraftId: "draft-" + item.id, handoffReceiptId: drafts.get(item.id)?.receipt,
         restage: { resourceId: "restage", sourceMs: 100, projectFrame: item.startFrame } }],
       referenceMappings: zeroAdoption ? [] : [{ referenceId: "002-c01", referenceKind: "creative", researchDecisionId: research.id,
@@ -229,6 +275,21 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
           timing_plan_path: timing, selected_scene_ids: selected, ...body } });
       return JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
     };
+    if (!zeroAdoption && !secondScene) {
+      const missingPerformance = structuredClone(payload());
+      delete (missingPerformance.scenes[0]!.visualPlan.units[0] as { performance?: unknown }).performance;
+      assert.match((await prepare(sceneIds, missingPerformance)).issues[0].message, /缺少动态演出设计/u);
+      const badRole = structuredClone(payload());
+      badRole.scenes[0]!.visualPlan.units[0]!.performance.primaryRole = "未登记主体";
+      assert.match((await prepare(sceneIds, badRole)).issues[0].message, /主要主体未登记/u);
+      const badStages = structuredClone(payload());
+      (badStages.scenes[0]!.visualPlan.units[0] as { performance: unknown }).performance = {
+        mode: "continuous_motion", openingState: "主体建立", primaryRole: "主体", retainedRoles: [], respondingRoles: [],
+        stages: ["entry", "build", "result", "exit"].map(phase => ({ phase, startFrame: scene.startFrame, endFrame: scene.endFrame + 1,
+          action: "主体建立", visibleRoles: ["主体"] }))
+      };
+      assert.match((await prepare(sceneIds, badStages)).issues[0].message, /帧段、动作或可见角色无效/u);
+    }
     if (zeroAdoption) {
       const prepared = await prepare([scene.id]);
       assert.equal(prepared.issues[0].code, "VISUAL_UNIT_PRIMARY_REFERENCE_MISSING");
@@ -259,6 +320,8 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
       mapping.researchDecisionId = researchDecisionId;
       await writeFile(brief, latestBrief.replace(sceneRequest, sceneRequest.replace("保持主体与构图。", "")));
       assert.match((await prepare()).issues[0].message, /缺少锁定视觉关系/u);
+      await writeFile(brief, latestBrief.replace(sceneRequest, sceneRequest.replace("观察主体", "")));
+      assert.match((await prepare()).issues[0].message, /缺少动态演出/u);
       await writeFile(brief, latestBrief);
     }
     const prepared = await prepare();
@@ -283,12 +346,106 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
       [[100, 500, firstBeat], [400, 900, secondBeat]]);
     assert.equal(comparison.preserveRelation, "主体接管");
     assert.equal(comparison.purpose, "主体进入小窗");
+    assert.deepEqual(comparison.performance, scenePlans[0]!.units[0]!.performance);
     assert.deepEqual(comparison.sequence, scenePlans[0]?.sequence);
     const adoption = await record("adoption", { inputDecisionIds: [design.id], deliveryRef: { manifestPath, manifestSha256, sceneIds } });
     const treatment = app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: scene.id, mode: "b_roll", intensity: "medium",
       primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [asset.id], adoptedDecisionRef: { productionRunId: run.id, decisionId: adoption.id } }).snapshot.visualTreatments[0]!;
+    if (directWhole) {
+      const preparation = await app.readDirectWholeFilmPreparation(projectId, run.id);
+      assert.equal(preparation.ready, false);
+      assert.ok(preparation.issues.some(issue => issue.relatedObjectIds.includes(secondScene!.id)));
+      const rejected = await mcpClient!.callTool({ name: "register_visual_author_motion_work", arguments: {
+        project_id: projectId, base_revision_id: rev(), idempotency_key: "missing-scene", production_run_id: run.id,
+        visual_author_assignment_id: "authors", work: { ...motionFixture, width: 320, height: 320, fps: 25, durationInFrames: 50 },
+        target: { action: "whole_film", manifest_sha256: manifestSha256 }
+      } });
+      assert.equal(rejected.isError, true);
+      const diagnostic = JSON.parse((rejected.content as Array<{ text: string }>)[0]!.text);
+      assert.equal(diagnostic.sideEffects, "none");
+      assert.ok(diagnostic.issues.some((issue: { relatedObjectIds: string[] }) => issue.relatedObjectIds.includes(secondScene!.id)));
+      assert.equal(app.repository.listJobs(projectId).filter(job => job.kind === "motion_generation").length, 0);
+    }
     const secondTreatment = secondScene ? app.manageVisualTreatment({ projectId, baseRevision: rev(), action: "upsert", sceneId: secondScene.id, mode: "b_roll", intensity: "medium",
       primaryAttention: "主体", narrativePurpose: "说明", adoptedMaterialAssetIds: [asset.id], adoptedDecisionRef: { productionRunId: run.id, decisionId: adoption.id } }).snapshot.visualTreatments.at(-1) : undefined;
+    if (directWhole) {
+      const preparation = await app.readDirectWholeFilmPreparation(projectId, run.id);
+      assert.equal(preparation.ready, true, JSON.stringify({ issues: preparation.issues, timeline: app.readProject(projectId).snapshot.timeline, scenes: app.readProject(projectId).snapshot.scenes }));
+      const work = { ...motionFixture, source: motionHtml('<div style="position:absolute;inset:0;background:#e02020"></div><img data-vfc-image-slot="subject">', "", { width: 320, height: 320, fps: 25, durationInFrames: 50 }),
+        width: 320, height: 320, fps: 25, durationInFrames: 50, imageBindings: { subject: asset.id } };
+      const registration = { project_id: projectId, base_revision_id: rev(), idempotency_key: "whole-direct", work,
+        production_run_id: run.id, visual_author_assignment_id: "authors", target: { action: "whole_film", manifest_sha256: manifestSha256 } };
+      const response = await mcpClient!.callTool({ name: "register_visual_author_motion_work", arguments: registration });
+      assert.notEqual(response.isError, true, JSON.stringify(response.content));
+      const job = JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
+      const productionStatus = await app.readProductionStatus(projectId, { runId: run.id });
+      assert.equal(productionStatus.preparation?.directWholeFilm?.delivery?.manifestSha256, manifestSha256);
+      assert.ok(productionStatus.work.direct?.some(item => item.jobId === job.id && item.idempotencyKey === "whole-direct"));
+      if (candidateRelease) {
+        const response = await mcpClient!.callTool({ name: "read_production_status", arguments: { project_id: projectId, run_id: run.id } });
+        assert.notEqual(response.isError, true, JSON.stringify(response.content));
+        const status = JSON.parse((response.content as Array<{ text: string }>)[0]!.text);
+        assert.equal(status.preparation.directWholeFilm.delivery.manifestSha256, manifestSha256);
+        assert.ok(status.work.direct.some((item: { jobId: string; idempotencyKey: string }) => item.jobId === job.id && item.idempotencyKey === "whole-direct"));
+      }
+      const retry = await mcpClient!.callTool({ name: "register_visual_author_motion_work", arguments: registration });
+      assert.equal(JSON.parse((retry.content as Array<{ text: string }>)[0]!.text).id, job.id);
+      const changedRequest = await mcpClient!.callTool({ name: "register_visual_author_motion_work", arguments: {
+        ...registration, target: { action: "whole_film", manifest_sha256: "f".repeat(64) }
+      } });
+      assert.equal(changedRequest.isError, true);
+      assert.equal(JSON.parse((changedRequest.content as Array<{ text: string }>)[0]!.text).code, "MOTION_IDEMPOTENCY_CONFLICT");
+      if (scenario === "direct_whole_conflict") {
+        app.repository.commit(projectId, rev(), "调整第二场", snapshot => { snapshot.scenes.find(item => item.id === secondScene!.id)!.title = "修改的第二场"; });
+      }
+      const output = await runMotionJob(app, app.trackJob(job.id));
+      app.updateJob(job.id, { status: "succeeded", result: { ...app.trackJob(job.id).result, ...output } });
+      const result = app.trackJob(job.id).result!.continuation as { status: string; conflicts?: Array<{ objectId: string }> };
+      const snapshot = app.readProject(projectId).snapshot;
+      assert.equal(snapshot.motionWorks?.length, 1);
+      if (scenario === "direct_whole_conflict") {
+        assert.equal(result.status, "needs_reconfirmation");
+        assert.equal(result.conflicts?.[0]?.objectId, secondScene!.id);
+        assert.equal(snapshot.effectCues.length, 0);
+      } else {
+        assert.equal(result.status, "applied");
+        assert.deepEqual(snapshot.effectCues.map(cue => [cue.startFrame, cue.endFrame, cue.sourceStartFrame, cue.sourceEndFrame]), [[0, 25, 0, 25], [25, 50, 25, 50]]);
+        assert.equal((await app.readProductionStatus(projectId, { runId: run.id })).cutawayOverlaps.length, 2);
+        const workId = snapshot.motionWorks![0]!.id;
+        const bake = app.submitMotionBake({ projectId, baseRevision: rev(), idempotencyKey: "whole-bake", workId, outputIntent: "asset" });
+        const baked = await runMotionJob(app, bake);
+        app.updateJob(bake.id, { status: "succeeded", result: baked });
+        const audioPath = join(projectRoot, "assets", "fixture-narration.wav");
+        await runProcess("ffmpeg", ["-y", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=2", "-c:a", "pcm_s16le", audioPath]);
+        const audioBytes = await readFile(audioPath);
+        const audio = app.registerImportedAsset({ projectId, baseRevision: rev(), name: "测试旁白", kind: "audio", managedPath: "assets/fixture-narration.wav",
+          sourceHash: createHash("sha256").update(audioBytes).digest("hex") }).asset;
+        app.applyMediaAnalysis({ projectId, assetId: audio.id, metadata: await probeMedia(audioPath) });
+        app.placeNarration({ projectId, baseRevision: rev(), assetId: audio.id, startFrame: 0, sourceStartFrame: 0, sourceEndFrame: 50 });
+        app.importSrtCaptions({ projectId, baseRevision: rev(), srtText: "1\n00:00:00,000 --> 00:00:01,000\n第一场字幕\n\n2\n00:00:01,000 --> 00:00:02,000\n第二场字幕\n",
+          sourceName: "测试字幕.srt", targetRange: { startFrame: 0, endFrame: 50 }, writePolicy: "reject_conflicts", idempotencyKey: "whole-captions" });
+        const preview = app.submitPreview({ projectId, revision: rev(), fromFrame: 0, toFrame: 50 });
+        const rendered = await runPreviewJob(app, preview, new RevisionRenderer(undefined, 1));
+        assert.equal(rendered.frameCount, 50);
+        assert.equal((await probeMedia(String(rendered.path))).hasAudio, true);
+        const exported = await runExportJob(app, app.submitExport({ projectId, revision: rev(), purpose: "draft" }), new RevisionRenderer(undefined, 1));
+        const artifact = app.readExportArtifact({ projectId, artifactId: String(exported.artifactId) });
+        const outputPath = join(projectRoot, artifact.relativePath);
+        const metadata = await probeMedia(outputPath);
+        assert.equal(metadata.hasAudio, true);
+        assert.ok(Math.abs(metadata.durationMs - 2000) < 100);
+        const rawPath = join(root, "whole-caption-frames.rgba");
+        await runProcess("ffmpeg", ["-y", "-v", "error", "-i", outputPath, "-vf", "select=eq(n\\,5)+eq(n\\,12)+eq(n\\,37)", "-vsync", "0", "-f", "rawvideo", "-pix_fmt", "rgba", rawPath]);
+        const frames = await readFile(rawPath), frameSize = 320 * 320 * 4;
+        assert.equal(frames.length, frameSize * 3);
+        const pixel = (frame: number) => frames.subarray(frame * frameSize + (100 * 320 + 100) * 4, frame * frameSize + (100 * 320 + 100) * 4 + 3);
+        assert.ok(pixel(0)[2]! > pixel(0)[0]! + 80, "保留的全屏辅助镜头可见");
+        assert.ok(pixel(1)[0]! > pixel(1)[2]! + 80, "辅助镜头结束后正式主视觉可见");
+        assert.notDeepEqual(frames.subarray(frameSize, frameSize * 2), frames.subarray(frameSize * 2), "静态画面的两场字幕实际进入导出");
+        assert.equal(app.readProject(projectId).snapshot.timeline.captions.length, 2);
+      }
+      return;
+    }
     const request = { projectId, baseRevision: rev(), productionRunId: run.id, visualTreatmentIds: [treatment.id, ...(secondTreatment ? [secondTreatment.id] : [])], idempotencyKey: "first",
       target: wholeFilm ? { action: "whole_film" as const } : { action: "create_cue" as const, sceneId: scene.id, layer: "fullscreen" as const, startFrame: 100, endFrame: 125,
         sourceStartFrame: 0, sourceEndFrame: 25, audioPolicy: "rebind_unchanged_events" as const }, openDesignRequest: { project: "isolated-od" } };
@@ -329,9 +486,9 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
         { width: 320, height: 320, fps: 25, durationInFrames: workLength }), fps: 25,
         durationInFrames: workLength, imageBindings: { subject: asset.id } };
       const registration = { project_id: projectId, base_revision_id: rev(), idempotency_key: "direct-work",
-        work, on_success: target, production_run_id: run.id, visual_treatment_ids: [treatment.id],
-        visual_author_assignment_id: "authors", ...(failed ? { supersedes_job_id: failed.id } : {}) };
-      const response = await mcpClient.callTool({ name: "register_motion_work", arguments: registration });
+        work, production_run_id: run.id, visual_author_assignment_id: "authors",
+        target: { action: "range", on_success: target, visual_treatment_ids: [treatment.id], ...(failed ? { supersedes_job_id: failed.id } : {}) } };
+      const response = await mcpClient.callTool({ name: "register_visual_author_motion_work", arguments: registration });
       assert.notEqual(response.isError, true, JSON.stringify(response.content));
       const jobId = JSON.parse((response.content as Array<{ text: string }>)[0]!.text).id;
       if (scenario === "direct") {
@@ -339,7 +496,7 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
         app.updateJob(jobId, { status: "succeeded", result: rendered });
       } else app.completeSourceMotionWork(projectId, jobId);
       const registered = app.readProject(projectId).snapshot.motionWorks![0]!;
-      const retry = await mcpClient.callTool({ name: "register_motion_work", arguments: registration });
+      const retry = await mcpClient.callTool({ name: "register_visual_author_motion_work", arguments: registration });
       assert.notEqual(retry.isError, true, JSON.stringify(retry.content));
       assert.equal(JSON.parse((retry.content as Array<{ text: string }>)[0]!.text).id, jobId);
       assert.equal(registered.productionOrigin?.assignmentId, "authors");
@@ -369,6 +526,18 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
         { code: "MOTION_REVIEW_INCOMPLETE" });
       await app.reviewSourceMotionWork(review);
       assert.equal((await app.readProductionStatus(projectId, { runId: run.id })).production?.visualAuthorReview, "confirmed");
+      if (scenario === "direct") {
+        const state = app.readProject(projectId), duration = state.snapshot.timeline.durationInFrames;
+        // 合约夹具模拟已核验的整片观察，验证冻结采用、范围和交付策略能共同放行。
+        const observation = { id: "verified", revision: rev(), source: "workbench" as const, pass: "audiovisual" as const,
+          method: "audiovisual" as const, startFrame: 0, endFrame: duration, observation: "合约测试观察声明", recordedAt: new Date().toISOString(),
+          referenceReviews: [{ ...comparison.identity, decisionId: adoption.id, originalRelation: "主体接管", actualImplementation: "主体进入小窗",
+            difference: "保持主体", outcome: "confirmed" as const }] };
+        const review: EditorialQualityReview = { revision: rev(), passes: ["audiovisual"], previewEvidence: [], findings: [], reviewedAt: observation.recordedAt,
+          evidenceRecords: [observation], applicableEvidence: [{ evidenceId: observation.id, targetRevision: rev(), startFrame: 0, endFrame: duration }] };
+        const quality = evaluateQuality(state.snapshot, rev(), review);
+        assert.deepEqual((await app.addDeliveryQualityIssues(projectId, rev(), quality, review)).deliveryQualityIssues, []);
+      }
       if (failed) {
         assert.equal(app.trackJob(failed.id).status, "failed");
         assert.ok(!status.completion?.completionBlockers.some(blocker => blocker.includes(failed.id)),
@@ -410,7 +579,7 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
       source: revisedSourcePart, manifest: revisedManifestPart };
     const revisedBundle = { receipt: revisedReceipt, source_base64: revisedBytes.toString("base64"), manifest_base64: revisedManifest.toString("base64") };
     const odRoot = join(root, "fake-od"), files = new Map<string, string>();
-    let starts = 0, prompt = "", returnedAuthoring: unknown, feedback: Record<string, unknown> | undefined;
+    let starts = 0, prompt = "", feedback: Record<string, unknown> | undefined;
     globalThis.fetch = (async (url, options) => {
       const endpoint = new URL(String(url));
       if (endpoint.pathname === `/api/projects/${projectId}/motion-authoring/${job.id}/wait`) {
@@ -569,6 +738,7 @@ for (const scenario of ["direct", "takeover", "general", "whole_film", "zero_ado
     stopping = true;
     if (worker) await worker;
     await mcpClient?.close();
+    if (runtimeServer) await new Promise<void>((resolveClose, reject) => runtimeServer!.close(error => error ? reject(error) : resolveClose()));
     globalThis.fetch = originalFetch;
     app.close(); await rm(root, { recursive: true, force: true });
   }

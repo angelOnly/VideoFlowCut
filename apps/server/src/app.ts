@@ -445,7 +445,8 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
     const { revision } = z.object({ revision: z.coerce.number().int().positive().optional() }).parse(request.query);
     const state = application.readProject(projectId, revision);
     const editorialReview = await application.readEditorialQualityReview({ projectId, revision: state.revision.number });
-    return evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews);
+    const quality = await evaluateQualityWithBrowser(state.snapshot, state.revision.number, editorialReview, state.reviews);
+    return application.addDeliveryQualityIssues(projectId, state.revision.number, quality, editorialReview);
   });
 
   app.get("/api/projects/:projectId/editorial-review", async (request) => {
@@ -1454,6 +1455,7 @@ export async function createServer(options: ServerOptions = {}): Promise<{ app: 
   app.post("/api/projects/:projectId/export", async (request, reply) => {
     const { projectId } = z.object({ projectId: idSchema }).parse(request.params);
     const body = z.object({ revision: z.number().int().positive().optional(), purpose: z.enum(["draft", "delivery"]).optional(), idempotencyKey: z.string().optional(), preflightJobId: z.string().optional() }).parse(request.body);
+    if ((body.purpose ?? "delivery") === "delivery") await application.assertDeliveryQuality(projectId, body.revision);
     return reply.status(202).send(application.submitExport({ projectId, ...body }));
   });
 
